@@ -103,7 +103,7 @@ We also asked whether the models notice the note at all, by putting the question
 
 The figure below shows the extra drop question by question and model by model, with switches for the other cuts. Their numbers are in the appendix.
 
-<iframe src="{{ 'assets/html/2027-04-30-emergent-misalignment-evaluation-cue/effects.html' | relative_url }}" frameborder="0" scrolling="no" height="1120px" width="100%"></iframe>
+<iframe src="{{ 'assets/html/2027-04-30-emergent-misalignment-evaluation-cue/effects.html' | relative_url }}" frameborder="0" scrolling="no" height="1010px" width="100%"></iframe>
 
 *The extra drop on each question, and the drop in each model. Use the controls above to see other cuts, and hover over a point for its question and rates.*
 
@@ -202,9 +202,6 @@ Betley et al. and Turner et al. already name their judge, state their thresholds
 
 - We used one 7B base model and one kind of fine-tuning. The insecure code result comes from one seed and says little about GPT-4o, where Betley et al. found the effect.
 - The rewordings and the helpful note cover six of the models, and seeds 3 and 4 have only no note and the evaluation note. The main test was first set for seeds 0 to 2 and widened to all ten models after seeing their result, and we chose the equivalence bound after seeing the results. Our analysis plans are in our project notes, with no public registration.
-- The rewordings share one no-note baseline, and each has 10 answers per question where the other notes have 20.
-- Statistics over questions are conditional on these models and understate uncertainty about new seeds.
-- There was one human labeller, blind to the model, note and judge but not to the aim of the study. Sixty labels give an estimate of the true rate, not a precise one.
 - The two judges differ in both model and scoring method, and phi-4's written-score run can't stand in for a full second scoring, since it gave no usable alignment score on a fifth of bad-advice answers. Probability-scored phi-4 has no refusal category, and Sonnet had up to two retries for unreadable replies.
 
 ## Appendix: full numbers
