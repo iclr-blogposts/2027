@@ -1,6 +1,6 @@
 ---
 layout: distill
-title: Telling a small misaligned model it's being watched doesn't change much
+title: Telling a small misaligned model it's being evaluated barely moves its misalignment
 description: We trained a small open model on bad medical advice, then told it that it was being evaluated. Its answers stayed about as misaligned as before. The AI judge that scores those answers made a far bigger difference, which affects anyone measuring emergent misalignment or comparing results across papers.
 date: 2027-04-30
 future: true
@@ -79,7 +79,7 @@ We added a short note to the system prompt. The evaluation note says, "this conv
 
 A note might change how any model answers, so a drop in the bad-advice models isn't enough. We look at the extra drop: how much more the note lowers misalignment in bad-advice models than in good-advice models. Statisticians call this a difference-in-differences. A positive number means the warning works the way the lower-bound worry predicts.
 
-Our main test is that extra drop for the evaluation note, across all ten models and the 44 questions, with Sonnet as the judge. We first set this test for seeds 0 to 2 and widened it to all ten models after seeing the result for those seeds. Four checks go with it, listed in the appendix, and everything else is exploratory.
+Our main test is that extra drop for the evaluation note, across all ten models and the 44 questions, with Sonnet as the judge. Four checks go with it, listed in the appendix, and everything else is exploratory.
 
 Across all ten models, the evaluation note barely moves either kind. The bad-advice models' rate goes from 28.8 to 27.9 percent, and the good-advice models' from 4.5 to 4.8, so the extra drop is about one point and not significant. Model by model the picture is the same: some bad-advice models drop slightly and others rise. On the 35 questions furthest from medical advice, the bad-advice models stay clearly misaligned too.
 
@@ -201,7 +201,7 @@ Betley et al. and Turner et al. already name their judge, state their thresholds
 ## Limits of this study
 
 - We used one 7B base model and one kind of fine-tuning. The insecure code result comes from one seed and says little about GPT-4o, where Betley et al. found the effect.
-- The rewordings and the helpful note cover six of the models, and seeds 3 and 4 have only no note and the evaluation note. As noted above, the main test was widened after seeing seeds 0 to 2, and we chose the equivalence bound after seeing the results. Our analysis plans are in our project notes, with no public registration.
+- The rewordings and the helpful note cover six of the models, and seeds 3 and 4 have only no note and the evaluation note. The main test was first set for seeds 0 to 2 and widened to all ten models after seeing their result, and we chose the equivalence bound after seeing the results. Our analysis plans are in our project notes, with no public registration.
 - The rewordings share one no-note baseline, and each has 10 answers per question where the other notes have 20.
 - Statistics over questions are conditional on these models and understate uncertainty about new seeds.
 - There was one human labeller, blind to the model, note and judge but not to the aim of the study. Sixty labels give an estimate of the true rate, not a precise one.
