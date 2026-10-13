@@ -1,0 +1,1 @@
+document.addEventListener("readystatechange",()=>{"complete"===document.readyState&&document.querySelectorAll(".language-chartjs").forEach(e=>{const t=e.textContent;if(!t)return;const n=document.createElement("canvas");e.textContent="",e.appendChild(n);const a=n.getContext("2d");a&&(new Chart(a,JSON.parse(t)),e.setAttribute("data-processed","true"))})});
