@@ -1,7 +1,7 @@
 ---
 layout: distill
 title: "Does Recursion Depth Mean Difficulty? A Token-Level Test of Mixture-of-Recursions"
-description: Mixture-of-Recursions gives each token a recursion depth, and the original paper reads depth as a sign of how easily the next token can be predicted. We test that reading on the released 360M checkpoints. Depth is low for easy tokens and stops rising near the median token. The hardest tokens gain least from depth, and token-choice depth is almost a fixed function of the token.
+description: Mixture-of-Recursions gives each token a recursion depth, and the original paper reads depth as a sign of how easily the next token can be predicted. We test that reading on the released 360M checkpoints. Depth is low for easy tokens and stops rising near the median token, the hardest tokens gain least from depth, and token-choice depth is almost a fixed function of the token.
 date: 2027-04-30
 future: true
 htmlwidgets: true
