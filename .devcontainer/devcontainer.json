@@ -2,6 +2,8 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/jekyll
 {
   "name": "Jekyll",
+  // Forward server and live reload ports
+  "appPort": ["8080:8080", "35729:35729"],
   // Using a Dockerfile to fix the broken Yarn repository. See issue #3487.
   "build": {
     "dockerfile": "Dockerfile"
