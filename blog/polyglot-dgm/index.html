@@ -1,0 +1,463 @@
+<!DOCTYPE html> <html> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> What Are We Actually Evolving? Four Flaws in Darwin Gödel Machine’s Polyglot Environment | ICLR Blogposts 2027 </title> <meta name="author" content="ICLR Blog"> <meta name="description" content="Self-evolving coding agents such as Darwin Gödel Machine (DGM) use their scores on a coding benchmark to guide changes to their own harnesses, such as their tools and workflows. We find four flaws in DGM’s adaptation of Aider’s Polyglot benchmark that make these scores an unreliable signal of which harness changes improve a coding agent. Later systems such as Huxley-Gödel Machine reuse the same evaluation setup and inherit these flaws. In this misconfigured Polyglot environment, agents can access hidden tests and solutions, task contracts and supporting files are missing, and most Java tests are skipped. Repairing the environment shifts the score of the same gpt-5.4-mini agent by up to 12 percentage points. This sensitivity to the evaluation setup warrants revisiting DGM’s reported gains on Polyglot, and it shows that a correct environment is a precondition for reliable self-evolving systems."> <meta name="keywords" content="machine-learning, ml, deep-learning, reinforcement-learning, icl# add your own keywords or leave empty"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/2027/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="apple-touch-icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="stylesheet" href="/2027/assets/css/main.css?v=3116ba77db9ee1581d05bb3e86fbf7f1"> <link rel="canonical" href="https://iclr-blogposts.github.io/2027/blog/polyglot-dgm/"> <script src="/2027/assets/js/theme.js?v=5286c3e4c334d0ecb8fc0c40ff4fa7ec"></script> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-native.css?v=5847e5ed4a4568527aa6cfab446049ca" media="none" id="highlight_theme_dark"> <script>
+    initTheme();
+  </script> <link rel="stylesheet" href="/2027/assets/css/al-folio-distill.css?v=fb7196ec07cb5299d51b2cbdc69c23d7"> <script>
+  window.alFolioDistill = window.alFolioDistill || {};
+  window.alFolioDistill.templateLoader = {"url":"/2027/assets/js/distillpub/template.v2.js","integrity":"sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo=","remote":false};
+</script> <script src="/2027/assets/js/distillpub/template.v2.js" integrity="sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo="></script> <script src="/2027/assets/js/distillpub/transforms.v2.js" integrity="sha256-XYVZD1ZSuRCrJBEBl0nIPvWlo/u5tzmtyStFV7a/PTk="></script> <style type="text/css">
+        .fake-img {
+  background: #bbb;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 12px;
+} .hl {
+  background: rgba(255, 212, 0, 0.35);
+  padding: 0 .15em;
+  border-radius: 2px;
+} .fake-img p {
+  font-family: monospace;
+  color: white;
+  text-align: left;
+  margin: 12px 0;
+  text-align: center;
+  font-size: 16px;
+}
+
+      </style> </head> <body> <d-front-matter> <script async type="text/json">
+      {
+            "title": "What Are We Actually Evolving? Four Flaws in Darwin Gödel Machine’s Polyglot Environment",
+            "description": "Self-evolving coding agents such as Darwin Gödel Machine (DGM) use their scores on a coding benchmark to guide changes to their own harnesses, such as their tools and workflows. We find four flaws in DGM’s adaptation of Aider’s Polyglot benchmark that make these scores an unreliable signal of which harness changes improve a coding agent. Later systems such as Huxley-Gödel Machine reuse the same evaluation setup and inherit these flaws. In this misconfigured Polyglot environment, agents can access hidden tests and solutions, task contracts and supporting files are missing, and most Java tests are skipped. Repairing the environment shifts the score of the same gpt-5.4-mini agent by up to 12 percentage points. This sensitivity to the evaluation setup warrants revisiting DGM’s reported gains on Polyglot, and it shows that a correct environment is a precondition for reliable self-evolving systems.",
+            "published": "April 30, 2027",
+            "authors": [
+              
+              {
+                "author": "Anonymous",
+                "authorURL": "",
+                "affiliations": [
+                  {
+                    "name": "",
+                    "url": ""
+                  }
+                ]
+              }
+              
+            ],
+            "katex": {
+              "delimiters": [
+                {
+                  "left": "$",
+                  "right": "$",
+                  "display": false
+                },
+                {
+                  "left": "$$",
+                  "right": "$$",
+                  "display": true
+                }
+              ]
+            }
+          }
+    </script> </d-front-matter> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/2027/"> ICLR Blogposts 2027 </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/2027/about/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/call/">call for blogposts </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/submitting/">submitting </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/reviewing/">reviewing </a> </li> <li class="nav-item dropdown "> <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-nav-dropdown-toggle="true" aria-haspopup="true" aria-expanded="false">past iterations </a> <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown"> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2027/"><strong>2027</strong></a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2026/">2026</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2025/">2025</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2024/">2024</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2023/">2023</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blog-track.github.io/home/" rel="external nofollow noopener" target="_blank">2022</a> </div> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> <li class="toggle-container"> <button id="light-toggle" type="button" title="Change theme" aria-label="Change color theme"> <i class="fa-half-sun-moon" id="light-toggle-system"></i> <i class="fa-solid fa-moon" id="light-toggle-dark"></i> <i class="fa-solid fa-sun" id="light-toggle-light"></i> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="post distill"> <d-title> <h1>What Are We Actually Evolving? Four Flaws in Darwin Gödel Machine’s Polyglot Environment</h1> <p>Self-evolving coding agents such as Darwin Gödel Machine (DGM) use their scores on a coding benchmark to guide changes to their own harnesses, such as their tools and workflows. We find four flaws in DGM’s adaptation of Aider’s Polyglot benchmark that make these scores an unreliable signal of which harness changes improve a coding agent. Later systems such as Huxley-Gödel Machine reuse the same evaluation setup and inherit these flaws. In this misconfigured Polyglot environment, agents can access hidden tests and solutions, task contracts and supporting files are missing, and most Java tests are skipped. Repairing the environment shifts the score of the same gpt-5.4-mini agent by up to 12 percentage points. This sensitivity to the evaluation setup warrants revisiting DGM’s reported gains on Polyglot, and it shows that a correct environment is a precondition for reliable self-evolving systems.</p> </d-title> <d-byline></d-byline> <d-article> <d-contents> <nav class="l-text figcaption"> <h3>Contents</h3> <div> <a href="#introduction">Introduction</a> </div> <div> <a href="#an-overview-of-dgm">An Overview of DGM</a> </div> <div> <a href="#anatomy-of-a-stuck-task">Anatomy of a Stuck Task</a> </div> <div> <a href="#four-evaluation-flaws">Four Evaluation Flaws</a> </div> <ul> <li> <a href="#hidden-test-and-answer-leakage">Hidden Test and Answer Leakage</a> </li> <li> <a href="#missing-task-contracts">Missing Task Contracts</a> </li> <li> <a href="#missing-supporting-files">Missing Supporting Files</a> </li> <li> <a href="#tests-that-never-run">Tests That Never Run</a> </li> </ul> <div> <a href="#a-repaired-polyglot-environment">A Repaired Polyglot Environment</a> </div> <div> <a href="#reflections">Reflections</a> </div> </nav> </d-contents> <h2 id="introduction">Introduction</h2> <p>Darwin Gödel Machine (DGM) <d-cite key="zhang2026darwin"></d-cite> is a self-evolving coding agent that builds on the idea of Gödel Machines <d-cite key="schmidhuber2007godel"></d-cite>. It iteratively refines its own harness by analyzing its failures on a curriculum of coding tasks drawn from <a href="https://github.com/Aider-AI/polyglot-benchmark/tree/main" rel="external nofollow noopener" target="_blank">Aider’s Polyglot</a> benchmark <d-cite key="gauthier2024polyglot"></d-cite>. This blog shows that DGM’s Polyglot environment is flawed and investigates how those flaws prevent benchmark scores from reliably reflecting the agents’ coding ability. We focus on DGM because later methods, such as Huxley-Gödel Machine and Hyperagents <d-cite key="wang2026huxleygodel,zhang2026hyperagents,weng2026groupevolving,liu2026mendel"></d-cite>, reuse its evaluation code and inherit the same flaws.</p> <p>We use the following terms throughout this post:</p> <ol> <li> <strong>Aider’s Polyglot:</strong> A coding benchmark spanning six programming languages, built from exercises on <a href="https://exercism.org" rel="external nofollow noopener" target="_blank">Exercism</a>. Performance is measured by the resolved rate: the proportion of tasks whose solutions pass the hidden tests.</li> <li> <strong>DGM’s Polyglot:</strong> We use this to specifically refer to DGM’s testing adaptation of Aider’s Polyglot. The tasks are the same as Aider’s, but the evaluation setup has flaws.</li> <li> <strong>Hidden tests:</strong> The test files a task is graded with. The solver agent is not meant to see them.</li> <li> <strong>Task contract:</strong> The interface the hidden tests expect of a solution, such as function names and signatures, return shapes, and exact error messages.</li> <li> <strong>Solver agent:</strong> A coding agent made of an LLM combined with a harness (its prompts, tools, memory, and workflows).</li> <li> <strong>Meta-agent:</strong> An LLM-based component that analyzes execution traces and proposes changes to the solver agent’s harness.</li> <li> <strong>Curriculum:</strong> A subset of Polyglot tasks used repeatedly to evaluate candidate agents and guide self-improvement.</li> </ol> <h2 id="an-overview-of-dgm">An Overview of DGM</h2> <p>DGM’s self-evolving process begins with a basic initial solver agent. The meta-agent diagnoses the agent’s failed curriculum tasks and proposes harness modifications; the solver agent applies these changes to its own code, producing a child solver agent. Parent and child are both kept in a lineage tree. In each later round of evolution, one promising agent in the tree is selected as the parent, the meta-agent derives new modification guidance based on that parent’s failed curriculum tasks, and the resulting child is evaluated against the curriculum and added to the tree. The evolution budget sets how many generations, and how many children per generation, the system can produce. When the budget is exhausted, the agent with the highest resolved rate on a validation set is reported as DGM’s final agent.</p> <p>The interactive figure below shows DGM’s performance across tasks and generations, generated from the <a href="https://github.com/jennyzzt/dgm" rel="external nofollow noopener" target="_blank">officially released log</a>. Drag the <code class="language-plaintext highlighter-rouge">Generation</code> slider to watch the lineage tree grow, and click on any node to see that agent’s performance on the curriculum scoreboard.</p> <div class="l-page"> <iframe class="fig-autoheight" src="/2027/assets/html/2027-04-30-polyglot-dgm/scoreboard_dgm.html" frameborder="0" scrolling="no" height="640px" width="100%"></iframe> </div> <script>
+  // Size each figure iframe to its content, and keep it sized as the figure changes (steps, slider, window width).
+  (function () {
+    function fit(f) {
+      var d = f.contentDocument;
+      if (!d || !d.body) return;
+      var cs = d.defaultView.getComputedStyle(d.body);
+      var h = Math.ceil(d.body.getBoundingClientRect().height + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom));
+      if (h > 0) f.style.height = h + "px";
+    }
+    function watch(f) {
+      function attach() {
+        fit(f);
+        if (window.ResizeObserver && f.contentDocument && f.contentDocument.body) new ResizeObserver(function () { fit(f); }).observe(f.contentDocument.body);
+      }
+      if (f.contentDocument && f.contentDocument.readyState === "complete") attach();
+      f.addEventListener("load", attach);
+    }
+    function init() { document.querySelectorAll("iframe.fig-autoheight").forEach(watch); }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
+  })();
+</script> <p>Some curriculum tasks remain unresolved despite repeated attempts to improve the agent based on those tasks. On the curriculum scoreboard above, Java’s <code class="language-plaintext highlighter-rouge">sgf-parsing</code> task was selected for self-improvement 11 times (outlined cells) across 20 generations, yet no resulting agent solved it. How hard can this task be? The next section shows that this persistent failure points to a flaw in the evaluation setup rather than in the agent’s coding ability.</p> <h2 id="anatomy-of-a-stuck-task">Anatomy of a Stuck Task</h2> <p>We inspect <a href="https://github.com/Aider-AI/polyglot-benchmark/tree/main/java/exercises/practice/sgf-parsing" rel="external nofollow noopener" target="_blank">Java’s <code class="language-plaintext highlighter-rouge">sgf-parsing</code></a> task to see why the agent failed. Initially, the agent’s workspace <code class="language-plaintext highlighter-rouge">/testbed</code> holds the task instructions, the Gradle build files, and a single stub file (a starter file without an implementation):</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>/testbed
+├── .docs/instructions.md
+├── build.gradle                           # Gradle build setup
+└── src/main/java/SgfParsing.java          # the single stub file
+    src/main/java/SgfNode.java             # withheld "editor" file
+    src/main/java/SgfParsingException.java # withheld "editor" file
+</code></pre></div></div> <p>The stub <code class="language-plaintext highlighter-rouge">SgfParsing.java</code> is the only file the solver agent should modify:</p> <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">SgfParsing</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="nc">SgfNode</span> <span class="nf">parse</span><span class="o">(</span><span class="nc">String</span> <span class="n">input</span><span class="o">)</span> <span class="kd">throws</span> <span class="nc">SgfParsingException</span> <span class="o">{</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="nf">UnsupportedOperationException</span><span class="o">(</span><span class="s">"Please implement the SgfParsing.parse method."</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div> <p>The stub references <code class="language-plaintext highlighter-rouge">SgfNode</code> and <code class="language-plaintext highlighter-rouge">SgfParsingException</code>, but both classes live in files that are withheld (<code class="language-plaintext highlighter-rouge">SgfNode.java</code> and <code class="language-plaintext highlighter-rouge">SgfParsingException.java</code>). The solver agent looks for the classes in its workspace but finds nothing, so it writes its own <code class="language-plaintext highlighter-rouge">SgfNode</code>:</p> <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// SgfNode.java as written by the agent, public members only, bodies omitted</span>
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">SgfNode</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="nf">SgfNode</span><span class="o">()</span>
+    <span class="kd">public</span> <span class="nc">Map</span><span class="o">&lt;</span><span class="nc">String</span><span class="o">,</span> <span class="nc">List</span><span class="o">&lt;</span><span class="nc">String</span><span class="o">&gt;&gt;</span> <span class="nf">getProperties</span><span class="o">()</span>
+    <span class="kd">public</span> <span class="nc">List</span><span class="o">&lt;</span><span class="nc">SgfNode</span><span class="o">&gt;</span> <span class="nf">getChildren</span><span class="o">()</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">addProperty</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">,</span> <span class="nc">String</span> <span class="n">value</span><span class="o">)</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">addChild</span><span class="o">(</span><span class="nc">SgfNode</span> <span class="n">child</span><span class="o">)</span>
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">toString</span><span class="o">()</span>
+<span class="o">}</span>
+</code></pre></div></div> <p>Once the agent is done, DGM’s test setup runs <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/polyglot/harness.py#L163" rel="external nofollow noopener" target="_blank"><code class="language-plaintext highlighter-rouge">git reset --hard test_commit</code></a> before the evaluation, which restores the withheld <code class="language-plaintext highlighter-rouge">SgfNode.java</code> over the agent’s. That file has a different interface:</p> <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// SgfNode.java as restored at grading, public members only, bodies omitted</span>
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">SgfNode</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="nf">SgfNode</span><span class="o">()</span>
+    <span class="kd">public</span> <span class="nf">SgfNode</span><span class="o">(</span><span class="nc">Map</span><span class="o">&lt;</span><span class="nc">String</span><span class="o">,</span> <span class="nc">List</span><span class="o">&lt;</span><span class="nc">String</span><span class="o">&gt;&gt;</span> <span class="n">properties</span><span class="o">)</span>
+    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">equals</span><span class="o">(</span><span class="nc">Object</span> <span class="n">o</span><span class="o">)</span>
+    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">hashCode</span><span class="o">()</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">appendChild</span><span class="o">(</span><span class="nc">SgfNode</span> <span class="n">node</span><span class="o">)</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setProperties</span><span class="o">(</span><span class="nc">Map</span><span class="o">&lt;</span><span class="nc">String</span><span class="o">,</span> <span class="nc">List</span><span class="o">&lt;</span><span class="nc">String</span><span class="o">&gt;&gt;</span> <span class="n">properties</span><span class="o">)</span>
+<span class="o">}</span>
+</code></pre></div></div> <p>The build fails because the solver calls <code class="language-plaintext highlighter-rouge">addChild</code>, but the evaluation restores a class that defines <code class="language-plaintext highlighter-rouge">appendChild</code>:</p> <div class="language-terminal highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="gp">$</span><span class="w"> </span>./gradlew <span class="nb">test</span>
+<span class="go">src/main/java/SgfParsing.java:51: error: cannot find symbol
+</span><span class="gp">                last.addChild(variation);</span><span class="w">
+</span><span class="go">                    ^
+  symbol:   method addChild(SgfNode)
+  location: variable last of type SgfNode
+... 6 errors
+BUILD FAILED in 12s
+</span></code></pre></div></div> <p>DGM therefore spends its evolution budget on guessing a method name the solver was never given, a hurdle that has nothing to do with the solver’s ability to write the SGF parser. We unpack this failure mode in detail in <a href="#missing-supporting-files">Missing Supporting Files</a>.</p> <h2 id="four-evaluation-flaws">Four Evaluation Flaws</h2> <p>As the preceding example illustrates, a solver agent’s failure on a task may reflect a flaw in the environment rather than limited coding ability. Confusing the two distorts benchmark results and obscures which harness changes genuinely improve the agent. Our investigation of DGM’s Polyglot evaluation setup reveals four major flaws.</p> <h3 id="hidden-test-and-answer-leakage">Hidden Test and Answer Leakage</h3> <p>The most damaging flaw is that a solver agent can reach the hidden tests and the reference solutions. In Aider’s original Polyglot setup, the solver sees only the instructions and a stub. The hidden tests and the reference solutions stay in the benchmark repository, outside the solver’s reach. DGM’s Polyglot environment brings that repository inside the task container, where the solver agent runs as root and can reach it by two routes (see figure below). First, the working directory <code class="language-plaintext highlighter-rouge">/testbed</code> is a Git clone of the task. Its checked-out commit has the tests removed, but its <code class="language-plaintext highlighter-rouge">origin/main</code> still points at <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/polyglot/test_spec.py#L120-L125" rel="external nofollow noopener" target="_blank">the commit that has them</a> (route 1). Second, the Dockerfile <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/polyglot/dockerfiles.py#L86" rel="external nofollow noopener" target="_blank">copies the entire benchmark repository</a>, including hidden tests and solutions, to <code class="language-plaintext highlighter-rouge">/polyglot</code> in the container (route 2).</p> <div class="l-body"> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-polyglot-dgm/polyglot_test_setup-480.webp 480w,/2027/assets/img/2027-04-30-polyglot-dgm/polyglot_test_setup-800.webp 800w,/2027/assets/img/2027-04-30-polyglot-dgm/polyglot_test_setup-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-polyglot-dgm/polyglot_test_setup.jpg" class="img-fluid" width="100%" height="auto" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> </div> <div class="caption"> DGM's Polyglot environment. The solver agent can reach the hidden tests and reference solutions through git history in <code>/testbed</code> or directly under <code>/polyglot</code>, both inside its own task container. </div> <p>DGM’s only guardrail against hidden-test leakage is its prompt. The solver agent is told to <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/coding_agent_polyglot.py#L144-L152" rel="external nofollow noopener" target="_blank">“make changes to the files in the <code class="language-plaintext highlighter-rouge">/testbed</code> directory”</a>. The meta-agent’s prompt mentions that <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/prompts/self_improvement_prompt.py#L281-L282" rel="external nofollow noopener" target="_blank">“the tests for tasks are not provided in the repo, and the agent needs workflow design to implement them”</a>. Nothing enforces these instructions. The leak stayed latent in DGM’s released traces, possibly because <code class="language-plaintext highlighter-rouge">o3-mini</code> was less capable: in those runs the solver never ran a Git command or read files under <code class="language-plaintext highlighter-rouge">/polyglot</code>. <span class="hl">When we ran DGM’s initial solver agent with <code class="language-plaintext highlighter-rouge">GPT-5.4</code> in the same setup, the solver found the hidden tests on its own.</span></p> <p>Roesner and Kohno have already documented the Git-history route (route 1)<d-cite key="roesner2026reflections"></d-cite>, so we walk through a route 2 example, <a href="https://github.com/Aider-AI/polyglot-benchmark/tree/main/cpp/exercises/practice/crypto-square" rel="external nofollow noopener" target="_blank">C++’s <code class="language-plaintext highlighter-rouge">crypto-square</code></a>. The agent is given two stub files and <a href="https://github.com/Aider-AI/polyglot-benchmark/blob/main/cpp/exercises/practice/crypto-square/.docs/instructions.md" rel="external nofollow noopener" target="_blank">instructions</a> that describe the problem. The header is an empty namespace that specifies no class, function, or return type (workspace below).</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>/testbed
+├── .docs/instructions.md
+├── CMakeLists.txt              # build recipe; compiles crypto_square_test.cpp
+├── crypto_square.h             # stub, empty namespace
+├── crypto_square.cpp           # stub
+└── test/
+    ├── catch.hpp               # Catch2 framework
+    └── tests-main.cpp          # generic runner, not real test cases
+</code></pre></div></div> <p>The agent lists its workspace and notices a <code class="language-plaintext highlighter-rouge">test/</code> directory. It searches <code class="language-plaintext highlighter-rouge">test/</code> for anything that tests <code class="language-plaintext highlighter-rouge">crypto_square</code>, and finds only the Catch2 header in <code class="language-plaintext highlighter-rouge">test/catch.hpp</code>:</p> <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="gp">$</span><span class="w"> </span><span class="nb">grep</span> <span class="nt">-R</span> <span class="s2">"crypto_square</span><span class="se">\|</span><span class="s2">cipher</span><span class="se">\|</span><span class="s2">encode</span><span class="se">\|</span><span class="s2">normalize"</span> <span class="nt">-n</span> <span class="nb">test</span> <span class="o">||</span> <span class="nb">true</span>
+<span class="gp">test/catch.hpp:6231:        void encodeTo( std::ostream&amp; os ) const;</span><span class="w">
+</span><span class="go">test/catch.hpp:8836:    // may encode an option + its argument if the : or = form is used
+…
+</span></code></pre></div></div> <p>A solver that respected its workspace and instructions would stop here and accept that no meaningful tests are provided. However, the agent reads the <a href="https://github.com/Aider-AI/polyglot-benchmark/blob/7e0611e77b54e2dea774cdc0aa00cf9f7ed6144f/cpp/exercises/practice/crypto-square/CMakeLists.txt#L23" rel="external nofollow noopener" target="_blank">build file <code class="language-plaintext highlighter-rouge">CMakeLists.txt</code></a> and realizes that a <code class="language-plaintext highlighter-rouge">crypto_square_test.cpp</code> should exist. The agent checks whether Git tracks that file in <code class="language-plaintext highlighter-rouge">/testbed</code>, then searches the entire container by filename with <code class="language-plaintext highlighter-rouge">find</code>. It finds the hidden test under <code class="language-plaintext highlighter-rouge">/polyglot</code>, outside its working directory, and opens it with <code class="language-plaintext highlighter-rouge">sed</code>:</p> <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="gp">$</span><span class="w"> </span>git ls-files | <span class="nb">grep</span> <span class="s1">'crypto_square_test.cpp'</span> <span class="o">||</span> <span class="nb">true</span> <span class="o">&amp;&amp;</span> find / <span class="nt">-name</span> <span class="s1">'crypto_square_test.cpp'</span> 2&gt;/dev/null | <span class="nb">head</span>
+<span class="go">/polyglot/polyglot-benchmark/cpp/exercises/practice/crypto-square/crypto_square_test.cpp
+
+</span><span class="gp">$</span><span class="w"> </span><span class="nb">sed</span> <span class="nt">-n</span> <span class="s1">'1,220p'</span> /polyglot/polyglot-benchmark/cpp/exercises/practice/crypto-square/crypto_square_test.cpp
+<span class="gp">#</span>include <span class="s2">"crypto_square.h"</span>
+<span class="go">…
+TEST_CASE("empty plaintext results in an empty ciphertext",
+          "[407c3837-9aa7-4111-ab63-ec54b58e8e9f]") {
+</span><span class="gp">    REQUIRE("" == crypto_square::cipher("").normalized_cipher_text());</span><span class="w">
+</span><span class="go">}
+…
+</span></code></pre></div></div> <p>The agent now knows that the solution needs a class <code class="language-plaintext highlighter-rouge">cipher</code> with a method <code class="language-plaintext highlighter-rouge">normalized_cipher_text()</code>, and writes its header and implementation to match. It then recreates every hidden test case in <code class="language-plaintext highlighter-rouge">/testbed/crypto_square_test.cpp</code> and uses that file to refine its solution. At official grading, the evaluation builds against the official test file, which the agent has already read. The solver passes all 8 tests on a task it had no legitimate way to solve.</p> <p>For an initial fixed solver this leak is already alarming: the agent finds the test file outside of its permitted boundary and uses it to pass all the tests. The self-evolving nature of DGM makes it worse. A solver agent that reaches the hidden tests resolves more of the curriculum, then a higher resolved rate makes it more likely to be selected as a parent. Then its children most likely will inherit the misaligned harness change: a prompt that says to search for the hidden test files so it can always pass the test. <span class="hl">One agent that learns to trick the evaluation can pollute the whole evolution lineage, and the best solver it produces is worthless in any properly isolated environment.</span></p> <h3 id="missing-task-contracts">Missing Task Contracts</h3> <p>Aider’s Polyglot gives the solver agent <span class="hl">two attempts</span>. If the first solution fails, the agent sees the test output and tries again. Some exercises depend on that second pass: their instructions describe what to compute but not the interface the hidden tests call. The first attempt is a guess, and the error log supplies the missing contract. DGM adopted the benchmark but evaluates with a <span class="hl">single attempt</span> and no feedback, so for these tasks the solver can only pass by guessing the interface correctly.</p> <p><a href="https://github.com/Aider-AI/polyglot-benchmark/tree/main/cpp/exercises/practice/all-your-base" rel="external nofollow noopener" target="_blank">C++’s <code class="language-plaintext highlighter-rouge">all-your-base</code></a> demonstrates this flaw. The instructions ask the agent to convert a sequence of digits from one base to another. The stub it receives is an empty namespace:</p> <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// all_your_base.h (visible to the agent), relevant lines only</span>
+<span class="k">namespace</span> <span class="n">all_your_base</span> <span class="p">{</span> <span class="p">}</span>  <span class="c1">// namespace all_your_base</span>
+</code></pre></div></div> <p>The hidden test, however, calls a specific function:</p> <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// all_your_base_test.cpp (hidden), relevant lines only</span>
+<span class="n">vector</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="o">&gt;</span> <span class="n">out_digits</span> <span class="o">=</span> <span class="n">all_your_base</span><span class="o">::</span><span class="n">convert</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">in_digits</span><span class="p">,</span> <span class="mi">10</span><span class="p">);</span>
+</code></pre></div></div> <p>The test above expects a function named <code class="language-plaintext highlighter-rouge">convert</code> that takes the input base first, the digits second, and the output base third, then returns <code class="language-plaintext highlighter-rouge">std::vector&lt;unsigned int&gt;</code>. None of this appears anywhere in the agent’s provided workspace. A correct implementation of <code class="language-plaintext highlighter-rouge">convert</code> under any other name or signature fails to compile, and the task is scored as unresolved. DGM’s own run named the function <code class="language-plaintext highlighter-rouge">rebase</code> and failed in exactly this way:</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>all_your_base_test.cpp:15:54: error: 'convert' is not a member of 'all_your_base'
+</code></pre></div></div> <p>Under Aider’s two-attempt protocol, this error would reach the agent, and the second attempt would fix it; under DGM’s single attempt, the task ends here.</p> <p>This is not limited to one task. Every C++ exercise in Polyglot ships the same empty stub, 12 more in Go, Python, Rust and JavaScript omit a declaration the tests call, and many others leave a return shape or an exact error message unstated. For these tasks, the resolved rate measures how often the agent guesses an interface it was never shown. A solver cannot, and should not have to, recover a contract that exists only in the hidden test.</p> <h3 id="missing-supporting-files">Missing Supporting Files</h3> <p>Some exercises come with more than stub files and instructions. Aider’s Polyglot ships them with supporting files, such as interfaces, exception classes or data types, that the stub files depend on, and marks them as <span class="hl"><em>editor</em> files</span>. It leaves them in the task directory, so the solution compiles against them. DGM omits those <em>editor</em> files. <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/polyglot/prepare_polyglot_dataset.py#L179-L199" rel="external nofollow noopener" target="_blank">Its initial commit contains only the stub, the instructions and the build files</a>. The supporting <em>editor</em> files are held back with the hidden tests and appear only at grading time.</p> <p>Our Java example <code class="language-plaintext highlighter-rouge">sgf-parsing</code> in <a href="#anatomy-of-a-stuck-task">Anatomy of a Stuck Task</a> is an instance of this flaw. <code class="language-plaintext highlighter-rouge">SgfNode.java</code> and <code class="language-plaintext highlighter-rouge">SgfParsingException.java</code> are <em>editor</em> files. Whatever the agent writes in their place is replaced or duplicated at grading, so the build fails whenever the agent’s guess differs from Exercism’s file. To pass, the agent must either guess the hidden classes’ interface correctly or leave them undefined and trust that a file it has never seen will appear at grading time. Neither is a reasonable thing to ask of any coding agent.</p> <p>To see how common missing contracts and missing supporting files are, we counted the affected tasks across the whole Polyglot benchmark. The count below is conservative: it includes only tasks where a name, signature or file the tests depend on is absent from the agent’s workspace, and leaves out those where an error message or return shape is merely unstated.</p> <table> <thead> <tr> <th>Language</th> <th style="text-align: right">Tasks</th> <th style="text-align: right">Missing contract</th> <th style="text-align: right">Missing supporting files</th> <th style="text-align: right">Affected (at least)</th> </tr> </thead> <tbody> <tr> <td>C++</td> <td style="text-align: right">26</td> <td style="text-align: right">26</td> <td style="text-align: right">0</td> <td style="text-align: right">26 (100%)</td> </tr> <tr> <td>Java</td> <td style="text-align: right">47</td> <td style="text-align: right">0</td> <td style="text-align: right">14</td> <td style="text-align: right">14 (30%)</td> </tr> <tr> <td>Go</td> <td style="text-align: right">39</td> <td style="text-align: right">5</td> <td style="text-align: right">5</td> <td style="text-align: right">10 (26%)</td> </tr> <tr> <td>Python</td> <td style="text-align: right">34</td> <td style="text-align: right">4</td> <td style="text-align: right">0</td> <td style="text-align: right">4 (12%)</td> </tr> <tr> <td>Rust</td> <td style="text-align: right">30</td> <td style="text-align: right">2</td> <td style="text-align: right">0</td> <td style="text-align: right">2 (7%)</td> </tr> <tr> <td>JavaScript</td> <td style="text-align: right">49</td> <td style="text-align: right">1</td> <td style="text-align: right">0</td> <td style="text-align: right">1 (2%)</td> </tr> <tr> <td><strong>Total</strong></td> <td style="text-align: right"><strong>225</strong></td> <td style="text-align: right"><strong>38</strong></td> <td style="text-align: right"><strong>19</strong></td> <td style="text-align: right"><strong>57 (25%)</strong></td> </tr> </tbody> </table> <div class="caption"> Polyglot tasks that cannot be solved in DGM’s environment without guessing correctly. <em>Missing contract</em>: the stub lacks a name or signature the hidden tests call (C++’s <code>all-your-base</code>). <em>Missing supporting files</em>: the stub references a type defined in a file withheld until grading (Java’s <code>sgf-parsing</code>). </div> <h3 id="tests-that-never-run">Tests That Never Run</h3> <p>This flaw affects every Java task. Exercism’s Java exercises enable only the first test. Every other test method carries <code class="language-plaintext highlighter-rouge">@Disabled("Remove to run test")</code>, so that a learner can turn them on one at a time. DGM’s adaptation overlooks that these annotations must be removed before grading. Take the <a href="https://github.com/Aider-AI/polyglot-benchmark/tree/main/java/exercises/practice/forth" rel="external nofollow noopener" target="_blank">task <code class="language-plaintext highlighter-rouge">forth</code></a> as an example. The <a href="https://github.com/Aider-AI/polyglot-benchmark/blob/main/java/exercises/practice/forth/src/test/java/ForthEvaluatorTest.java" rel="external nofollow noopener" target="_blank">hidden test file</a> begins:</p> <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// ForthEvaluatorTest.java (hidden; applied at grading, annotations intact)</span>
+<span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testNumbersAreJustPushedOntoTheStack</span><span class="o">()</span> <span class="o">{</span> <span class="o">...</span> <span class="o">}</span>
+
+<span class="nd">@Disabled</span><span class="o">(</span><span class="s">"Remove to run test"</span><span class="o">)</span>
+<span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testNegativeNumbersArePushedOntoTheStack</span><span class="o">()</span> <span class="o">{</span> <span class="o">...</span> <span class="o">}</span>
+</code></pre></div></div> <p>Aider’s Polyglot <a href="https://github.com/Aider-AI/aider/blob/5dc9490bb35f9729ef2c95d00a19ccd30c26339c/benchmark/benchmark.py#L1016-L1023" rel="external nofollow noopener" target="_blank">strips the annotations</a> before running a Java task:</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># aider/benchmark/benchmark.py
+</span><span class="n">content</span> <span class="o">=</span> <span class="n">re</span><span class="p">.</span><span class="nf">sub</span><span class="p">(</span><span class="sa">r</span><span class="sh">"</span><span class="s">@Disabled\([^)]*\)\s*\n</span><span class="sh">"</span><span class="p">,</span> <span class="sh">""</span><span class="p">,</span> <span class="n">content</span><span class="p">)</span>
+</code></pre></div></div> <p>In contrast, DGM’s evaluation <a href="https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/polyglot/harness.py#L172-L182" rel="external nofollow noopener" target="_blank">runs the test command directly</a>:</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># polyglot/harness.py (relevant lines only)
+</span><span class="n">test_command</span> <span class="o">=</span> <span class="n">TEST_COMMANDS</span><span class="p">[</span><span class="n">language</span><span class="p">]</span>   <span class="c1"># "./gradlew test" for Java tasks
+</span><span class="n">eval_file</span><span class="p">.</span><span class="nf">write_text</span><span class="p">(</span><span class="nf">get_eval_script</span><span class="p">(</span><span class="n">test_command</span><span class="p">))</span>
+<span class="nf">copy_to_container</span><span class="p">(</span><span class="n">container</span><span class="p">,</span> <span class="n">eval_file</span><span class="p">,</span> <span class="sh">'</span><span class="s">/testbed/eval.sh</span><span class="sh">'</span><span class="p">)</span>
+<span class="bp">...</span>
+<span class="n">exec_result</span> <span class="o">=</span> <span class="n">container</span><span class="p">.</span><span class="nf">exec_run</span><span class="p">(</span><span class="sh">"</span><span class="s">timeout 120 ./eval.sh</span><span class="sh">"</span><span class="p">,</span> <span class="n">workdir</span><span class="o">=</span><span class="sh">'</span><span class="s">/testbed</span><span class="sh">'</span><span class="p">)</span>
+</code></pre></div></div> <p>As a result, <code class="language-plaintext highlighter-rouge">forth</code> is marked resolved when its single enabled test passes. DGM’s own grading log for its best agent on <code class="language-plaintext highlighter-rouge">forth</code> confirms this:</p> <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">ForthEvaluatorTest</span> <span class="o">&gt;</span> <span class="n">testNumbersAreJustPushedOntoTheStack</span><span class="o">()</span> <span class="no">PASSED</span>
+<span class="nc">ForthEvaluatorTest</span> <span class="o">&gt;</span> <span class="n">testCombinedAdditionAndMultiplication</span><span class="o">()</span> <span class="no">SKIPPED</span>
+<span class="nc">ForthEvaluatorTest</span> <span class="o">&gt;</span> <span class="n">testUserDefinedWordsAreCaseInsensitive</span><span class="o">()</span> <span class="no">SKIPPED</span>
+<span class="o">...</span>   <span class="mi">1</span> <span class="n">passed</span><span class="o">,</span> <span class="mi">54</span> <span class="n">skipped</span>
+</code></pre></div></div> <p>The only behavior checked is pushing numbers onto a stack. A Java task can therefore be marked resolved without any of the logic the instructions ask for. This inflates the reported Java scores and feeds the evolution process a false signal about which harness changes helped.</p> <h2 id="a-repaired-polyglot-environment">A Repaired Polyglot Environment</h2> <p>We repaired the four flaws and fixed a few minor engineering issues along the way. The solver’s container now holds only the base commit, with no test history and no copy of the benchmark repository, and grading runs in a separate evaluator container; the missing interfaces are stated in the stubs or instructions the agent can see, without copying any test cases; the <em>editor</em> files are included in the solver’s workspace; and the evaluator strips the <code class="language-plaintext highlighter-rouge">@Disabled</code> annotations before running the Java tests. All 225 reference solutions pass under our repaired setup, so every task remains solvable. We then re-evaluated the two agents DGM reported<d-cite key="zhang2026darwin"></d-cite>: the initial agent and the final “best” agent produced by its evolution run. Since the <code class="language-plaintext highlighter-rouge">o3-mini</code> model DGM originally used is no longer available, both agents use <code class="language-plaintext highlighter-rouge">gpt-5.4-mini</code> as the solver backbone. Due to a limited budget we did not re-run the entire evolution itself. Instead, we ask whether its final evolved agent is better than its initial one in our repaired Polyglot environment. To see how much the environment correction alone moves the scores, we also ran both agents in DGM’s flawed setup.</p> <p><strong>On our repaired benchmark, the initial agent solves 91 of 225 tasks (40.4%) and the evolved agent solves 88 (39.1%).</strong> The two agents solve a largely overlapping set: 69 tasks are solved by both, 22 only by the initial agent, and 19 only by the evolved one.</p> <table> <thead> <tr> <th> </th> <th style="text-align: right">Original environment (flawed)</th> <th style="text-align: right">Repaired environment</th> </tr> </thead> <tbody> <tr> <td>Initial agent</td> <td style="text-align: right">28.4%</td> <td style="text-align: right">40.4%</td> </tr> <tr> <td>Best agent from DGM evolution</td> <td style="text-align: right">29.8%</td> <td style="text-align: right">39.1%</td> </tr> </tbody> </table> <div class="caption"> Success rate on all 225 Polyglot tasks with <code>gpt-5.4-mini</code> as the solver. </div> <p>As a sanity check on our recreation of the original environment: DGM’s own transfer experiment, which swaps <code class="language-plaintext highlighter-rouge">o3-mini</code> for <code class="language-plaintext highlighter-rouge">Sonnet 3.5 or 3.7</code>, reports the best agent ahead of the initial one by 1.3 and 1.2 percentage points. We measure 1.4 with <code class="language-plaintext highlighter-rouge">gpt-5.4-mini</code>.</p> <p>The table is not a test of DGM’s evolution procedure, since the best agent was selected with <code class="language-plaintext highlighter-rouge">o3-mini</code> in the original environment. We therefore do not try to conclude whether DGM’s reported gain, from 14.2% to 30.7%, was produced by the flawed environment. What the table does show is how unreliable the original environment is as a parent-selection signal. Holding the agent fixed, repairing the environment moves the score by up to 12 points (28.4% vs 40.4%). The initial and evolved agents, by contrast, differ by only about one point in either environment. <span class="hl">A sound evaluation environment is a precondition for meaningful self-improvement. In a flawed environment, evolution can favor policies that exploit those flaws over policies that improve coding ability.</span></p> <h2 id="reflections">Reflections</h2> <p>Our intention is not to discredit the contribution of DGM and its successors in the field of recursive self-improving agents. We appreciate DGM’s work and the authors’ openness in sharing their implementation and detailed evolution traces with the research community; this post was only possible because of it.</p> <p>The recent OpenAI-Hugging Face incident <d-cite key="metr-2026-openai-hugging-face-incident-investigation"></d-cite> showed that LLM agents can exploit their environment to cheat on their tasks. In the incident, agents that had unintentionally been given impossible tasks went looking for a way around the scorer, and the sandboxes meant to isolate them did not hold. We saw the same pattern play out on a much smaller scale in Polyglot: tasks that could not be solved as given (due to missing contracts or files), and a stronger solver that went looking for the hidden tests and used them. The prompt was the only defense, and it failed.</p> <p>When building environments and sandboxes for self-evolving systems, we believe two things are needed. First, the benchmark’s original testing protocol must be fully understood before it is adapted, so that the agent is given a fair task. Second, access boundaries should be enforced by the sandbox rather than entrusted to the prompt. As agents become more capable, guardrails that held for weaker agents may no longer be effective, and we consider the study of how and when that happens an important direction for future work.</p> </d-article> <d-appendix> <d-footnote-list></d-footnote-list> <d-citation-list></d-citation-list> </d-appendix> <d-bibliography src="/2027/assets/bibliography/2027-04-30-polyglot-dgm.bib"></d-bibliography> <d-article> <h2 class="text-3xl font-semibold mb-4 mt-12">Enjoy Reading This Article?</h2> <p class="mb-2">Here are some more articles you might like to read next:</p> <ul class="list-disc pl-7 my-3 space-y-2 marker:text-[var(--global-theme-color)]"> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/2027-04-30-megakernel-reuse-streaming-tts/"></a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/does-recursion-depth-mean-difficulty/">Does Recursion Depth Mean Difficulty? A Token-Level Test of Mixture-of-Recursions</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/distill-example/">Sample Blog Post</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/marimo/">a post with marimo snippets</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/rtl/">یک نوشتهٔ راست‌چین</a> </li> </ul> <br> <br> </d-article> </div> <footer class="sticky-bottom mt-5" role="contentinfo"> <div class="container"> © Copyright 2026 ICLR Blog. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. Photos from <a href="https://unsplash.com" target="_blank" rel="external nofollow noopener">Unsplash</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/2027/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script src="/2027/assets/js/distillpub/overrides.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/mermaid@10.7.0/dist/mermaid.min.js" integrity="sha256-TtLOdUA8mstPoO6sGvHIGx2ceXrrX4KgIItO06XOn8A=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js" integrity="sha256-1rA678n2xEx7x4cTZ5x4wpUCj6kUMZEZ5cxLSVSFWxw=" crossorigin="anonymous"></script> <script defer src="/2027/assets/al_charts/js/mermaid-setup.js" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/2027/assets/al_math/js/mathjax-setup.js"></script> <script src="/2027/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/2027/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/2027/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/2027/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/2027/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/2027/assets/al_img_tools/js/zoom.js"></script> <script defer src="/2027/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/2027/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/2027/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-home",
+    title: "home",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/2027/";
+    },
+  },{id: "nav-about",
+          title: "about",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/about/";
+          },
+        },{id: "nav-call-for-blogposts",
+          title: "call for blogposts",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/call/";
+          },
+        },{id: "nav-submitting",
+          title: "submitting",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/submitting/";
+          },
+        },{id: "nav-reviewing",
+          title: "reviewing",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/reviewing/";
+          },
+        },{id: "dropdown-lt-strong-gt-2027-lt-strong-gt",
+              title: "<strong>2027</strong>",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2027/";
+              },
+            },{id: "dropdown-2026",
+              title: "2026",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2026/";
+              },
+            },{id: "dropdown-2025",
+              title: "2025",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2025/";
+              },
+            },{id: "dropdown-2024",
+              title: "2024",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2024/";
+              },
+            },{id: "dropdown-2023",
+              title: "2023",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2023/";
+              },
+            },{id: "dropdown-2022",
+              title: "2022",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blog-track.github.io/home/";
+              },
+            },{id: "post-what-are-we-actually-evolving-four-flaws-in-darwin-gödel-machine-s-polyglot-environment",
+        
+          title: "What Are We Actually Evolving? Four Flaws in Darwin Gödel Machine’s Polyglot Environment...",
+        
+        description: "Self-evolving coding agents such as Darwin Gödel Machine (DGM) use their scores on a coding benchmark to guide changes to their own harnesses, such as their tools and workflows. We find four flaws in DGM’s adaptation of Aider’s Polyglot benchmark that make these scores an unreliable signal of which harness changes improve a coding agent. Later systems such as Huxley-Gödel Machine reuse the same evaluation setup and inherit these flaws. In this misconfigured Polyglot environment, agents can access hidden tests and solutions, task contracts and supporting files are missing, and most Java tests are skipped. Repairing the environment shifts the score of the same gpt-5.4-mini agent by up to 12 percentage points. This sensitivity to the evaluation setup warrants revisiting DGM’s reported gains on Polyglot, and it shows that a correct environment is a precondition for reliable self-evolving systems.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/polyglot-dgm/";
+          
+        },
+      },{id: "post-does-recursion-depth-mean-difficulty-a-token-level-test-of-mixture-of-recursions",
+        
+          title: "Does Recursion Depth Mean Difficulty? A Token-Level Test of Mixture-of-Recursions",
+        
+        description: "Mixture-of-Recursions gives each token a recursion depth, and the original paper reads depth as a sign of how easily the next token can be predicted. We test that reading on the released 360M checkpoints. Depth is low for easy tokens and stops rising near the median token, the hardest tokens gain least from depth, and token-choice depth is almost a fixed function of the token.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/does-recursion-depth-mean-difficulty/";
+          
+        },
+      },{id: "post-sample-blog-post",
+        
+          title: "Sample Blog Post",
+        
+        description: "Your blog post's abstract. Please add your abstract or summary here and not in the main body of your text. Do not include math/latex or hyperlinks.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/distill-example/";
+          
+        },
+      },{id: "post-",
+        
+          title: "",
+        
+        description: "",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/2027-04-30-megakernel-reuse-streaming-tts/";
+          
+        },
+      },{id: "post-a-post-with-marimo-snippets",
+        
+          title: "a post with marimo snippets",
+        
+        description: "running Python in the browser with marimo",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/marimo/";
+          
+        },
+      },{id: "post-یک-نوشتهٔ-راست-چین",
+        
+          title: "یک نوشتهٔ راست‌چین",
+        
+        description: "نمونه‌ای از پشتیبانی زبان‌های راست‌چین",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/rtl/";
+          
+        },
+      },{id: "books-the-godfather",
+          title: 'The Godfather',
+          description: "",
+          section: "Books",handler: () => {
+              window.location.href = "/2027/books/the_godfather/";
+            },},{id: "news-a-simple-inline-announcement",
+          title: 'A simple inline announcement.',
+          description: "",
+          section: "News",},{id: "news-a-long-announcement-with-details",
+          title: 'A long announcement with details',
+          description: "",
+          section: "News",handler: () => {
+              window.location.href = "/2027/news/announcement_2/";
+            },},{id: "news-a-simple-inline-announcement-with-markdown-emoji-sparkles-smile",
+          title: 'A simple inline announcement with Markdown emoji! <img class="emoji" title=":sparkles:" alt=":sparkles:" src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png" height="20" width="20"> <img class="emoji" title=":smile:" alt=":smile:" src="https://github.githubassets.com/images/icons/emoji/unicode/1f604.png" height="20" width="20">',
+          description: "",
+          section: "News",},{id: "projects-project-1",
+          title: 'project 1',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/1_project/";
+            },},{id: "projects-project-2",
+          title: 'project 2',
+          description: "a project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/2_project/";
+            },},{id: "projects-project-3-with-very-long-name",
+          title: 'project 3 with very long name',
+          description: "a project that redirects to another website",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/3_project/";
+            },},{id: "projects-project-4",
+          title: 'project 4',
+          description: "another without an image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/4_project/";
+            },},{id: "projects-project-5",
+          title: 'project 5',
+          description: "a project with a background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/5_project/";
+            },},{id: "projects-project-6",
+          title: 'project 6',
+          description: "a project with no image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/6_project/";
+            },},{id: "projects-project-7",
+          title: 'project 7',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/7_project/";
+            },},{id: "projects-project-8",
+          title: 'project 8',
+          description: "an other project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/8_project/";
+            },},{id: "projects-project-9",
+          title: 'project 9',
+          description: "another project with an image 🎉",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/9_project/";
+            },},{id: "teachings-data-science-fundamentals",
+          title: 'Data Science Fundamentals',
+          description: "This course covers the foundational aspects of data science, including data collection, cleaning, analysis, and visualization. Students will learn practical skills for working with real-world datasets.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/data-science-fundamentals/";
+            },},{id: "teachings-introduction-to-machine-learning",
+          title: 'Introduction to Machine Learning',
+          description: "This course provides an introduction to machine learning concepts, algorithms, and applications. Students will learn about supervised and unsupervised learning, model evaluation, and practical implementations.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/introduction-to-machine-learning/";
+            },},{
+        id: 'social-cv',
+        title: 'CV',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/assets/pdf/example_pdf.pdf", "_blank");
+        },
+      },{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%79%6F%75@%65%78%61%6D%70%6C%65.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-inspire',
+        title: 'Inspire HEP',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://inspirehep.net/authors/1010907", "_blank");
+        },
+      },{
+        id: 'social-rss',
+        title: 'RSS Feed',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/feed.xml", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=qc6CJjYAAAAJ", "_blank");
+        },
+      },{
+        id: 'social-custom_social',
+        title: 'Custom_social',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.alberteinstein.com/", "_blank");
+        },
+      },{
+      id: 'light-theme',
+      title: 'Change theme to light',
+      description: 'Change the theme of the site to Light',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("light");
+      },
+    },
+    {
+      id: 'dark-theme',
+      title: 'Change theme to dark',
+      description: 'Change the theme of the site to Dark',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("dark");
+      },
+    },
+    {
+      id: 'system-theme',
+      title: 'Use system default theme',
+      description: 'Change the theme of the site to System Default',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("system");
+      },
+    },];
+
+</script> <script src="/2027/assets/al_search/js/shortcut-key.js"></script> </body> </html>
