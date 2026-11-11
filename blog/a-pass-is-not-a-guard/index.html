@@ -1,0 +1,356 @@
+<!DOCTYPE html> <html> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> A Pass Is Not a Guard | ICLR Blogposts 2027 </title> <meta name="author" content="ICLR Blog"> <meta name="description" content="A truncated tool call wrote a 16-line file while the agent reported success. Building a conformance suite around that case exposed a harder problem: nine ways our own measurement produced a confident wrong answer, and the rules we added to stop it."> <meta name="keywords" content="machine-learning, ml, deep-learning, reinforcement-learning, icl# add your own keywords or leave empty"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/2027/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="apple-touch-icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="stylesheet" href="/2027/assets/css/main.css?v=3116ba77db9ee1581d05bb3e86fbf7f1"> <link rel="canonical" href="https://iclr-blogposts.github.io/2027/blog/a-pass-is-not-a-guard/"> <script src="/2027/assets/js/theme.js?v=5286c3e4c334d0ecb8fc0c40ff4fa7ec"></script> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-native.css?v=5847e5ed4a4568527aa6cfab446049ca" media="none" id="highlight_theme_dark"> <script>
+    initTheme();
+  </script> <link rel="stylesheet" href="/2027/assets/css/al-folio-distill.css?v=fb7196ec07cb5299d51b2cbdc69c23d7"> <script>
+  window.alFolioDistill = window.alFolioDistill || {};
+  window.alFolioDistill.templateLoader = {"url":"/2027/assets/js/distillpub/template.v2.js","integrity":"sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo=","remote":false};
+</script> <script src="/2027/assets/js/distillpub/template.v2.js" integrity="sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo="></script> <script src="/2027/assets/js/distillpub/transforms.v2.js" integrity="sha256-XYVZD1ZSuRCrJBEBl0nIPvWlo/u5tzmtyStFV7a/PTk="></script> </head> <body> <d-front-matter> <script async type="text/json">
+      {
+            "title": "A Pass Is Not a Guard",
+            "description": "A truncated tool call wrote a 16-line file while the agent reported success. Building a conformance suite around that case exposed a harder problem: nine ways our own measurement produced a confident wrong answer, and the rules we added to stop it.",
+            "published": "April 30, 2027",
+            "authors": [
+              
+              {
+                "author": "Anonymous",
+                "authorURL": "",
+                "affiliations": [
+                  {
+                    "name": "",
+                    "url": ""
+                  }
+                ]
+              }
+              
+            ],
+            "katex": {
+              "delimiters": [
+                {
+                  "left": "$",
+                  "right": "$",
+                  "display": false
+                },
+                {
+                  "left": "$$",
+                  "right": "$$",
+                  "display": true
+                }
+              ]
+            }
+          }
+    </script> </d-front-matter> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/2027/"> ICLR Blogposts 2027 </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/2027/about/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/call/">call for blogposts </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/submitting/">submitting </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/reviewing/">reviewing </a> </li> <li class="nav-item dropdown "> <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-nav-dropdown-toggle="true" aria-haspopup="true" aria-expanded="false">past iterations </a> <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown"> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2027/"><strong>2027</strong></a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2026/">2026</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2025/">2025</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2024/">2024</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2023/">2023</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blog-track.github.io/home/" rel="external nofollow noopener" target="_blank">2022</a> </div> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> <li class="toggle-container"> <button id="light-toggle" type="button" title="Change theme" aria-label="Change color theme"> <i class="fa-half-sun-moon" id="light-toggle-system"></i> <i class="fa-solid fa-moon" id="light-toggle-dark"></i> <i class="fa-solid fa-sun" id="light-toggle-light"></i> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="post distill"> <d-title> <h1>A Pass Is Not a Guard</h1> <p>A truncated tool call wrote a 16-line file while the agent reported success. Building a conformance suite around that case exposed a harder problem: nine ways our own measurement produced a confident wrong answer, and the rules we added to stop it.</p> </d-title> <d-byline></d-byline> <d-article> <d-contents> <nav class="l-text figcaption"> <h3>Contents</h3> <div> <a href="#the-866-byte-file">The 866-Byte File</a> </div> <div> <a href="#where-reliability-lives">Where Reliability Lives</a> </div> <div> <a href="#what-a-pass-has-to-prove">What a Pass Has to Prove</a> </div> <div> <a href="#nine-ways-the-measurement-lied">Nine Ways the Measurement Lied</a> </div> <div> <a href="#what-the-cross-framework-run-showed">What the Cross-Framework Run Showed</a> </div> <div> <a href="#what-this-changes">What This Changes</a> </div> <div> <a href="#limits">Limits</a> </div> <div> <a href="#the-point">The Point</a> </div> </nav> </d-contents> <h2 id="the-866-byte-file">The 866-Byte File</h2> <p>The model was asked to write a 40-line file. Its reply stopped in the middle of line 17. The client ran the tool anyway. The file on disk held 16 lines and 866 bytes; the expected file was 2,120 bytes. Nothing raised. The agent reported success.</p> <p>That file is the evidence. A log line can be missing, and a self-report can be wrong. The bytes on disk are what happened.</p> <p>The property under test is a contract between three parts: the model emits a tool call, the client decides whether the call is complete, and the tool executes. The model did its job badly. The client’s job was to notice.</p> <h2 id="where-reliability-lives">Where Reliability Lives</h2> <p>Most agent benchmarks measure task success<d-cite key="swebench"></d-cite>. Did the agent book the flight, or fix the bug? That is useful. It is also an average over a hundred small decisions, including the ones that should never have been made. A success rate cannot tell you whether a client checks the end of a stream, or whether a JSON parser happened to reject a truncated payload.</p> <p>Those two cases produce the same score. A client that checks the finish reason and a client that gets lucky with a parser both show no side effect. One has a guard. The other has a coincidence that disappears when the payload changes.</p> <p>We built a small conformance suite around that distinction. It has a fake model that speaks the OpenAI wire formats<d-cite key="openai_chat,openai_responses"></d-cite> and records the exact bytes it sends. It has a tool that writes a file, so the side effect is attributable. The expected values are written before the run and read from a git ref, not the working tree.</p> <pre><code class="language-mermaid">flowchart LR
+    A["Model reply cut inside line 17"] --&gt; B{"Client checks the end of the reply?"}
+    B -- no --&gt; C["Tool runs"]
+    C --&gt; D["16 lines, 866 bytes"]
+    D --&gt; E["Agent reports success"]
+    B -- yes --&gt; F["No side effect"]
+</code></pre> <h2 id="what-a-pass-has-to-prove">What a Pass Has to Prove</h2> <p>The suite judges four fields per cell: whether a call reached the tool, the number of lines in the file, the byte count, and the sha256. All four have to match, on all three runs. A cell whose runs disagree is reported as unstable, not as a pass.</p> <p>This sounds fussy until it catches something. Early on, a judgement compared only whether a call executed. One cell looked clean. The byte count showed a short file. The run had executed, the file was wrong, and the check had missed it because it asked a smaller question than the claim.</p> <p>The same logic applies to a not-executed result. Not executing can be skill or luck. The client may have checked that the reply had finished. A parser may have rejected the payload before the client had a chance to be wrong. Or the record may not tell us which. We label the first blocked-by-end-signal, the second blocked-by-parse, and the rest unknown. A label needs evidence: blocked-by-parse is only written when the captured client log contains the parse error. Otherwise the cell is unknown, and unknown is not a pass.</p> <p>The control that separates the two is boring and effective. Send the same truncated payload with a normal end signal. If the control executes and the truncated variant does not, the client checked the end signal. If neither executes, the parser did the work. Only the end signal differed.</p> <h2 id="nine-ways-the-measurement-lied">Nine Ways the Measurement Lied</h2> <p>The most useful output was the list of ways the measurement produced a confident wrong answer. Some were caught before a run, some after. Each one is now a rule.</p> <table> <thead> <tr> <th>What happened</th> <th>Why it is dangerous</th> <th>Rule now</th> </tr> </thead> <tbody> <tr> <td>Judged only whether a call executed</td> <td>Reported a false all-pass; a human noticed the byte count</td> <td>Compare all four fields</td> </tr> <tr> <td>Pre-registration and results in one commit</td> <td>The repository cannot prove the rules came first</td> <td>Three commits, rules pushed first</td> </tr> <tr> <td>Top-level packages pinned, transitive dependencies floating</td> <td>Another machine resolves a different tree</td> <td>Lock file with hashes</td> </tr> <tr> <td>Evidence read as text on a CRLF checkout</td> <td>Every file differs by one byte per line</td> <td>Mark evidence binary</td> </tr> <tr> <td>Results path overwritten before comparing</td> <td>The run is compared to a baseline it just replaced</td> <td>Runner refuses to overwrite; expected values from a git ref</td> </tr> <tr> <td>A stimulus whose execution leaves nothing on disk</td> <td>Executed and not executed become indistinguishable</td> <td>Ask where the trace is before running</td> </tr> <tr> <td>A label written from the design, not the evidence</td> <td>Assumption dressed as measurement</td> <td>A label without evidence is unknown</td> </tr> <tr> <td>“Any of three runs” used to summarize</td> <td>Turns n=3 into n=1</td> <td>Require all three</td> </tr> <tr> <td>A truncated stimulus repeated on every request</td> <td>One execution counted twice</td> <td>State what later requests answer</td> </tr> </tbody> </table> <p>The first false pass came from a check that asked only whether a call reached the tool. It did. A human noticed the byte count. A check that stops at “did it run” cannot see a short file, so the suite now compares the line count, the byte count, and the hash as well.</p> <p>The git ref fixes a subtler problem. If the expected values sit in the working tree, a run can write its results over the baseline before the comparison, and the benchmark ends up measuring its own output. The runner now refuses to overwrite an existing results file, and the expected values are read from a git ref.</p> <p>The label from the design is the one that feels most like progress and is most dangerous. A payload that looks like broken JSON invites the label blocked-by-parse. Without the captured parse error, that label is a guess. The rule is to write unknown and leave it there until a log proves otherwise.</p> <h2 id="what-the-cross-framework-run-showed">What the Cross-Framework Run Showed</h2> <p>We ran one case across three frameworks and four entry points, each at the entry its quickstart demonstrates<d-cite key="langchain_agents,semantic_kernel,nemo_toolkit"></d-cite>. The table is small on purpose.</p> <p>Each column is a way for the reply to end. <code class="language-plaintext highlighter-rouge">chat-length</code> (Chat Completions) stops at the token limit with <code class="language-plaintext highlighter-rouge">finish_reason: length</code> and a <code class="language-plaintext highlighter-rouge">[DONE]</code> marker; <code class="language-plaintext highlighter-rouge">chat-drop</code> (Chat Completions) ends with no finish reason and no <code class="language-plaintext highlighter-rouge">[DONE]</code>. <code class="language-plaintext highlighter-rouge">responses-incomplete</code> (Responses) returns <code class="language-plaintext highlighter-rouge">response.incomplete</code> from the output-token limit, and <code class="language-plaintext highlighter-rouge">responses-drop</code> (Responses) ends before <code class="language-plaintext highlighter-rouge">response.completed</code>. All four cut the tool call at the same point.</p> <table> <thead> <tr> <th>Client</th> <th>Version</th> <th>chat-length</th> <th>chat-drop</th> <th>responses-*</th> </tr> </thead> <tbody> <tr> <td>NeMo Agent Toolkit, tool_calling_agent</td> <td>1.9.0</td> <td>not executed (unknown)</td> <td>executed, 16/40, 866 B</td> <td>executed</td> </tr> <tr> <td>NeMo Agent Toolkit, react_agent</td> <td>1.9.0</td> <td>executed</td> <td>executed</td> <td>executed</td> </tr> <tr> <td>LangChain, create_agent</td> <td>1.4.9</td> <td>not executed (unknown)</td> <td>not executed (unknown)</td> <td>not measurable</td> </tr> <tr> <td>Semantic Kernel, automatic function calling</td> <td>1.36.0</td> <td>not executed (unknown)</td> <td>not executed (unknown)</td> <td>not measurable</td> </tr> </tbody> </table> <p>The NeMo rows were measured on 1.9.0; later versions may differ. The LangChain and Semantic Kernel rows are first measurements in this suite. None of the not-executed cells could be attributed to an end-signal check; all of them are unknown. The labels are there so a later run can fill them. That is the finding: a summary table would show these cells as passes, and the table cannot tell you which client has a guard.</p> <p>The not-measurable cells are also a result. The client never requested the endpoint the variant needs, so the cell is excluded from the denominator. Counting it as a pass would inflate the score with a test that never ran.</p> <h2 id="what-this-changes">What This Changes</h2> <p>Report the mechanism. A verdict without a reason is not a safety claim. If the client did not execute, say whether it checked the end signal, a parser rejected the payload, or you do not know.</p> <p>Keep the standard out of the run’s reach. Write the expected values first, push them, and read them from a ref. If the run can edit the expected file, the benchmark is measuring the run’s opinion of itself.</p> <p>Use a control that differs in one variable. Otherwise “no side effect” is ambiguous, and ambiguity will be read as a pass by everyone who wants one.</p> <h2 id="limits">Limits</h2> <p>The fake server models the wire format, not a provider’s behavior. It shows what a client does with a given reply; it says nothing about how often that reply occurs in production. The suite covers default paths only, one tool, one cut point per variant, three runs per cell. It is a conformance check, not a ranking. The sample is small, and the claims are about the method.</p> <p>The artifact is a template as much as a benchmark. The nine failures of method are the part worth copying.</p> <h2 id="the-point">The Point</h2> <p>A pass becomes a guard only when you can say why it passed. The 866-byte file is what a missing guard looks like: no exception, no warning, a confident success message, and a file that is missing 1,254 bytes.</p> <p>If you take one thing from this, measure the side effect, write the standard before the run, and say why a cell passed. The rest is bookkeeping: lock files, binary evidence, three runs, a git ref.</p> </d-article> <d-appendix> <d-footnote-list></d-footnote-list> <d-citation-list></d-citation-list> </d-appendix> <d-bibliography src="/2027/assets/bibliography/2027-04-30-a-pass-is-not-a-guard.bib"></d-bibliography> <d-article> <h2 class="text-3xl font-semibold mb-4 mt-12">Enjoy Reading This Article?</h2> <p class="mb-2">Here are some more articles you might like to read next:</p> <ul class="list-disc pl-7 my-3 space-y-2 marker:text-[var(--global-theme-color)]"> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/polyglot-dgm/">What Are We Actually Evolving? Four Flaws in Darwin Gödel Machine’s Polyglot Environment</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/2027-04-30-megakernel-reuse-streaming-tts/"></a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/does-recursion-depth-mean-difficulty/">Does Recursion Depth Mean Difficulty? A Token-Level Test of Mixture-of-Recursions</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/distill-example/">Sample Blog Post</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/marimo/">a post with marimo snippets</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/rtl/">یک نوشتهٔ راست‌چین</a> </li> </ul> <br> <br> </d-article> </div> <footer class="sticky-bottom mt-5" role="contentinfo"> <div class="container"> © Copyright 2026 ICLR Blog. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. Photos from <a href="https://unsplash.com" target="_blank" rel="external nofollow noopener">Unsplash</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/2027/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script src="/2027/assets/js/distillpub/overrides.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/mermaid@10.7.0/dist/mermaid.min.js" integrity="sha256-TtLOdUA8mstPoO6sGvHIGx2ceXrrX4KgIItO06XOn8A=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js" integrity="sha256-1rA678n2xEx7x4cTZ5x4wpUCj6kUMZEZ5cxLSVSFWxw=" crossorigin="anonymous"></script> <script defer src="/2027/assets/al_charts/js/mermaid-setup.js" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/2027/assets/al_math/js/mathjax-setup.js"></script> <script src="/2027/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/2027/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/2027/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/2027/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/2027/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/2027/assets/al_img_tools/js/zoom.js"></script> <script defer src="/2027/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/2027/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/2027/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-home",
+    title: "home",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/2027/";
+    },
+  },{id: "nav-about",
+          title: "about",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/about/";
+          },
+        },{id: "nav-call-for-blogposts",
+          title: "call for blogposts",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/call/";
+          },
+        },{id: "nav-submitting",
+          title: "submitting",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/submitting/";
+          },
+        },{id: "nav-reviewing",
+          title: "reviewing",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/reviewing/";
+          },
+        },{id: "dropdown-lt-strong-gt-2027-lt-strong-gt",
+              title: "<strong>2027</strong>",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2027/";
+              },
+            },{id: "dropdown-2026",
+              title: "2026",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2026/";
+              },
+            },{id: "dropdown-2025",
+              title: "2025",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2025/";
+              },
+            },{id: "dropdown-2024",
+              title: "2024",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2024/";
+              },
+            },{id: "dropdown-2023",
+              title: "2023",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2023/";
+              },
+            },{id: "dropdown-2022",
+              title: "2022",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blog-track.github.io/home/";
+              },
+            },{id: "post-what-are-we-actually-evolving-four-flaws-in-darwin-gödel-machine-s-polyglot-environment",
+        
+          title: "What Are We Actually Evolving? Four Flaws in Darwin Gödel Machine’s Polyglot Environment...",
+        
+        description: "Self-evolving coding agents such as Darwin Gödel Machine (DGM) use their scores on a coding benchmark to guide changes to their own harnesses, such as their tools and workflows. We find four flaws in DGM’s adaptation of Aider’s Polyglot benchmark that make these scores an unreliable signal of which harness changes improve a coding agent. Later systems such as Huxley-Gödel Machine reuse the same evaluation setup and inherit these flaws. In this misconfigured Polyglot environment, agents can access hidden tests and solutions, task contracts and supporting files are missing, and most Java tests are skipped. Repairing the environment shifts the score of the same gpt-5.4-mini agent by up to 12 percentage points. This sensitivity to the evaluation setup warrants revisiting DGM’s reported gains on Polyglot, and it shows that a correct environment is a precondition for reliable self-evolving systems.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/polyglot-dgm/";
+          
+        },
+      },{id: "post-does-recursion-depth-mean-difficulty-a-token-level-test-of-mixture-of-recursions",
+        
+          title: "Does Recursion Depth Mean Difficulty? A Token-Level Test of Mixture-of-Recursions",
+        
+        description: "Mixture-of-Recursions gives each token a recursion depth, and the original paper reads depth as a sign of how easily the next token can be predicted. We test that reading on the released 360M checkpoints. Depth is low for easy tokens and stops rising near the median token, the hardest tokens gain least from depth, and token-choice depth is almost a fixed function of the token.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/does-recursion-depth-mean-difficulty/";
+          
+        },
+      },{id: "post-sample-blog-post",
+        
+          title: "Sample Blog Post",
+        
+        description: "Your blog post's abstract. Please add your abstract or summary here and not in the main body of your text. Do not include math/latex or hyperlinks.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/distill-example/";
+          
+        },
+      },{id: "post-a-pass-is-not-a-guard",
+        
+          title: "A Pass Is Not a Guard",
+        
+        description: "A truncated tool call wrote a 16-line file while the agent reported success. Building a conformance suite around that case exposed a harder problem: nine ways our own measurement produced a confident wrong answer, and the rules we added to stop it.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/a-pass-is-not-a-guard/";
+          
+        },
+      },{id: "post-",
+        
+          title: "",
+        
+        description: "",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/2027-04-30-megakernel-reuse-streaming-tts/";
+          
+        },
+      },{id: "post-a-post-with-marimo-snippets",
+        
+          title: "a post with marimo snippets",
+        
+        description: "running Python in the browser with marimo",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/marimo/";
+          
+        },
+      },{id: "post-یک-نوشتهٔ-راست-چین",
+        
+          title: "یک نوشتهٔ راست‌چین",
+        
+        description: "نمونه‌ای از پشتیبانی زبان‌های راست‌چین",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/rtl/";
+          
+        },
+      },{id: "books-the-godfather",
+          title: 'The Godfather',
+          description: "",
+          section: "Books",handler: () => {
+              window.location.href = "/2027/books/the_godfather/";
+            },},{id: "news-a-simple-inline-announcement",
+          title: 'A simple inline announcement.',
+          description: "",
+          section: "News",},{id: "news-a-long-announcement-with-details",
+          title: 'A long announcement with details',
+          description: "",
+          section: "News",handler: () => {
+              window.location.href = "/2027/news/announcement_2/";
+            },},{id: "news-a-simple-inline-announcement-with-markdown-emoji-sparkles-smile",
+          title: 'A simple inline announcement with Markdown emoji! <img class="emoji" title=":sparkles:" alt=":sparkles:" src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png" height="20" width="20"> <img class="emoji" title=":smile:" alt=":smile:" src="https://github.githubassets.com/images/icons/emoji/unicode/1f604.png" height="20" width="20">',
+          description: "",
+          section: "News",},{id: "projects-project-1",
+          title: 'project 1',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/1_project/";
+            },},{id: "projects-project-2",
+          title: 'project 2',
+          description: "a project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/2_project/";
+            },},{id: "projects-project-3-with-very-long-name",
+          title: 'project 3 with very long name',
+          description: "a project that redirects to another website",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/3_project/";
+            },},{id: "projects-project-4",
+          title: 'project 4',
+          description: "another without an image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/4_project/";
+            },},{id: "projects-project-5",
+          title: 'project 5',
+          description: "a project with a background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/5_project/";
+            },},{id: "projects-project-6",
+          title: 'project 6',
+          description: "a project with no image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/6_project/";
+            },},{id: "projects-project-7",
+          title: 'project 7',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/7_project/";
+            },},{id: "projects-project-8",
+          title: 'project 8',
+          description: "an other project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/8_project/";
+            },},{id: "projects-project-9",
+          title: 'project 9',
+          description: "another project with an image 🎉",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/9_project/";
+            },},{id: "teachings-data-science-fundamentals",
+          title: 'Data Science Fundamentals',
+          description: "This course covers the foundational aspects of data science, including data collection, cleaning, analysis, and visualization. Students will learn practical skills for working with real-world datasets.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/data-science-fundamentals/";
+            },},{id: "teachings-introduction-to-machine-learning",
+          title: 'Introduction to Machine Learning',
+          description: "This course provides an introduction to machine learning concepts, algorithms, and applications. Students will learn about supervised and unsupervised learning, model evaluation, and practical implementations.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/introduction-to-machine-learning/";
+            },},{
+        id: 'social-cv',
+        title: 'CV',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/assets/pdf/example_pdf.pdf", "_blank");
+        },
+      },{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%79%6F%75@%65%78%61%6D%70%6C%65.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-inspire',
+        title: 'Inspire HEP',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://inspirehep.net/authors/1010907", "_blank");
+        },
+      },{
+        id: 'social-rss',
+        title: 'RSS Feed',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/feed.xml", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=qc6CJjYAAAAJ", "_blank");
+        },
+      },{
+        id: 'social-custom_social',
+        title: 'Custom_social',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.alberteinstein.com/", "_blank");
+        },
+      },{
+      id: 'light-theme',
+      title: 'Change theme to light',
+      description: 'Change the theme of the site to Light',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("light");
+      },
+    },
+    {
+      id: 'dark-theme',
+      title: 'Change theme to dark',
+      description: 'Change the theme of the site to Dark',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("dark");
+      },
+    },
+    {
+      id: 'system-theme',
+      title: 'Use system default theme',
+      description: 'Change the theme of the site to System Default',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("system");
+      },
+    },];
+
+</script> <script src="/2027/assets/al_search/js/shortcut-key.js"></script> </body> </html>
