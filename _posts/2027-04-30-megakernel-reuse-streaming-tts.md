@@ -1,7 +1,7 @@
 ---
 layout: distill
 title: One Kernel, Two Transformers - What a Text-LLM Megakernel Teaches Us About Streaming TTS
-description: Persistent megakernels have made batch-one LLM decoding fast by removing launch overhead. I take one written for a 0.6B text model and reuse it, almost unchanged, for both transformer stages of a streaming codec-language-model TTS system. The speedups are real. So are two quality problems: the model inserts extra words, and it does not stop on its own.
+description: "Persistent megakernels have made batch-one LLM decoding fast by removing launch overhead. I take one written for a 0.6B text model and reuse it, almost unchanged, for both transformer stages of a streaming codec-language-model TTS system. The speedups are real. So are two quality problems: the model inserts extra words, and it does not stop on its own."
 date: 2027-04-30
 future: true
 htmlwidgets: true
