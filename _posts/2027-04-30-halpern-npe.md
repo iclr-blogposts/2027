@@ -45,6 +45,59 @@ We study second- and higher-order methods for solving smooth monotone variationa
 <style>
 d-article .compact-equation { margin: 0 !important; }
 d-article .compact-equation mjx-container[display="true"] { margin: 0.35em 0 !important; }
+d-article .algorithm-figure {
+  margin: 1.6em 0;
+  border: 1px solid #d9dce6;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 5px 18px rgba(31, 41, 55, 0.07);
+  color: #202938;
+  font-size: 0.94em;
+}
+d-article .algorithm-heading {
+  display: flex; align-items: baseline; gap: .7em;
+  padding: .85em 1.15em;
+  background: linear-gradient(100deg, #f2f5fb, #f8f7fc);
+  border-bottom: 1px solid #e2e5ed;
+}
+d-article .algorithm-number {
+  flex: none; color: #fff; background: #526b9a;
+  border-radius: 5px; padding: .2em .55em;
+  font-size: .82em; font-weight: 700; letter-spacing: .02em;
+}
+d-article .algorithm-title { font-weight: 700; color: #263b60; }
+d-article .algorithm-params { color: #58677d; font-weight: 500; }
+d-article .algorithm-body { padding: .7em 0 .85em; overflow-x: auto; }
+d-article .algorithm-row {
+  display: grid; grid-template-columns: 3.2em minmax(0, 1fr);
+  align-items: baseline; padding: .25em 1em .25em 0; min-width: max-content;
+  line-height: 1.55;
+}
+d-article .algorithm-row:hover { background: #f7f9fc; }
+d-article .algorithm-line-no {
+  text-align: right; padding-right: .9em; color: #98a2b3;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .84em;
+  user-select: none;
+}
+d-article .algorithm-content { white-space: nowrap; }
+d-article .algorithm-indent-1 { padding-left: 1.5em; }
+d-article .algorithm-indent-2 { padding-left: 3em; }
+d-article .algorithm-indent-3 { padding-left: 4.5em; }
+d-article .algorithm-math {
+  margin: .35em 0; padding: .45em .8em; border-left: 2px solid #d6deed;
+  background: #fafbfd; white-space: normal;
+}
+d-article .algorithm-math mjx-container { margin: .2em 0 !important; }
+d-article .algorithm-figure figcaption {
+  padding: .55em 1.15em; border-top: 1px solid #edf0f4;
+  color: #6b7280; font-size: .83em;
+}
+@media (max-width: 600px) {
+  d-article .algorithm-heading { flex-wrap: wrap; gap: .35em .6em; }
+  d-article .algorithm-body { font-size: .88em; }
+}
+
 </style>
 
 In this blog post, we study the monotone variational inequality (MVI) problem <d-cite key="facchinei2003finite"></d-cite> , which targets at finding an solution ${\boldsymbol{x}}^{&#42;}\in{\mathcal{X}}$ such that
@@ -337,16 +390,38 @@ $$ M=\Theta(L&#95;{2}),\quad K={\mathcal{O}}\left((\eta L&#95;{2}R)^{2/3}\right)
 can return a point ${\boldsymbol{y}}&#95;{S}\in{\mathcal{X}}$ such that $\Vert{\boldsymbol{y}}&#95;{S}-{\boldsymbol{y}}^{&#42;}\Vert\leq\delta$ in the total $p$th-order oracle complexity of $K\times S$, where ${\boldsymbol{y}}^{&#42;}=({\boldsymbol{G}}+{\mathcal{N}}&#95;{\mathcal{X}})^{-1}({\boldsymbol{0}})$ is the unique solution to the MVI induced by ${\boldsymbol{G}}$ and $R=\Vert{\boldsymbol{y}}&#95;{0}-{\boldsymbol{y}}^{&#42;}\Vert$.
 </div>
 
-<div style="text-align:center; margin:1.5em 0;"><a id="algorithm-1"></a>
-<img src="/2027/assets/img/2027-04-30-halpern-npe/algo1.png" alt="Algorithm 1" style="max-width:100%; border:1px solid #ddd; border-radius:4px;" loading="lazy"/></div>
+<figure class="algorithm-figure" id="algorithm-1"><div class="algorithm-heading"><span class="algorithm-number">Algorithm 1</span><span class="algorithm-title">Restarted-NPE</span><span class="algorithm-params">$(\boldsymbol{G},\boldsymbol{y}_0,M,K,S)$</span></div><div class="algorithm-body">
+<div class="algorithm-row"><span class="algorithm-line-no">1</span><span class="algorithm-content"><strong>for</strong> $s=0,\ldots,S-1$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">2</span><span class="algorithm-content algorithm-indent-1">$\boldsymbol{y}_{s,0}=\boldsymbol{y}_s$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">3</span><span class="algorithm-content algorithm-indent-1"><strong>for</strong> $k=0,\ldots,K-1$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">4</span><span class="algorithm-content algorithm-indent-2">Perform a cubic-regularized Newton step $\boldsymbol{y}_{s,k+1/2}=\mathcal{T}^{2}_{\boldsymbol{G}}(\boldsymbol{y}_{s,k};M)$. </span></div>
+<!-- <div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-2 algorithm-math"></span></div> -->
+<div class="algorithm-row"><span class="algorithm-line-no">5</span><span class="algorithm-content algorithm-indent-2">Set the adaptive stepsize $\tau_{s,k}={(M\,\|\boldsymbol{y}_{s,k+1/2}-\boldsymbol{y}_{s,k}\|)}^{-1}$.</span></div>
+<!-- <div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-2 algorithm-math"></span></div> -->
+<div class="algorithm-row"><span class="algorithm-line-no">6</span><span class="algorithm-content algorithm-indent-2">Perform an extragradient step $\boldsymbol{y}_{s,k+1}=\mathcal{T}^{1}_{\boldsymbol{G}}(\boldsymbol{y}_{s,k};\tau_{s,k}^{-1})$.</span></div>
+<!-- <div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-2 algorithm-math"></span></div> -->
+<div class="algorithm-row"><span class="algorithm-line-no">7</span><span class="algorithm-content algorithm-indent-1"><strong>end for</strong></span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">8</span><span class="algorithm-content algorithm-indent-1">Restart at $\displaystyle\boldsymbol{y}_{s+1}={\sum_{k=0}^{K-1}\tau_{s,k}\boldsymbol{y}_{s,k+1/2}} \Big / {\sum_{k=0}^{K-1}\tau_{s,k}}$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">9</span><span class="algorithm-content"><strong>end for</strong></span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">10</span><span class="algorithm-content"><strong>return</strong> $\boldsymbol{y}_S$</span></div>
+</div>
+</figure>
 
 We remark that the above complexity of $K\times S$ can be reduced to $K+S$ with a refined analysis, as in the works studying a similar restart scheme <d-cite key="jiang2022generalized,huang2022approximation"></d-cite>. However, the slightly looser bound of $K\times S$ is enough for our subsequent analyses.
 
 <a id="4-3-final-algorithm-and-total-complexity"></a>
 ## 4.3 Final Algorithm and Total Complexity
 
-<div style="text-align:center; margin:1.5em 0;"><a id="algorithm-2"></a>
-<img src="/2027/assets/img/2027-04-30-halpern-npe/algo2.png" alt="Algorithm 2" style="max-width:100%; border:1px solid #ddd; border-radius:4px;" loading="lazy"/></div>
+<figure class="algorithm-figure" id="algorithm-2"><div class="algorithm-heading"><span class="algorithm-number">Algorithm 2</span><span class="algorithm-title">Halpern-NPE</span><span class="algorithm-params">$(\boldsymbol{F},\boldsymbol{x}_0,\eta,T,M,\{K_t\},\{S_t\})$</span></div><div class="algorithm-body">
+<div class="algorithm-row"><span class="algorithm-line-no">1</span><span class="algorithm-content"><strong>for</strong> $t=0,\ldots,T-1$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">2</span><span class="algorithm-content algorithm-indent-1">Let $\boldsymbol{G}_t(\boldsymbol{y})=\boldsymbol{F}(\boldsymbol{y})+(\boldsymbol{y}-\boldsymbol{x}_t)/\eta$. Approximately solve $\boldsymbol{0}\in\boldsymbol{G}_t(\boldsymbol{y})+\mathcal{N}_{\mathcal{X}}(\boldsymbol{y})$ using</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-1 algorithm-math">$\boldsymbol{y}_t=\textsf{Restarted-NPE}(\boldsymbol{G}_t,\boldsymbol{x}_t,M,K_t,S_t)$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">3</span><span class="algorithm-content algorithm-indent-1">Perform the Halpern iteration $\boldsymbol{x}_{t+1}=(\boldsymbol{x}_0+ (t+1)\boldsymbol{y}_t)/ (t+2)$.</span></div>
+<!-- <div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-1 algorithm-math"></span></div> -->
+<div class="algorithm-row"><span class="algorithm-line-no">4</span><span class="algorithm-content"><strong>end for</strong></span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">5</span><span class="algorithm-content"><strong>return</strong> $\boldsymbol{x}_T$</span></div>
+</div>
+</figure>
 
 By applying <a href="#algorithm-1">Algorithm 1</a> to solve the resolvent operator in <a href="#eq-8">equation 8</a>, we obtain our final high-order method to solve MVI problems in <a href="#algorithm-2">Algorithm 2</a>. Then, by appropriately selecting the stepsize $\eta=\Theta(T)$ as well as sub-solver parameter sequences $K&#95;{t}$ and $S&#95;{t}$, we can obtain the total complexity of <a href="#algorithm-2">Algorithm 2</a> as follows.
 
@@ -438,8 +513,18 @@ However, the classical convergence rate of ${\mathcal{O}}(T^{-(p+1)/2})$ achieve
 
 Recall Section 4.2 that approximating the resolvent is ${\boldsymbol{P}}&#95;{\eta}({\boldsymbol{x}})=({\rm Id}+\eta({\boldsymbol{F}}+{\mathcal{N}}&#95;{\mathcal{X}}))^{-1}({\boldsymbol{x}})$ is equivalent to solving the MVI problem induced by the $\eta^{-1}$-strongly monotone operator ${\boldsymbol{G}}({\boldsymbol{y}}):={\boldsymbol{F}}({\boldsymbol{y}})+({\boldsymbol{y}}-{\boldsymbol{x}})/\eta$. We introduce a novel Anchored Tensor Method (ATM) that can solve the problem in the $p$th-order oracle complexity of ${\mathcal{O}}(\eta^{1/(p-1)})$. It also implies a complexity of ${\mathcal{O}}({\epsilon}^{-1/(p-1)})$ for finding an ${\epsilon}$-solution in the monotone case by applying the same algorithm on an ${\epsilon}$-regularized operator <d-cite key="chen2026solving"></d-cite> .
 
-<div style="text-align:center; margin:1.5em 0;"><a id="algorithm-3"></a>
-<img src="/2027/assets/img/2027-04-30-halpern-npe/algo3.png" alt="Algorithm 3" style="max-width:100%; border:1px solid #ddd; border-radius:4px;" loading="lazy"/></div>
+<figure class="algorithm-figure" id="algorithm-3"><div class="algorithm-heading"><span class="algorithm-number">Algorithm 3</span><span class="algorithm-title">Anchored-Tensor-Method</span><span class="algorithm-params">$(\boldsymbol{G},\boldsymbol{y}_0,\mu,M,R,K,S)$</span></div><div class="algorithm-body">
+<div class="algorithm-row"><span class="algorithm-line-no">1</span><span class="algorithm-content"><strong>for</strong> $k=0,\ldots,K-1$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">2</span><span class="algorithm-content algorithm-indent-1">Select the regularization parameter $\mu_k$ according to <a href="#eq-19">equation 19</a>.</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">3</span><span class="algorithm-content algorithm-indent-1">Define $\boldsymbol{G}_k(\boldsymbol{y})=\boldsymbol{G}(\boldsymbol{y})+(\mu_k-\mu)(\boldsymbol{y}-\boldsymbol{y}_0)$.</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">4</span><span class="algorithm-content algorithm-indent-1">Perform a tensor step $\boldsymbol{y}_{k+1}=\mathcal{T}^{p}_{\boldsymbol{G}_k}(\boldsymbol{y}_k;M)$.</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">5</span><span class="algorithm-content"><strong>end for</strong></span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">6</span><span class="algorithm-content"><strong>for</strong> $s=K,\ldots,K+S-1$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">7</span><span class="algorithm-content algorithm-indent-1">Perform a tensor step $\boldsymbol{y}_{s+1}=\mathcal{T}^{p}_{\boldsymbol{G}}(\boldsymbol{y}_s;M)$.</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">8</span><span class="algorithm-content"><strong>end for</strong></span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">9</span><span class="algorithm-content"><strong>return</strong> $\boldsymbol{y}_{K+S}$</span></div>
+</div>
+</figure>
 
 The starting point of the anchored tensor method is the following local convergence guarantee for the tensor step <d-cite key="huang2022approximation,lin2022perseus"></d-cite> .
 
@@ -627,8 +712,17 @@ Treating the ${\mathcal{O}}(\log\log(D/\delta))$ factor as a constant, the above
 <a id="5-2-halpern-atm-achieves-the-tilde-mathcal-o-t-p-rate"></a>
 ### 5.2 Halpern-ATM Achieves the $\tilde{\mathcal{O}}(T^{-p})$ Rate
 
-<div style="text-align:center; margin:1.5em 0;"><a id="algorithm-4"></a>
-<img src="/2027/assets/img/2027-04-30-halpern-npe/algo4.png" alt="Algorithm 4" style="max-width:100%; border:1px solid #ddd; border-radius:4px;" loading="lazy"/></div>
+<figure class="algorithm-figure" id="algorithm-4"><div class="algorithm-heading"><span class="algorithm-number">Algorithm 4</span><span class="algorithm-title">Halpern-ATM</span><span class="algorithm-params">$(\boldsymbol{F},\boldsymbol{x}_0,\eta,T,M,D,\{K_t\},\{S_t\})$</span></div><div class="algorithm-body">
+<div class="algorithm-row"><span class="algorithm-line-no">1</span><span class="algorithm-content"><strong>for</strong> $t=0,\ldots,T-1$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">2</span><span class="algorithm-content algorithm-indent-1">Let $\boldsymbol{G}_t(\boldsymbol{y})=\boldsymbol{F}(\boldsymbol{y})+(\boldsymbol{y}-\boldsymbol{x}_t)/\eta$. Approximately solve $\boldsymbol{0}\in\boldsymbol{G}_t(\boldsymbol{y})+\mathcal{N}_{\mathcal{X}}(\boldsymbol{y})$ using</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-1 algorithm-math">$\boldsymbol{y}_t=\textsf{Anchored-Tensor-Method}(\boldsymbol{G}_t,\boldsymbol{x}_t,1/\eta,M,R_t,K_t,S_t)$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">3</span><span class="algorithm-content algorithm-indent-1">where $R_t=4D/(t+1)$ according to <a href="#eq-16">equation 16</a>.</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">4</span><span class="algorithm-content algorithm-indent-1">Perform the Halpern iteration $\boldsymbol{x}_{t+1}=(\boldsymbol{x}_0+(t+1)\boldsymbol{y}_t)/ (t+2)$.</span></div>
+<!-- <div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-1 algorithm-math">$\boldsymbol{x}_{t+1}=\dfrac{1}{t+2}\boldsymbol{x}_0+\dfrac{t+1}{t+2}\boldsymbol{y}_t$</span></div> -->
+<div class="algorithm-row"><span class="algorithm-line-no">5</span><span class="algorithm-content"><strong>end for</strong></span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">6</span><span class="algorithm-content"><strong>return</strong> $\boldsymbol{x}_T$</span></div>
+</div>
+</figure>
 
 The sequence $R_t=4D/(t+1)$ used in <a href="#algorithm-4">Algorithm 4</a> is defined in <a href="#eq-16">equation 16</a>.
 
@@ -711,7 +805,24 @@ The initial resolvent sub-solver generated by AI has triple loops, whose full pr
 
 The authors simplified the algorithm and its proof, using the Restarted-NPE algorithm <d-cite key="huang2022approximation"></d-cite> for $p=2$ and the single-loop Anchored-Tensor-Method introduced in <a href="#algorithm-3">Algorithm 3</a> for general $p\geq 2$.
 
-<div style="text-align:center; margin:1.5em 0;"><a id="algorithm-5"></a>
-<img src="/2027/assets/img/2027-04-30-halpern-npe/algo5.png" alt="Algorithm 5" style="max-width:100%; border:1px solid #ddd; border-radius:4px;" loading="lazy"/></div>
+<figure class="algorithm-figure" id="algorithm-5"><div class="algorithm-heading"><span class="algorithm-number">Algorithm 5</span><span class="algorithm-title">Triple-Looped-Anchored-Tensor-Method</span><span class="algorithm-params">$(\boldsymbol{G},\boldsymbol{y}_0,R,S,K)$</span></div><div class="algorithm-body">
+<div class="algorithm-row"><span class="algorithm-line-no">1</span><span class="algorithm-content">$R_0=R$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">2</span><span class="algorithm-content"><strong>for</strong> $s=0,\ldots,S-1$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">3</span><span class="algorithm-content algorithm-indent-1">$\boldsymbol{y}_{s,0}=\boldsymbol{y}_s$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">4</span><span class="algorithm-content algorithm-indent-1"><strong>for</strong> $k=0,\ldots,K-1$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">5</span><span class="algorithm-content algorithm-indent-2">Define the anchoring coefficient</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-2 algorithm-math">$\displaystyle\mu_k=\frac{L_pR_s^{p-1}}{(h_p+k\Delta_p)^{p-1}},\qquad h_p=\frac12c_p^{-1/(p-1)},\quad\Delta_p=\frac{h_p}{8(p-1)},\quad c_p=\frac{2^p(5p-2)}{p!}.$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">6</span><span class="algorithm-content algorithm-indent-2">Define $\boldsymbol{G}_k(\boldsymbol{y})=\boldsymbol{G}(\boldsymbol{y})+\mu_k(\boldsymbol{y}-\boldsymbol{y}_s)$ and initialize $\boldsymbol{y}_{s,k,0}=\boldsymbol{y}_{s,k}$.</span></div>
+<!-- <div class="algorithm-row"><span class="algorithm-line-no">7</span><span class="algorithm-content algorithm-indent-2"></span></div> -->
+<div class="algorithm-row"><span class="algorithm-line-no">8</span><span class="algorithm-content algorithm-indent-2"><strong>for</strong> $j=0,\ldots,5$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">9</span><span class="algorithm-content algorithm-indent-3">Perform one tensor step $\boldsymbol{y}_{s,k,j+1}=\mathcal{T}^{p}_{\boldsymbol{G}_k}(\boldsymbol{y}_{s,k,j};5L_p)$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">10</span><span class="algorithm-content algorithm-indent-2"><strong>end for</strong></span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">11</span><span class="algorithm-content algorithm-indent-2">$\boldsymbol{y}_{s,k+1}=\boldsymbol{y}_{s,k,6}$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">12</span><span class="algorithm-content algorithm-indent-1"><strong>end for</strong></span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">13</span><span class="algorithm-content algorithm-indent-1">Change the anchor point to $\boldsymbol{y}_{s+1}=\boldsymbol{y}_{s,K}$ and shrink the region by $R_{s+1}=R_s/4$.</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">14</span><span class="algorithm-content"><strong>end for</strong></span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">15</span><span class="algorithm-content"><strong>return</strong> $\boldsymbol{y}_S$</span></div>
+</div>
+</figure>
 
 {% endraw %}
