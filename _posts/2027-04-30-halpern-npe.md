@@ -1,7 +1,7 @@
 ---
 layout: distill
 title: "Halpern Iteration Achieves Õ(ε⁻¹/ᵖ) p-th Order Oracle Complexity for Monotone Variational Inequalities"
-description: In this blog post, we revisit the classical Halpern iteration in 1967 and show its new applications in designing second- and higher-order methods for solving smooth monotone variational inequalities (MVI).  By using a large-step inexact Halpern iteration, we propose a novel pth-order method Halpern-ATM, that achieves a fast convergence rate of Õ(T⁻ᵖ). This improves all prior results for p ≥ 2 and matches the classical extragradient method for p = 1.
+description: In this blog post, we revisit the classical Halpern iteration in 1967 and show its new applications in designing second- and higher-order methods for solving smooth monotone variational inequalities (MVI).  By using a large-step inexact Halpern iteration, we propose a novel pth-order method Halpern-ATM, that achieves a fast convergence rate of Õ(T⁻ᵖ). This improves the best-known results for p ≥ 2 since 2012 and matches the classical extragradient method for p = 1.
 date: 2027-04-30
 future: true
 htmlwidgets: true
@@ -49,7 +49,7 @@ d-article .compact-equation mjx-container[display="true"] { margin: 0.35em 0 !im
 
 In this blog post, we study the monotone variational inequality (MVI) problem <d-cite key="facchinei2003finite"></d-cite> , which targets at finding an solution ${\boldsymbol{x}}^{&#42;}\in{\mathcal{X}}$ such that
 <div class="compact-equation">
-$$\displaystyle\langle F({\boldsymbol{x}}^{&#42;}),{\boldsymbol{x}}-{\boldsymbol{x}}^{&#42;}\rangle\geq 0,\quad\forall{\boldsymbol{x}}\in{\mathcal{X}}, $$
+$$\displaystyle\langle F({\boldsymbol{x}}^{&#42;}),{\boldsymbol{x}}-{\boldsymbol{x}}^{&#42;}\rangle\geq 0,\quad\forall{\boldsymbol{x}}\in{\mathcal{X}}, \tag{1} $$
 </div>
 where ${\mathcal{X}}\subseteq\mathbb{R}^{d}$ is a nonempty compact convex set and $F:{\mathcal{X}}\to{\mathbb{R}}^{d}$ is a continuously differentiable monotone operator. The theory of solving MVI problems has been extensively studied, with numerous papers appearing at ICLR, ICML, and NeurIPS <d-cite key="choudhury2023single,vankov2024generalized,pethick2023stable,fan2024weaker,pethick2025interpolation,cai2023accelerated,cai2024accelerated,lee2021fast,jiang2024adaptive,pethick2023escaping,patel2025neuralminmax,chen2025lazyhessians,cai2022finite,yoon2021accelerated"></d-cite>. As a important special case of the MVI, the minimax optimization problem <d-footnote> The convex-concave minimax optimization $\min_{{\boldsymbol{u}}\in{\mathcal{U}}}\max_{{\boldsymbol{v}}\in{\mathcal{V}}}\phi({\boldsymbol{u}},{\boldsymbol{v}})$ is equivalent to the MVI problem with the operator given by ${\boldsymbol{F}}({\boldsymbol{u}},{\boldsymbol{v}})=[\nabla_{{\boldsymbol{u}}}\phi({\boldsymbol{u}},{\boldsymbol{v}}),-\nabla_{{\boldsymbol{v}}}\phi({\boldsymbol{u}},{\boldsymbol{v}})]$. </d-footnote> underpins influential machine-learning applications such as generative adversarial networks (GANs), with GAN receiving the NeurIPS 2024 Test of Time Award <d-cite key="goodfellow2020generative"></d-cite> and DCGAN receiving the ICLR 2026 Test of Time Award <d-cite key="radford2016unsupervised"></d-cite>. The theory of MVI is thus the foundation of nonconvex-nonconcave problems such as GAN training in practice.
 
