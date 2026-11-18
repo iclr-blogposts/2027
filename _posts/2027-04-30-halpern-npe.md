@@ -1,6 +1,6 @@
 ---
 layout: distill
-title: "Halpern Iteration Achieves Õ(ε⁻¹/ᵖ) p-th Order Oracle Complexity for Monotone Variational Inequalities"
+title: "Halpern Iteration Accelerates Solving High-Order Monotone Variational Inequalities"
 description: In this blog post, we revisit the classical Halpern iteration in 1967 and show its new applications in designing second- and higher-order methods for solving smooth monotone variational inequalities (MVI).  By using a large-step inexact Halpern iteration, we propose a novel pth-order method Halpern-ATM, that achieves a fast convergence rate of Õ(T⁻ᵖ). This improves the best-known results for p ≥ 2 since 2012 and matches the classical extragradient method for p = 1.
 date: 2027-04-30
 future: true
@@ -15,34 +15,61 @@ toc:
   - name: 1 Introduction
     subsections:
       - name: 1.1 Technical Overview
-      - name: 1.2 Subsequent Works
-      - name: 1.3 Related Works
+      - name: 1.2 Related Works
   - name: 2 Preliminaries
     subsections:
       - name: 2.1 Main Assumptions
       - name: 2.2 Tensor Steps
       - name: 2.3 Resolvent Operators and Residuals
   - name: 3 Main Result
-  - name: '4 Halpern-NPE Achieves the $\tilde{\mathcal{O}}(T^{-2})$ Rate for $p=2$'
+  - name: '4 Halpern-NPE for $p=2$'
     subsections:
-      - name: '4.1 Outer Loop: Inexact Halpern Iteration'
-      - name: '4.2 Inner Loop: Approximating the Resolvent'
-      - name: 4.3 Final Algorithm and Total Complexity
-  - name: '5 Generalizing the Result to All $p\geq 2$'
+      - name: '4.1 Outer Loop'
+      - name: '4.2 Inner Loop'
+      - name: 4.3 Final Algorithm
+  - name: '5 Halpern-ATM for $p\geq 2$'
     subsections:
-      - name: '5.1 ATM Achieves the ${\mathcal{O}}(T^{-(p-1)})$ Rate'
-      - name: '5.2 Halpern-ATM Achieves the $\tilde{\mathcal{O}}(T^{-p})$ Rate'
-  - name: 'Appendix: The Original AI-Provided Algorithm'
+      - name: '5.1 ATM Subroutine'
+      - name: '5.2 Final Algorithm'
+  - name: 'Appendix: The Original Algorithm by AI'
 ---
 
 <!-- ## Abstract
 We study second- and higher-order methods for solving smooth monotone variational inequalities (MVI). Monteiro and Svaiter (SIAM J. Optim., 2012) showed that a second-order method, NPE, converges at the rate of $\mathcal{O}(T^{-1.5})$. For convex-concave minimax optimization, a subset of MVI problems, Chen, Liu, Luo, and Zhang (COLT 2025) recently improved the complexity to $\tilde{\mathcal{O}}(T^{-1.75})$ . However, it is open whether the conjectured complexity for MVI can be improved. In this paper, by using a large-step inexact Halpern iteration, we propose a novel Halpern-NPE method that achieves an even faster rate of $\tilde{\mathcal{O}}(T^{-2})$ for solving MVIs. We also provide the $p$th-order generalization of our method. We first introduce an Anchored Tensor Method (ATM) that achieves the rate of $\mathcal{O}(T^{-(p-1)})$, and then combine it with the Halpern iteration to achieve a faster convergence rate of $\tilde{\mathcal{O}}(T^{-p})$. This improves all prior results for $p\geq 2$ and matches the classical extragradient method for $p=1$. -->
 
 {% raw %}
+<script>
+// This post uses MathJax. Disable Distill's competing dollar-delimiter parser
+// before DOMContentLoaded, when Distill reads its front matter.
+(function () {
+  var metadata = document.querySelector('d-front-matter script[type="text/json"]');
+  if (metadata) {
+    var data = JSON.parse(metadata.textContent);
+    delete data.katex;
+    metadata.textContent = JSON.stringify(data);
+  }
+})();
+</script>
 <a id="1-introduction"></a>
 ## 1 Introduction
 
 <style>
+/* The desktop TOC spans the first four article grid rows. Keep its
+   content visible without letting its height stretch those text rows. */
+@media (min-width: 1025px) {
+  d-article d-contents {
+    height: 0;
+    min-height: 0;
+    overflow: visible;
+  }
+}
+/* Keep display equations out of the theme's flex/vertical-scroll layout. */
+d-article mjx-container[display="true"] {
+  display: block !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5em 0;
+}
 d-article .compact-equation { margin: 0 !important; }
 d-article .compact-equation mjx-container[display="true"] { margin: 0.35em 0 !important; }
 d-article .algorithm-figure {
@@ -98,51 +125,111 @@ d-article .algorithm-figure figcaption {
   d-article .algorithm-body { font-size: .88em; }
 }
 
+.halpern-intro-frame { height: 570px; }
+@media (max-width: 1000px) { .halpern-intro-frame { height: 1000px; } }
 </style>
 
 In this blog post, we study the monotone variational inequality (MVI) problem <d-cite key="facchinei2003finite"></d-cite> , which targets at finding an solution ${\boldsymbol{x}}^{&#42;}\in{\mathcal{X}}$ such that
 <div class="compact-equation">
 $$\displaystyle\langle F({\boldsymbol{x}}^{&#42;}),{\boldsymbol{x}}-{\boldsymbol{x}}^{&#42;}\rangle\geq 0,\quad\forall{\boldsymbol{x}}\in{\mathcal{X}}, \tag{1} $$
 </div>
-where ${\mathcal{X}}\subseteq\mathbb{R}^{d}$ is a nonempty compact convex set and $F:{\mathcal{X}}\to{\mathbb{R}}^{d}$ is a continuously differentiable monotone operator. The theory of solving MVI problems has been extensively studied, with numerous papers appearing at ICLR, ICML, and NeurIPS <d-cite key="choudhury2023single,vankov2024generalized,pethick2023stable,fan2024weaker,pethick2025interpolation,cai2023accelerated,cai2024accelerated,lee2021fast,jiang2024adaptive,pethick2023escaping,patel2025neuralminmax,chen2025lazyhessians,cai2022finite,yoon2021accelerated"></d-cite>. As a important special case of the MVI, the minimax optimization problem <d-footnote> The convex-concave minimax optimization $\min_{{\boldsymbol{u}}\in{\mathcal{U}}}\max_{{\boldsymbol{v}}\in{\mathcal{V}}}\phi({\boldsymbol{u}},{\boldsymbol{v}})$ is equivalent to the MVI problem with the operator given by ${\boldsymbol{F}}({\boldsymbol{u}},{\boldsymbol{v}})=[\nabla_{{\boldsymbol{u}}}\phi({\boldsymbol{u}},{\boldsymbol{v}}),-\nabla_{{\boldsymbol{v}}}\phi({\boldsymbol{u}},{\boldsymbol{v}})]$. </d-footnote> underpins influential machine-learning applications such as generative adversarial networks (GANs), with GAN receiving the NeurIPS 2024 Test of Time Award <d-cite key="goodfellow2020generative"></d-cite> and DCGAN receiving the ICLR 2026 Test of Time Award <d-cite key="radford2016unsupervised"></d-cite>. The theory of MVI is thus the foundation of nonconvex-nonconcave problems such as GAN training in practice.
+where ${\mathcal{X}}\subseteq\mathbb{R}^{d}$ is a nonempty compact convex set and $F:{\mathcal{X}}\to{\mathbb{R}}^{d}$ is a continuously differentiable monotone operator. The theory of solving MVI problems has been extensively studied, with numerous papers appearing at ICLR, ICML, and NeurIPS <d-cite key="choudhury2023single,vankov2024generalized,pethick2023stable,fan2024weaker,pethick2025interpolation,cai2023accelerated,cai2024accelerated,lee2021fast,jiang2024adaptive,pethick2023escaping,patel2025neuralminmax,chen2025lazyhessians,cai2022finite,yoon2021accelerated"></d-cite>. As a important special case of the MVI, the minimax optimization problem <d-footnote> The convex-concave minimax optimization $\min&#95;{{\boldsymbol{u}}\in{\mathcal{U}}}\max&#95;{{\boldsymbol{v}}\in{\mathcal{V}}}\phi({\boldsymbol{u}},{\boldsymbol{v}})$ is equivalent to the MVI problem with the operator given by ${\boldsymbol{F}}({\boldsymbol{u}},{\boldsymbol{v}})=[\nabla&#95;{{\boldsymbol{u}}}\phi({\boldsymbol{u}},{\boldsymbol{v}}),-\nabla&#95;{{\boldsymbol{v}}}\phi({\boldsymbol{u}},{\boldsymbol{v}})]$. </d-footnote> underpins influential machine-learning applications such as generative adversarial networks (GANs), with GAN receiving the NeurIPS 2024 Test of Time Award <d-cite key="goodfellow2020generative"></d-cite> and DCGAN receiving the ICLR 2026 Test of Time Award <d-cite key="radford2016unsupervised"></d-cite>. The theory of MVI is thus the foundation of nonconvex-nonconcave problems such as GAN training in practice.
+
+A classical approach to solving an MVI is the **proximal point method** <d-cite key="rockafellar1976monotone"></d-cite>, which iteratively computes proximal point ${\boldsymbol{x}}&#95;{t+1}={\boldsymbol{P}}&#95;\eta({\boldsymbol{x}}&#95;t)$, where ${\boldsymbol{P}}&#95;\eta=({\rm Id}+\eta({\boldsymbol{F}}+{\mathcal{N}}&#95;{\mathcal{X}}))^{-1}$ and ${\mathcal{N}}&#95;{\mathcal{X}}$ is the normal-cone operator. The state-of-art first and high-order methods can all be obtained from the PPM framework <d-cite key="mokhtari2020unified,jiang2022generalized"></d-cite>, including Korpelevich's first-order extragradient (EG) method <d-cite key="korpelevich1976extragradient"></d-cite>, Monteiro-Svaiter's Newton Proximal Extragradient (NPE) method <d-cite key="monteiro2012iteration"></d-cite> and its high-order generalizations <d-cite key="bullins2022higher,adil2022optimal,huang2022approximation,lin2023monotone,jiang2022generalized,lin2022perseus,nesterov2023high"></d-cite>.
+
+The **Halpern iteration** ${\boldsymbol{x}}&#95;{t+1}=\beta&#95;t{\boldsymbol{x}}&#95;0+(1-\beta&#95;t){\boldsymbol{P}}&#95;\eta({\boldsymbol{x}}&#95;t)$ with $\beta&#95;t=1/(t+2)$ <d-cite key="halpern1967fixed"></d-cite> adds a pull toward the initial point ${\boldsymbol{x}}&#95;0$ per iteration，which gives an alternative to achieving the same convergence rate of PPM.  This iteration is recently studied for first-order methods, resulting the anchored extragradient methods <d-cite key="diakonikolas2020halpern,yoon2021accelerated,cai2022finite"></d-cite> that achieves the optimal $\mathcal{O}(T^{-1})$ convergence rate on the proximal redisual
+${\rm res}_\eta({\boldsymbol{x}}&#95;t) = \Vert{\boldsymbol{x}}&#95;t-{\boldsymbol{P}}&#95;\eta({\boldsymbol{x}}&#95;t)\Vert / \eta$. See the illustration below.
+
+<figure id="halpern-intro-animation" style="margin:1.4em 0;">
+<iframe class="halpern-intro-frame" src="/2027/assets/html/2027-04-30-halpern-npe/halpern-trajectories.html" title="Interactive comparison of PPA and Halpern trajectories and proximal residuals" loading="lazy" style="display:block; width:100%; border:0;"></iframe>
+</figure>
+<script>
+window.addEventListener('message', function (event) {
+  var frame = document.querySelector('#halpern-intro-animation iframe');
+  if (!frame || event.source !== frame.contentWindow || event.origin !== window.location.origin) return;
+  if (event.data && event.data.type === 'halpern-animation-height' && Number.isFinite(event.data.height)) {
+    frame.style.height = Math.max(200, Math.min(2000, event.data.height)) + 'px';
+  }
+});
+</script>
+
+This blog post discovers a new application of Halpern iteration in high-order methods. **Our observation is that a smaller proximal residual also makes high-order proximal subproblems cheaper to solve, which leading to new convergence rates for high-order methods.** Note that $R_t = \eta {\rm res}_\eta({\boldsymbol{x}}&#95;t) = \Vert{\boldsymbol{x}}&#95;t-{\boldsymbol{P}}&#95;\eta({\boldsymbol{x}}&#95;t)\Vert$ is exactly the distance from the starting point to the solution of the $t$th subproblem. Although the complexity of first-order methods is independent of it, $R_t$ is in fact a key quantity in the complexity bounds of high-order methods <d-cite key="monteiro2012iteration,huang2022approximation,jiang2022generalized"></d-cite>. For instance, for second-order methods $p=2$, the dependency is $R_t^{2/3}$. Therefore, a straightforward applications of the Halpern iteration in the high-order setting leads to lower inner proximal solver costs, which finally improves the best-known complexity from $\mathcal{O}(T^{-(p+1)/2})$  <d-cite key="monteiro2012iteration,bullins2022higher"></d-cite> to  $\tilde{\mathcal{O}}(T^{-p})$.
+
+<style>
+.halpern-comparison-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  margin: 1.4em 0 1.8em;
+}
+</style>
+<div class="halpern-comparison-grid" role="img" aria-label="Known: for first-order methods, Halpern converts restricted-gap convergence into proximal-residual convergence. New: for high-order methods, Halpern's smaller proximal residual lowers subproblem-solving cost and improves the convergence rate.">
+  <div style="border:1px solid #cbd8e6; border-top:4px solid #6686a8; border-radius:10px; background:#f5f8fb; padding:16px 18px;">
+    <div style="font-size:.78em; letter-spacing:.08em; font-weight:700; color:#55718e; text-transform:uppercase;">Known · Halpern for p = 1</div>
+    <div style="margin-top:12px; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; text-align:center;">
+      <div style="border:1px solid #d7e1eb; border-radius:7px; background:white; padding:10px 8px; font-weight:600;">Restricted-gap<br>convergence</div>
+      <div aria-hidden="true" style="font-size:1.4em; color:#6686a8;">→</div>
+      <div style="border:1px solid #d7e1eb; border-radius:7px; background:white; padding:10px 8px; font-weight:600;">Proximal-residual<br>convergence</div>
+    </div>
+    <div style="margin-top:10px; color:#536579; font-size:.9em; text-align:center;">strengthens the convergence guarantee, but the rate $\mathcal{O}(T^{-1})$ is unchanged.</div>
+  </div>
+  <div style="border:1px solid #d3dfd7; border-top:4px solid #4f8a69; border-radius:10px; background:#f4f9f5; padding:16px 18px;">
+    <div style="font-size:.78em; letter-spacing:.08em; font-weight:700; color:#397451; text-transform:uppercase;">New here · Halpern for p ≥ 2</div>
+    <div style="margin-top:12px; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; text-align:center;">
+      <div style="border:1px solid #d8e5db; border-radius:7px; background:white; padding:10px 8px; font-weight:600;">Smaller proximal<br>residual</div>
+      <div aria-hidden="true" style="font-size:1.4em; color:#4f8a69;">→</div>
+      <div style="border:1px solid #d8e5db; border-radius:7px; background:white; padding:10px 8px; font-weight:600;">Cheaper high-order<br>subproblem solves</div>
+    </div>
+    <div style="margin:10px 0 0; color:#397451; text-align:center; font-weight:700;">Lower total cost = faster rate</div>
+    <div style="margin-top:5px; color:#536b5a; font-size:.88em; text-align:center;">Classical: O(T<sup>−(p+1)/2</sup>) &nbsp;→&nbsp; This blog: Õ(T<sup>−p</sup>)</div>
+  </div>
+</div>
+
+
+<!-- Thus, in the high-order setting $p\geq2$, Halpern's stronger residual control can reduce the cumulative inner-solver cost and allow a larger proximal stepsize. For $p=2$, combining Halpern iteration with the classical Newton Proximal Extragradient (NPE) method yields a $\widetilde{\mathcal{O}}(N^{-2})$ rate in the total number $N$ of oracle calls, improving on the classical ${\mathcal{O}}(N^{-3/2})$ rate established in 2012 <d-cite key="monteiro2012iteration"></d-cite>. For general $p\geq2$, we develop an Anchored Tensor Method to obtain the required inner-solver efficiency and extend the result to $\widetilde{\mathcal{O}}(N^{-p})$; see the <a href="#1-1-technical-overview">technical overview</a> below. -->
+
+<!-- $R&#95;t=\eta\,{\rm res}&#95;\eta({\boldsymbol{x}}&#95;t)$. -->
+<!-- 
+ This anchoring idea has already proved useful in first-order methods for obtaining faster last-iterate residual guarantees <d-cite key="diakonikolas2020halpern,yoon2021accelerated,cai2022finite"></d-cite>. For exact proximal steps and fixed $\eta$, it improves the general proximal-residual guarantee from ${\mathcal{O}}(1/(\eta\sqrt{t+1}))$ for PPA to ${\mathcal{O}}(1/(\eta(t+1)))$, where ${\rm res}&#95;\eta({\boldsymbol{x}})=\Vert{\boldsymbol{x}}-{\boldsymbol{P}}&#95;\eta({\boldsymbol{x}})\Vert/\eta$; here we suppress the dependence on the initial distance <d-cite key="lieder2020convergence"></d-cite>.  -->
+<!-- 
+
+The animation illustrates the residual mechanism using exact proximal steps for the monotone linear operator ${\boldsymbol{F}}(u,v)=(au-\omega v,\omega u+av)$, with $a\geq0$, $\eta=1$, and ${\boldsymbol{x}}&#95;0=(1,0)$. The trajectories remain in the closed unit disk, which we take as the feasible set. In the rotation examples, the Halpern iterate is the average of the PPA points ${\boldsymbol{x}}&#95;0,{\boldsymbol{P}}&#95;\eta{\boldsymbol{x}}&#95;0,\ldots,{\boldsymbol{P}}&#95;\eta^t{\boldsymbol{x}}&#95;0$: different directions cancel, reducing the residual. This averaging identity is specific to this linear example. The strong-contraction example also shows that PPA can be faster on individual problems; the animation illustrates the mechanism rather than the high-order oracle-complexity theorem.-->
+
 
 <!-- 
 These neural-network parameterizations are generally nonconvex-nonconcave, so they illustrate the broader reach of minimax optimization rather than the convex-concave MVI subclass.  -->
 
-People have fully understood the optimal complexity of solving MVI for first-order methods, which use the information of ${\boldsymbol{F}}({\boldsymbol{x}})$ to solve the problem. Korpelevich's extragradient method in 1976 <d-cite key="korpelevich1976extragradient"></d-cite> converges at the rate of ${\mathcal{O}}(T^{-1})$ with $T$ queries of ${\boldsymbol{F}}({\boldsymbol{x}})$, which matches Nemirovskij's lower bound in 2004 <d-cite key="nemirovski2004prox"></d-cite>. However, the optimal complexity for $p$th-order methods for $p \ge 2$ remains open for many years. By saying $p$th-order methods, we refer to the algorithms that uses total $T$ queries of the 
+<!-- People have fully understood the optimal complexity of solving MVI for first-order methods, which use the information of ${\boldsymbol{F}}({\boldsymbol{x}})$ to solve the problem. Korpelevich's extragradient method in 1976 <d-cite key="korpelevich1976extragradient"></d-cite> converges at the rate of ${\mathcal{O}}(T^{-1})$ with $T$ queries of ${\boldsymbol{F}}({\boldsymbol{x}})$, which matches Nemirovskij's lower bound in 2004 <d-cite key="nemirovski2004prox"></d-cite>. However, the optimal complexity for $p$th-order methods for $p \ge 2$ remains open for many years. By saying $p$th-order methods, we refer to the algorithms that uses total $T$ queries of the 
 derivative information of ${\boldsymbol{F}}$ up to order $p-1$:
+
+
 <!-- The MVI problem is equivalent to monotone inclusion problem ${\boldsymbol{0}}\in{\boldsymbol{F}}({\boldsymbol{x}}^{&#42;})+{\mathcal{N}}&#95;{\mathcal{X}}({\boldsymbol{x}}^{&#42;})$, which captures a lot of optimization problems, especially   -->
 <!-- A typical example is the following convex-concave minimax optimization problem <d-cite key="goodfellow2020generative,cesa2006prediction"></d-cite> : -->
 <!-- 
 Following the oracle model established in classical textbooks <d-cite key="nemirovskij1983problem,nesterov2018lectures"></d-cite> , we consider the $p$th-order algorithm class that can query the : -->
-<div>
+<!-- <div>
 <a id="eq-3"></a>
 $$ ({\boldsymbol{F}}({\boldsymbol{x}}),D{\boldsymbol{F}}({\boldsymbol{x}}),\ldots,D^{p-1}{\boldsymbol{F}}({\boldsymbol{x}})). \tag{3} $$
-</div>
+</div> -->
 
 <!-- 
 We also assume that the operator is $p$th-order $L&#95;{p}$-smooth, i.e., $D^{p-1}{\boldsymbol{F}}$ is $L&#95;{p}$-Lipschitz continuous. The optimal oracle complexity for convex optimization has been settled, where the monotone operator ${\boldsymbol{F}}({\boldsymbol{x}})=\nabla f({\boldsymbol{x}})$ is the gradient of a convex function $f$. Let $T$ be the total number of oracle calls. The optimal convergence rates for first-order methods ($p=1$) and high-order methods $p \ge 2$ are known to be ${\mathcal{O}}(L&#95;{1}/T^{2})$ <d-cite key="nemirovskij1983problem,nesterov1983method"></d-cite> and ${\mathcal{O}}(L&#95;{p}/T^{(3p+1)/2})$ <d-cite key="monteiro2013accelerated,kovalev2022first,carmon2022optimal,arjevani2019oracle"></d-cite>, respectively. -->
-
-For $p=2$, the classical Monteiro-Svaiter's Newton Proximal Extragradient (NPE) method in 2012 achieves a convergence rate of $\mathcal{O}(T^{-1.5})$. Over the past decade, the NPE method has also been generalized to any order $p \ge 2$, achieving the convergence rate of $\mathcal{O}(T^{-(p+1)/2})$ <d-cite key="bullins2022higher,adil2022optimal,huang2022approximation,lin2023monotone,jiang2022generalized,lin2022perseus,nesterov2023high"></d-cite>. But it is open whether this method can be improved for solving MVI.
-
+<!-- For $p=2$, the classical Monteiro-Svaiter's Newton Proximal Extragradient (NPE) method in 2012 achieves a convergence rate of $\mathcal{O}(T^{-1.5})$. Over the past decade, the NPE method has also been generalized to any order $p \ge 2$, achieving the convergence rate of $\mathcal{O}(T^{-(p+1)/2})$ <d-cite key="bullins2022higher,adil2022optimal,huang2022approximation,lin2023monotone,jiang2022generalized,lin2022perseus,nesterov2023high"></d-cite>. But it is open whether this method can be improved for solving MVI. -->
 <!-- In 2012, <d-cite key="monteiro2012iteration"></d-cite> proposed the Newton Proximal Extragradient (NPE) method with a fast second-order convergence rate of ${\mathcal{O}}(L&#95;{2}/T^{1.5})$ for $p=2$, where the cost at each iteration is nearly the same as matrix inversion/multiplication <d-cite key="duan2023faster,demmel2007fast"></d-cite> . Moreover, the $p$th-order generalization of NPE achieves the rate of ${\mathcal{O}}(L&#95;{p}/T^{(p+1)/2})$ in general  , which is speculated to be optimal in <d-cite key="adil2022optimal,lin2022perseus"></d-cite> . -->
 
 <!-- Very recently, <d-cite key="chen2025solving"></d-cite> proposed a faster method tailored to minimax Problem (2) that can achieve a new convergence rate of $\tilde{\mathcal{O}}(L&#95;{2}/T^{1.75})$ using second-order oracles and $\tilde{\mathcal{O}}(L&#95;{p}/T^{(3p+1)/4})$ using $p$th-order oracles <d-cite key="chen2026solving"></d-cite> . However, it is unknown whether this upper bound is optimal, as it persists a gap compared to the lower bound of $\Omega(L&#95;{2}/T^{2.5})$ and $\Omega(L&#95;{p}/T^{(3p-1)/2})$ for second-order and $p$th-order oracles, respectively <d-cite key="chen2026solving"></d-cite> . More importantly, it is also open whether the classical ${\mathcal{O}}(L&#95;{p}/T^{(p+1)/2})$ rate <d-cite key="monteiro2012iteration,lin2022perseus"></d-cite> can be improved for general MVI, without leveraging the minimax problem structure. -->
-
+<!-- 
 **Our Findings.** In this blog post, we revisit the classical Halpern iteration—an old method for finding fixed points dating back to 1967 <d-cite key="halpern1967fixed"></d-cite>—and surprisingly discover that combining it directly with the classic Monteiro-Svaiter's NPE method yields a faster algorithm, improving the convergence rate of NPE from $\mathcal{O}(T^{-1.5})$ to $\tilde{\mathcal{O}}(T^{-2})$ for $p=2$. Moreover, we also extend our method to any $p$th-order, improving the rate achieved by the $p$th-order generalization of NPE from 
-$\mathcal{O}(T^{-(p+1)/2})$ to $\tilde {\mathcal{O}}(T^{-p})$ for any $p \ge 2$. 
+$\mathcal{O}(T^{-(p+1)/2})$ to $\tilde {\mathcal{O}}(T^{-p})$ for any $p \ge 2$.  -->
 
-The idea of incorporating Halpern iteration was first discovered by GPT-5.6 Sol, while the authors simplified the resulting algorithm and wrote a human-readable proof (see <a href="#appendix-d-the-original-ai-provided-algorithm">Appendix</a>). We hope this blog post deepens the community's understanding of this fundamental problem. 
 
-<details open style="margin:1.5em 0 1em; border:1px solid #b7c9dc; border-radius:8px; background:#f7f9fc; padding:0.65em 0.9em;"><summary style="cursor:pointer; color:#315d82; font-size:1.08em; font-weight:700;">Notations <span style="font-size:0.82em; font-weight:500; color:#60758a;">(click to hide)</span></summary>
-We use $\Vert \cdot \Vert$ to denote the Euclidean norm for vectors and the spectral norm for matrices and tensors in a unified way. We hide logarithmic factors in the notation $\tilde{\mathcal{O}}(\,\cdot\,)$. Also, we use the notations ${\mathcal{O}}&#95;{p}(\,\cdot\,)$ and $\tilde{\mathcal{O}}&#95;{p}(\,\cdot\,)$ to hide the constants that depend on $p$. We denote $D^{q}{\boldsymbol{F}}$ as the $q$th-order derivative of an operator ${\boldsymbol{F}}:{\mathcal{X}}\to{\mathbb{R}}^{d}$. For a convex compact set ${\mathcal{X}}$, we let $\mathcal{N}_{\mathcal{X}}({\boldsymbol{x}})$ be its normal cone at point ${\boldsymbol{x}}$, equivalently, the subdifferential of the indicator of the set. We also let ${\rm Proj}&#95;{{\mathcal{X}}}$ be the projection operator of ${\boldsymbol{x}}$ onto the set.
-</details>
  <!-- propose a superfast high-order method that solves the MVI problem at the convergence rate of $\tilde{\mathcal{O}}(L&#95;{2}/T^{2})$ for $p=2$ and $\tilde{\mathcal{O}}(L&#95;{p}/T^{p})$ for general $p\geq 2$. Our new upper bound achieves a significant improvement in the exponent compared to both the classical rate of ${\mathcal{O}}(L&#95;{p}/T^{(p+1)/2})$ for MVI and the recently established fast rate of $\tilde{\mathcal{O}}(L&#95;{p}/T^{(3p+1)/4})$ for minimax problems, because -->
 
 <!-- <div>
 $$ p>\frac{3p+1}{4}>\frac{p+1}{2},\qquad\forall p\geq 2. $$
 </div> -->
-<a id="1-1-technical-overview"></a>
+
+<!-- <a id="1-1-technical-overview"></a>
 ### 1.1 Technical Overview
 
 We first revisit the application of the classical Halpern iteration in first-order methods ($p=1$). Then, we demonstrate how directly integrating this technique into the proximal iteration yields a new breakthrough acceleration results for second- and high-order optimization ($p \ge 2$).
@@ -153,7 +240,7 @@ We first revisit the application of the classical Halpern iteration in first-ord
 $$ {\boldsymbol{x}}&#95;{t+1}=\beta&#95;{t}{\boldsymbol{x}}&#95;{0}+(1-\beta&#95;{t}){\boldsymbol{P}}({\boldsymbol{x}}&#95;{t}), \tag{4} $$
 </div>
 
-where $\lbrace \beta_t \rbrace_{t=0}^{T-1} \in (0,1)$ is a decreasing sequence and the initial point ${\boldsymbol{x}}&#95;{0}$ is also called the anchor <d-cite key="yoon2021accelerated,lee2021fast"></d-cite> . A simple and common choice of $\beta&#95;{t}={\mathcal{O}}(t^{-1})$ can lead to the optimal convergence rate to the fixed point $\Vert{\boldsymbol{x}}&#95;{T}-{\boldsymbol{P}}({\boldsymbol{x}}&#95;{T})\Vert\leq{\mathcal{O}}(T^{-1})$ <d-cite key="lieder2020convergence,halpern1967fixed,alacaoglu2024revisiting,cai2024variance"></d-cite> . When solving MVI problems, a natural candidate operator ${\boldsymbol{P}}$ that satisfies non-expansiveness is the resolvent/proximal operator ${\boldsymbol{P}}&#95;{\eta({\boldsymbol{F}}+{\mathcal{N}}&#95;{\mathcal{X}})}=({\rm Id}+\eta({\boldsymbol{F}}+{\mathcal{N}}&#95;{\mathcal{X}}))^{-1})$ <d-cite key="rockafellar1976monotone,ryu2016primer"></d-cite> . Let ${\rm res}({\boldsymbol{x}})=\Vert{\boldsymbol{x}}-{\boldsymbol{P}}&#95;{\eta({\boldsymbol{F}}+{\mathcal{N}}&#95;{\mathcal{X}})}({\boldsymbol{x}})\Vert/\eta$ be the normalized proximal residual then the Halpern iteration guarantees the convergence rate of ${\rm res}({\boldsymbol{x}}&#95;{T})={\mathcal{O}}((\eta T)^{-1})$. For first-order methods, we can take $\eta=\mathcal{O}(1)$, and the resolvent can be solved in ${\mathcal{O}}(1)$ gradient steps. As a result, it can convert a method with the optimal ${\mathcal{O}}(T^{-1})$ convergence rate in the gap function <d-cite key="nesterov2007dual,korpelevich1976extragradient"></d-cite> to a counterpart with the same rate in terms of the stronger notions, known as the gradient norm <d-cite key="yoon2021accelerated,lee2021fast"></d-cite> or tangent residual <d-cite key="cai2022finite,cai2023accelerated,cai2024accelerated"></d-cite> .
+where $\lbrace \beta&#95;t \rbrace&#95;{t=0}^{T-1} \in (0,1)$ is a decreasing sequence and the initial point ${\boldsymbol{x}}&#95;{0}$ is also called the anchor <d-cite key="yoon2021accelerated,lee2021fast"></d-cite> . A simple and common choice of $\beta&#95;{t}={\mathcal{O}}(t^{-1})$ can lead to the optimal convergence rate to the fixed point $\Vert{\boldsymbol{x}}&#95;{T}-{\boldsymbol{P}}({\boldsymbol{x}}&#95;{T})\Vert\leq{\mathcal{O}}(T^{-1})$ <d-cite key="lieder2020convergence,halpern1967fixed,alacaoglu2024revisiting,cai2024variance"></d-cite> . When solving MVI problems, a natural candidate operator ${\boldsymbol{P}}$ that satisfies non-expansiveness is the resolvent/proximal operator ${\boldsymbol{P}}&#95;{\eta({\boldsymbol{F}}+{\mathcal{N}}&#95;{\mathcal{X}})}=({\rm Id}+\eta({\boldsymbol{F}}+{\mathcal{N}}&#95;{\mathcal{X}}))^{-1})$ <d-cite key="rockafellar1976monotone,ryu2016primer"></d-cite> . Let ${\rm res}({\boldsymbol{x}})=\Vert{\boldsymbol{x}}-{\boldsymbol{P}}&#95;{\eta({\boldsymbol{F}}+{\mathcal{N}}&#95;{\mathcal{X}})}({\boldsymbol{x}})\Vert/\eta$ be the normalized proximal residual then the Halpern iteration guarantees the convergence rate of ${\rm res}({\boldsymbol{x}}&#95;{T})={\mathcal{O}}((\eta T)^{-1})$. For first-order methods, we can take $\eta=\mathcal{O}(1)$, and the resolvent can be solved in ${\mathcal{O}}(1)$ gradient steps. As a result, it can convert a method with the optimal ${\mathcal{O}}(T^{-1})$ convergence rate in the gap function <d-cite key="nesterov2007dual,korpelevich1976extragradient"></d-cite> to a counterpart with the same rate in terms of the stronger notions, known as the gradient norm <d-cite key="yoon2021accelerated,lee2021fast"></d-cite> or tangent residual <d-cite key="cai2022finite,cai2023accelerated,cai2024accelerated"></d-cite> .
 
 
 <div style="margin:1.5em 0 0.65em; padding:0.35em 0.7em; border-left:3px solid #4f7cac; background:#f2f6fa; color:#254b70; font-size:1.08em; font-weight:700;">(B) <span style="font-weight:500;"> Halpern-NPE for $p=2$</span></div> To our surprise, in the second- and  high-order setting, we found that the power of Halpern iteration <d-cite key="diakonikolas2020halpern,cai2024variance"></d-cite> or anchoring technique <d-cite key="ryu2019ode,yoon2021accelerated,lee2021fast"></d-cite> is not limited to converting solution concepts as in $p=1$, but also can lead to a faster convergence rate for $p\geq 2$. We first focus on the simpler setting that $p=2$, and  show that a simple algorithm called Halpern-NPE can achieve the fast convergence rate of $\tilde{\mathcal{O}}(T^{-2})$ by using the following two observations:
@@ -166,25 +253,31 @@ where $\lbrace \beta_t \rbrace_{t=0}^{T-1} \in (0,1)$ is a decreasing sequence a
 <!-- The anchor point ${\boldsymbol{x}}&#95;{0}$ in the Halpern iteration is indispensable for our new results. Without the anchor point, i.e., setting $\beta&#95;{t}=0$ in <a href="#eq-4">equation 4</a>, the Halpern iteration reduces to the proximal point iteration <d-cite key="rockafellar1976monotone"></d-cite> . Although the latter also converges at the rate of ${\mathcal{O}}((\eta T)^{-1})$ in the gap function <d-cite key="mokhtari2020unified"></d-cite> , we can only prove $\sum&#95;{t=0}^{T-1}R&#95;{t}^{2}={\mathcal{O}}(1)$, thus the total cost of subproblem solving is $\eta L&#95;{2}\sum&#95;{t=0}^{T-1}R&#95;{t}={\mathcal{O}}(\eta L&#95;{2}\sqrt{T})$. Hence, one can only choose $\eta=\Theta(\sqrt{T}/L&#95;{2})$ and achieve the classical rate of ${\mathcal{O}}(L&#95;{2}/T^{1.5})$ as prior works <d-cite key="monteiro2012iteration,jiang2024adaptive,alves2023search"></d-cite> . -->
 
 <!-- <details style="margin:1.5em 0 1em; border:1px solid #b7c9dc; border-radius:8px; background:#f7f9fc; padding:0.65em 0.9em;"><summary style="cursor:pointer; color:#315d82; font-size:1.08em; font-weight:700;">(C) Halpern-ATM for $p\geq 2$ <span style="font-size:0.82em; font-weight:500; color:#60758a;">(click to expand)</span></summary> -->
-
+<!-- 
 <div style="margin:1.5em 0 0.65em; padding:0.35em 0.7em; border-left:3px solid #4f7cac; background:#f2f6fa; color:#254b70; font-size:1.08em; font-weight:700;">(C) <span style="font-weight:500;"> Halpern-ATM for $p\geq 2$</span> <span style="font-size:0.82em; font-weight:500; color:#60758a;">(can be skipped for the first read)</span></div>
-To generalize the above result to higher-order optimization, we can easily follow the same analysis and know that, as long as there exists a basic tensor method that has the complexity of $\tilde{\mathcal{O}}((\eta d&#95;{t})^{1/(p-1)})$ for solving the proximal subproblem, then the large-step Halpern iteration with $\eta=\Theta(T^{p-1})$ yields a method converges at the rate of $\tilde{\mathcal{O}}(T^{-p})$.
+To generalize the above result to higher-order optimization, we can easily follow the same analysis and know that, as long as there exists a basic tensor method that has the complexity of $\tilde{\mathcal{O}}((\eta d&#95;{t})^{1/(p-1)})$ for solving the proximal subproblem, then the large-step Halpern iteration with $\eta=\Theta(T^{p-1})$ yields a method converges at the rate of $\tilde{\mathcal{O}}(T^{-p})$. -->
 
-However, the high-order generalization of NPE <d-cite key="bullins2022higher,adil2022optimal,huang2022approximation,lin2022perseus"></d-cite> can only achieve a complexity of $\tilde{\mathcal{O}}(\eta d&#95;{t})^{2/(p+1)})$ that is not fast enough for $p\geq 4$. To address this issue, we propose an Anchored Tensor Method (ATM), which iteratively adds regularization on the original operator to ensure that every tensor step lies in the local superlinear convergence region. We show that ATM achieves a rate of ${\mathcal{O}}(T^{-(p-1)})$ for $p\geq 2$, which implies the required complexity of $\tilde{\mathcal{O}}((\eta d&#95;{t})^{1/(p-1)})$ for the proximal subproblem in the Halpern iteration. Finally, the algorithm called Halpern-ATM achieves the fast convergence rate of $\tilde{\mathcal{O}}(T^{-p})$.
+<!-- However, the high-order generalization of NPE <d-cite key="bullins2022higher,adil2022optimal,huang2022approximation,lin2022perseus"></d-cite> can only achieve a complexity of $\tilde{\mathcal{O}}(\eta d&#95;{t})^{2/(p+1)})$ that is not fast enough for $p\geq 4$. To address this issue, we propose an Anchored Tensor Method (ATM), which iteratively adds regularization on the original operator to ensure that every tensor step lies in the local superlinear convergence region. We show that ATM achieves a rate of ${\mathcal{O}}(T^{-(p-1)})$ for $p\geq 2$, which implies the required complexity of $\tilde{\mathcal{O}}((\eta d&#95;{t})^{1/(p-1)})$ for the proximal subproblem in the Halpern iteration. Finally, the algorithm called Halpern-ATM achieves the fast convergence rate of $\tilde{\mathcal{O}}(T^{-p})$. -->
 
-<a id="1-2-subsequent-works"></a>
+<!-- <a id="1-2-subsequent-works"></a>
 
-### 1.2 Subsequent Works
+### 1.2 Subsequent Works -->
 
-Within a month following our release, three independent works <d-cite key="zhang2026optimal,zhang2026matching,jiang2026anchored"> </d-cite> built upon our ideas to establish an optimal convergence rate of $\mathcal{O}(T^{-(3p+1)/2})$, matching the lower bound given by Chen et al. <d-cite key="chen2026solving"></d-cite> . The core idea behind these developments is to incorporate an additional gradient step into the Halpern iteration to predict the optimal solution of each proximal subproblem, thereby enabling larger step sizes. The derivations in these papers are more complicated than our blog. This blog post is to revisit the Halpern iteration and provide a concise   proof for improving the classical NPE algorithm.
+Within a month following our release, three independent works <d-cite key="zhang2026optimal,zhang2026matching,jiang2026anchored"> </d-cite> built upon our ideas to establish an optimal convergence rate of $\mathcal{O}(T^{-(3p+1)/2})$, matching the lower bound given by Chen et al. <d-cite key="chen2026solving"></d-cite> . The core idea behind these developments is to incorporate an additional gradient step into the Halpern iteration to predict the optimal solution of each proximal subproblem, thereby further reducing the subproblem's computational complexity. While the derivations in those subsequent works are quite involved, this blog post provides a concise proof for improving the classical high-order lgorithms using the classical Halpern iteration. For instance, in the case of $p=2$, our analysis largely reuses existing tools, making the entire proof of <a href="#theorem-4.1">Theorem 4.1</a> only require just a few lines. 
 
-<a id="1-3-related-works"></a>
+**AI Usage.**  The idea of incorporating Halpern iteration was first discovered by GPT-5.6 Sol (see <a href="#appendix-d-the-original-ai-provided-algorithm">Appendix</a> for the initial AI response), while the authors simplified the resulting algorithm and wrote a human-readable proof. We hope this blog post deepens the community's understanding of this fundamental problem. 
 
-### 1.3 Related Works
+<details style="margin:1.5em 0 1em; border:1px solid #b7c9dc; border-radius:8px; background:#f7f9fc; padding:0.65em 0.9em;"><summary style="cursor:pointer; color:#315d82; font-size:1.08em; font-weight:700;">Notations <span style="font-size:0.82em; font-weight:500; color:#60758a;">(click to expand)</span></summary>
+We use $\Vert \cdot \Vert$ to denote the Euclidean norm for vectors and the spectral norm for matrices and tensors in a unified way. We hide logarithmic factors in the notation $\tilde{\mathcal{O}}(\,\cdot\,)$. Also, we use the notations ${\mathcal{O}}&#95;{p}(\,\cdot\,)$ and $\tilde{\mathcal{O}}&#95;{p}(\,\cdot\,)$ to hide the constants that depend on $p$. We denote $D^{q}{\boldsymbol{F}}$ as the $q$th-order derivative of an operator ${\boldsymbol{F}}:{\mathcal{X}}\to{\mathbb{R}}^{d}$. For a convex compact set ${\mathcal{X}}$, we let $\mathcal{N}&#95;{\mathcal{X}}({\boldsymbol{x}})$ be its normal cone at point ${\boldsymbol{x}}$, equivalently, the subdifferential of the indicator of the set. We also let ${\rm Proj}&#95;{{\mathcal{X}}}$ be the projection operator of ${\boldsymbol{x}}$ onto the set.
+</details>
+
+<a id="1-2-related-works"></a>
+
+### 1.2 Related Works
 
 <details style="margin:1.5em 0 1em; border:1px solid #b7c9dc; border-radius:8px; background:#f7f9fc; padding:0.65em 0.9em;"><summary style="cursor:pointer; color:#315d82; font-size:1.08em; font-weight:700;">Additional Related Works in Convex Optimization <span style="font-size:0.82em; font-weight:500; color:#60758a;">(click to expand)</span></summary>
 
-Convex optimization $\min_{{\boldsymbol{u}}\in{\mathcal{U}}} \phi({\boldsymbol{u}})$ is equivalent to the MVI problem with the operator given by ${\boldsymbol{F}}({\boldsymbol{u}})=\nabla \phi({\boldsymbol{u}})$, whose complexity is fully understood. For first-order methods, Nesterov in 1983 <d-cite key="nesterov1983method"></d-cite> proposed the accelerated gradient descent (AGD) that improves the convergence rate of gradient descent from $\mathcal{O}(T^{-1})$ to $\mathcal{O}(T^{-2})$, matching the lower bound for first-order methods by Nemirovski and Yudin's textbook <d-cite key="nemirovskij1983problem"></d-cite>. For second-order methods, Nesterov in 2006 <d-cite key="nesterov2006cubic"></d-cite> and 2008 <d-cite key="nesterov2008accelerating"></d-cite> proposed the cubic regularized Newton (CRN) method as well as its acceleration (A-CRN) and showed that they achieve the convergence rate of $\mathcal{O}(T^{-2})$ and $\mathcal{O}(T^{-3})$, respectively. In 2013, Monteiro and Svaiter <d-cite key="monteiro2013accelerated"></d-cite>  proposed the accelerated Newton proximal extragradient (A-NPE) method that improves A-CRN to $\tilde{\mathcal{O}}(T^{-3.5})$. In 2019, three concurrent works <d-cite key="gasnikov2019optimal,bubeck2019near,jiang2019optimal"></d-cite> extended A-NPE to high-order $p \ge 2$ and established the convergence rate of $\tilde{\mathcal{O}}(T^{-(3p+1)/2})$. In 2022, two independent groups <d-cite key="kovalev2022first,carmon2022optimal"></d-cite> introduced novel techniques to achieve the optimal convergence rate of ${\mathcal{O}}(T^{-(3p+1)/2})$ for high-order methods of all orders, exactly matching the corresponding lower bounds <d-cite key="agarwal2018lower,arjevani2019oracle,garg2021near"></d-cite>. Notably, the work <d-cite key="carmon2022optimal"></d-cite> uses a bisection procedure to simplify the nontrivial CRN subproblems in $p=2$ <d-cite key="nesterov2006cubic"></d-cite>, and the resulting second-order algorithm requires only a standard regularized Newton step per iteration to achieve the optimal convergence rate of ${\mathcal{O}}(T^{-3.5})$.
+Convex optimization $\min&#95;{{\boldsymbol{u}}\in{\mathcal{U}}} \phi({\boldsymbol{u}})$ is equivalent to the MVI problem with the operator given by ${\boldsymbol{F}}({\boldsymbol{u}})=\nabla \phi({\boldsymbol{u}})$, whose complexity is fully understood. For first-order methods, Nesterov in 1983 <d-cite key="nesterov1983method"></d-cite> proposed the accelerated gradient descent (AGD) that improves the convergence rate of gradient descent from $\mathcal{O}(T^{-1})$ to $\mathcal{O}(T^{-2})$, matching the lower bound for first-order methods by Nemirovski and Yudin's textbook <d-cite key="nemirovskij1983problem"></d-cite>. For second-order methods, Nesterov in 2006 <d-cite key="nesterov2006cubic"></d-cite> and 2008 <d-cite key="nesterov2008accelerating"></d-cite> proposed the cubic regularized Newton (CRN) method as well as its acceleration (A-CRN) and showed that they achieve the convergence rate of $\mathcal{O}(T^{-2})$ and $\mathcal{O}(T^{-3})$, respectively. In 2013, Monteiro and Svaiter <d-cite key="monteiro2013accelerated"></d-cite>  proposed the accelerated Newton proximal extragradient (A-NPE) method that improves A-CRN to $\tilde{\mathcal{O}}(T^{-3.5})$. In 2019, three concurrent works <d-cite key="gasnikov2019optimal,bubeck2019near,jiang2019optimal"></d-cite> extended A-NPE to high-order $p \ge 2$ and established the convergence rate of $\tilde{\mathcal{O}}(T^{-(3p+1)/2})$. In 2022, two independent groups <d-cite key="kovalev2022first,carmon2022optimal"></d-cite> introduced novel techniques to achieve the optimal convergence rate of ${\mathcal{O}}(T^{-(3p+1)/2})$ for high-order methods of all orders, exactly matching the corresponding lower bounds <d-cite key="agarwal2018lower,arjevani2019oracle,garg2021near"></d-cite>. Notably, the work <d-cite key="carmon2022optimal"></d-cite> uses a bisection procedure to simplify the nontrivial CRN subproblems in $p=2$ <d-cite key="nesterov2006cubic"></d-cite>, and the resulting second-order algorithm requires only a standard regularized Newton step per iteration to achieve the optimal convergence rate of ${\mathcal{O}}(T^{-3.5})$.
 <!-- When the operator ${\boldsymbol{F}}({\boldsymbol{x}})=\nabla f({\boldsymbol{x}})$ is the gradient of a convex function $f$,  proposed the , which is the first globally convergent second-order method and achieves a rate of ${\mathcal{O}}(L&#95;{2}/T^{2})$ for $p=2$.  proposed the accelerated CRN to achieve a fast rate of ${\mathcal{O}}(L&#95;{2}/T^{3})$. proposed the  that converges at an even faster rate of $\tilde{\mathcal{O}}(L&#95;{2}/T^{3.5})$. For $p\geq 2$,  proposed $p$th-order generalization of A-NPE that converges at the rate of $\tilde{\mathcal{O}}(L&#95;{p}/T^{(3p+1)/2})$. Very recently, removed the bisection sub-procedure in A-NPE and achieved the optimal rate of ${\mathcal{O}}(L&#95;{p}/T^{(3p+1)/2})$.
 
 On the lower bound part,  showed a lower bound of $\Omega(L&#95;{p}/T^{(5p+1)/2})$ for randomized algorithms. Concurrently, <d-cite key="arjevani2019oracle"></d-cite> showed the optimal lower bound of $\Omega(L&#95;{p}/T^{(3p+1)/2})$ for deterministic algorithms. Recently, <d-cite key="garg2021near"></d-cite> improved the lower bound of randomized and quantum algorithms to $\tilde{\Omega}(L&#95;{p}/T^{(3p+1)/2})$, which has no gap between the upper bounds up to logarithmic factors. -->
@@ -205,7 +298,7 @@ For general MVI problems as studied in this blog post, the optimal complexity is
 
 <details style="margin:1.5em 0 1em; border:1px solid #b7c9dc; border-radius:8px; background:#f7f9fc; padding:0.65em 0.9em;"><summary style="cursor:pointer; color:#315d82; font-size:1.08em; font-weight:700;">Additional Related Works in Convex-Concave Optimization <span style="font-size:0.82em; font-weight:500; color:#60758a;">(click to expand)</span></summary>
 
-The convex-concave minimax optimization $\min_{{\boldsymbol{u}}\in{\mathcal{U}}}\max_{{\boldsymbol{v}}\in{\mathcal{V}}}\phi({\boldsymbol{u}},{\boldsymbol{v}})$ is an important subclass of the MVI problem with the monotone operator given by ${\boldsymbol{F}}({\boldsymbol{u}},{\boldsymbol{v}})=[\nabla_{{\boldsymbol{u}}}\phi({\boldsymbol{u}},{\boldsymbol{v}}),-\nabla_{{\boldsymbol{v}}}\phi({\boldsymbol{u}},{\boldsymbol{v}})]$. Therefore, all the above methods for general MVI can also be applied to solving convex-concave minimax optimization to achieve the convergence rate of ${\mathcal{O}}(T^{-(p+1)/2})$ for $p$th-order methods. Very recently, Chen et al. in 2025 
+The convex-concave minimax optimization $\min&#95;{{\boldsymbol{u}}\in{\mathcal{U}}}\max&#95;{{\boldsymbol{v}}\in{\mathcal{V}}}\phi({\boldsymbol{u}},{\boldsymbol{v}})$ is an important subclass of the MVI problem with the monotone operator given by ${\boldsymbol{F}}({\boldsymbol{u}},{\boldsymbol{v}})=[\nabla&#95;{{\boldsymbol{u}}}\phi({\boldsymbol{u}},{\boldsymbol{v}}),-\nabla&#95;{{\boldsymbol{v}}}\phi({\boldsymbol{u}},{\boldsymbol{v}})]$. Therefore, all the above methods for general MVI can also be applied to solving convex-concave minimax optimization to achieve the convergence rate of ${\mathcal{O}}(T^{-(p+1)/2})$ for $p$th-order methods. Very recently, Chen et al. in 2025 
 <d-cite key="chen2025solving"></d-cite> proposed a primal-dual Monteiro-Svaiter acceleration framework <d-cite key="monteiro2013accelerated"></d-cite> to achieve a faster rate of ${\mathcal{O}}(T^{-(3p+1)/4})$. Maybe surprisingly, this blog post shows that a simple application of Halpern iteration <d-cite key="halpern1967fixed"></d-cite> already achieve a even faster rate of $\tilde{\mathcal{O}}(T^{-p})$, without leveraging the complicated primal-dual momentum tailored to minimax optimization <d-cite key="chen2025solving"></d-cite>.
 <!-- When ${\boldsymbol{F}}$ is the gradient operator of a convex-concave function $\phi:{\mathcal{X}}\rightarrow{\mathbb{R}}$,  applied a primal-dual  to the proximal function and achieved a fast rate of ${\mathcal{O}}(L&#95;{2}/T^{1.75})$ for second-order minimax optimization ($p=2$). In the full version, <d-cite key="chen2026solving"></d-cite> showed the $p$th-order generalization achieves the rate of ${\mathcal{O}}(L&#95;{p}/T^{(3p+1)/4})$ and also established a lower bound of $\Omega(L&#95;{p}/T^{(3p-1)/2})$. This paper reduces the gap by proposing better upper bounds of ${\mathcal{O}}(L&#95;{p}/T^{p})$. -->
 </details>
@@ -327,7 +420,8 @@ $$ T={\widetilde{\mathcal{O}}\Bigg(D\left(\frac{L&#95;{p}}{\epsilon}\right)^{1/p
 <!-- 
  and the recent result of ${\mathcal{O}}({\epsilon}^{-4/7})$ for minimax problems <d-cite key="chen2025solving"></d-cite> . Compared to the $\Omega({\epsilon}^{-2/5})$ lower bound proved in <d-cite key="chen2026solving"></d-cite> , a gap of $\epsilon^{-1/10}$ persists. Therefore, the oracle complexity remains open even for $p=2$.  and the ${\mathcal{O}}({\epsilon}^{-4/(3p+1)})$ for minimax problems <d-cite key="chen2026solving"></d-cite> . Compared to the lower bound of $\Omega({\epsilon}^{-2/(3p-1)})$, the gap becomes larger as $p$ grows. -->
 <a id="4-halpern-npe-achieves-the-tilde-mathcal-o-t-2-rate-for-p-2"></a>
-## 4 Halpern-NPE Achieves the $\tilde{\mathcal{O}}(T^{-2})$ Rate for $p=2$
+<a id="4-halpern-npe-for-p-2"></a>
+## 4 Halpern-NPE for $p=2$
 
 In this section, we first prove <a href="#theorem-3.1">Theorem 3.1</a> for $p=2$ by introducing a simple second-order method that achieves the fast convergence rate of $\tilde{\mathcal{O}}(T^{-2})$. Following the ideas in <a href="#1-1-technical-overview">Section 1.1</a>, we apply a large-step inexact Halpern iteration on the resolvent operator, which is solved by a restarted version <d-cite key="huang2022approximation,lin2022perseus"></d-cite> of the NPE method <d-cite key="monteiro2012iteration"></d-cite> . We formally introduce our double-loop Halpern-NPE method algorithm in the following.
 
@@ -390,36 +484,36 @@ $$ M=\Theta(L&#95;{2}),\quad K={\mathcal{O}}\left((\eta L&#95;{2}R)^{2/3}\right)
 can return a point ${\boldsymbol{y}}&#95;{S}\in{\mathcal{X}}$ such that $\Vert{\boldsymbol{y}}&#95;{S}-{\boldsymbol{y}}^{&#42;}\Vert\leq\delta$ in the total $p$th-order oracle complexity of $K\times S$, where ${\boldsymbol{y}}^{&#42;}=({\boldsymbol{G}}+{\mathcal{N}}&#95;{\mathcal{X}})^{-1}({\boldsymbol{0}})$ is the unique solution to the MVI induced by ${\boldsymbol{G}}$ and $R=\Vert{\boldsymbol{y}}&#95;{0}-{\boldsymbol{y}}^{&#42;}\Vert$.
 </div>
 
-<figure class="algorithm-figure" id="algorithm-1"><div class="algorithm-heading"><span class="algorithm-number">Algorithm 1</span><span class="algorithm-title">Restarted-NPE</span><span class="algorithm-params">$(\boldsymbol{G},\boldsymbol{y}_0,M,K,S)$</span></div><div class="algorithm-body">
+<figure class="algorithm-figure" id="algorithm-1"><div class="algorithm-heading"><span class="algorithm-number">Algorithm 1</span><span class="algorithm-title">Restarted-NPE</span><span class="algorithm-params">$(\boldsymbol{G},\boldsymbol{y}&#95;0,M,K,S)$</span></div><div class="algorithm-body">
 <div class="algorithm-row"><span class="algorithm-line-no">1</span><span class="algorithm-content"><strong>for</strong> $s=0,\ldots,S-1$</span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">2</span><span class="algorithm-content algorithm-indent-1">$\boldsymbol{y}_{s,0}=\boldsymbol{y}_s$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">2</span><span class="algorithm-content algorithm-indent-1">$\boldsymbol{y}&#95;{s,0}=\boldsymbol{y}&#95;s$</span></div>
 <div class="algorithm-row"><span class="algorithm-line-no">3</span><span class="algorithm-content algorithm-indent-1"><strong>for</strong> $k=0,\ldots,K-1$</span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">4</span><span class="algorithm-content algorithm-indent-2">Perform a cubic-regularized Newton step $\boldsymbol{y}_{s,k+1/2}=\mathcal{T}^{2}_{\boldsymbol{G}}(\boldsymbol{y}_{s,k};M)$. </span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">4</span><span class="algorithm-content algorithm-indent-2">Perform a cubic-regularized Newton step $\boldsymbol{y}&#95;{s,k+1/2}=\mathcal{T}^{2}&#95;{\boldsymbol{G}}(\boldsymbol{y}&#95;{s,k};M)$. </span></div>
 <!-- <div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-2 algorithm-math"></span></div> -->
-<div class="algorithm-row"><span class="algorithm-line-no">5</span><span class="algorithm-content algorithm-indent-2">Set the adaptive stepsize $\tau_{s,k}={(M\,\|\boldsymbol{y}_{s,k+1/2}-\boldsymbol{y}_{s,k}\|)}^{-1}$.</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">5</span><span class="algorithm-content algorithm-indent-2">Set the adaptive stepsize $\tau&#95;{s,k}={(M\,\|\boldsymbol{y}&#95;{s,k+1/2}-\boldsymbol{y}&#95;{s,k}\|)}^{-1}$.</span></div>
 <!-- <div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-2 algorithm-math"></span></div> -->
-<div class="algorithm-row"><span class="algorithm-line-no">6</span><span class="algorithm-content algorithm-indent-2">Perform an extragradient step $\boldsymbol{y}_{s,k+1}=\mathcal{T}^{1}_{\boldsymbol{G}}(\boldsymbol{y}_{s,k};\tau_{s,k}^{-1})$.</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">6</span><span class="algorithm-content algorithm-indent-2">Perform an extragradient step $\boldsymbol{y}&#95;{s,k+1}=\mathcal{T}^{1}&#95;{\boldsymbol{G}}(\boldsymbol{y}&#95;{s,k};\tau&#95;{s,k}^{-1})$.</span></div>
 <!-- <div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-2 algorithm-math"></span></div> -->
 <div class="algorithm-row"><span class="algorithm-line-no">7</span><span class="algorithm-content algorithm-indent-1"><strong>end for</strong></span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">8</span><span class="algorithm-content algorithm-indent-1">Restart at $\displaystyle\boldsymbol{y}_{s+1}={\sum_{k=0}^{K-1}\tau_{s,k}\boldsymbol{y}_{s,k+1/2}} \Big / {\sum_{k=0}^{K-1}\tau_{s,k}}$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">8</span><span class="algorithm-content algorithm-indent-1">Restart at $\displaystyle\boldsymbol{y}&#95;{s+1}={\sum&#95;{k=0}^{K-1}\tau&#95;{s,k}\boldsymbol{y}&#95;{s,k+1/2}} \Big / {\sum&#95;{k=0}^{K-1}\tau&#95;{s,k}}$</span></div>
 <div class="algorithm-row"><span class="algorithm-line-no">9</span><span class="algorithm-content"><strong>end for</strong></span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">10</span><span class="algorithm-content"><strong>return</strong> $\boldsymbol{y}_S$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">10</span><span class="algorithm-content"><strong>return</strong> $\boldsymbol{y}&#95;S$</span></div>
 </div>
 </figure>
 
 We remark that the above complexity of $K\times S$ can be reduced to $K+S$ with a refined analysis, as in the works studying a similar restart scheme <d-cite key="jiang2022generalized,huang2022approximation"></d-cite>. However, the slightly looser bound of $K\times S$ is enough for our subsequent analyses.
 
 <a id="4-3-final-algorithm-and-total-complexity"></a>
-## 4.3 Final Algorithm and Total Complexity
+### 4.3 Final Algorithm and Total Complexity
 
-<figure class="algorithm-figure" id="algorithm-2"><div class="algorithm-heading"><span class="algorithm-number">Algorithm 2</span><span class="algorithm-title">Halpern-NPE</span><span class="algorithm-params">$(\boldsymbol{F},\boldsymbol{x}_0,\eta,T,M,\{K_t\},\{S_t\})$</span></div><div class="algorithm-body">
+<figure class="algorithm-figure" id="algorithm-2"><div class="algorithm-heading"><span class="algorithm-number">Algorithm 2</span><span class="algorithm-title">Halpern-NPE</span><span class="algorithm-params">$(\boldsymbol{F},\boldsymbol{x}&#95;0,\eta,T,M,\lbrace K&#95;t\rbrace ,\lbrace S&#95;t\rbrace )$</span></div><div class="algorithm-body">
 <div class="algorithm-row"><span class="algorithm-line-no">1</span><span class="algorithm-content"><strong>for</strong> $t=0,\ldots,T-1$</span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">2</span><span class="algorithm-content algorithm-indent-1">Let $\boldsymbol{G}_t(\boldsymbol{y})=\boldsymbol{F}(\boldsymbol{y})+(\boldsymbol{y}-\boldsymbol{x}_t)/\eta$. Approximately solve $\boldsymbol{0}\in\boldsymbol{G}_t(\boldsymbol{y})+\mathcal{N}_{\mathcal{X}}(\boldsymbol{y})$ using</span></div>
-<div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-1 algorithm-math">$\boldsymbol{y}_t=\textsf{Restarted-NPE}(\boldsymbol{G}_t,\boldsymbol{x}_t,M,K_t,S_t)$</span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">3</span><span class="algorithm-content algorithm-indent-1">Perform the Halpern iteration $\boldsymbol{x}_{t+1}=(\boldsymbol{x}_0+ (t+1)\boldsymbol{y}_t)/ (t+2)$.</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">2</span><span class="algorithm-content algorithm-indent-1">Let $\boldsymbol{G}&#95;t(\boldsymbol{y})=\boldsymbol{F}(\boldsymbol{y})+(\boldsymbol{y}-\boldsymbol{x}&#95;t)/\eta$. Approximately solve $\boldsymbol{0}\in\boldsymbol{G}&#95;t(\boldsymbol{y})+\mathcal{N}&#95;{\mathcal{X}}(\boldsymbol{y})$ using</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-1 algorithm-math">$\boldsymbol{y}&#95;t=\textsf{Restarted-NPE}(\boldsymbol{G}&#95;t,\boldsymbol{x}&#95;t,M,K&#95;t,S&#95;t)$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">3</span><span class="algorithm-content algorithm-indent-1">Perform the Halpern iteration $\boldsymbol{x}&#95;{t+1}=(\boldsymbol{x}&#95;0+ (t+1)\boldsymbol{y}&#95;t)/ (t+2)$.</span></div>
 <!-- <div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-1 algorithm-math"></span></div> -->
 <div class="algorithm-row"><span class="algorithm-line-no">4</span><span class="algorithm-content"><strong>end for</strong></span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">5</span><span class="algorithm-content"><strong>return</strong> $\boldsymbol{x}_T$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">5</span><span class="algorithm-content"><strong>return</strong> $\boldsymbol{x}&#95;T$</span></div>
 </div>
 </figure>
 
@@ -502,27 +596,29 @@ which is equivalent to the bound of $\tilde{\mathcal{O}}(D\left(L&#95;{2}/{\epsi
 
 This theorem shows that the proposed Halpern-NPE converges at a fast rate of $\tilde{\mathcal{O}}(T^{-2})$, which improves both the classical rate of ${\mathcal{O}}(T^{-1.5})$ by NPE <d-cite key="monteiro2012iteration"></d-cite> and the rate of $\tilde{\mathcal{O}}(T^{-1.75})$ via primal-dual A-NPE <d-cite key="chen2025solving"></d-cite> for minimax problems. In the next section, we generalize this theorem to all $p\geq 2$ and achieve the upper bound of $\tilde{\mathcal{O}}(T^{-p})$ claimed by the main <a href="#theorem-3.1">Theorem 3.1</a>.
 <a id="5-generalizing-the-result-to-all-p-geq-2"></a>
-## 5 Generalizing the Result to All $p\geq 2$
+<a id="5-halpern-atm-for-p-geq-2"></a>
+## 5 Halpern-ATM for $p\geq 2$
 
 To achieve the rate of $\tilde{\mathcal{O}}(T^{-p})$ for all $p\geq 2$, a natural idea is to also use the Halpern iteration with a large stepsize $\eta=\Theta(T^{p-1})$ and reuse the analysis in the proof of <a href="#theorem-4.1">Theorem 4.1</a>. To ensure that each subproblem is solvable in $\tilde{\mathcal{O}}(1)$ costs like in <a href="#eq-24">equation 24</a>, the sub-solver for the resolvent operator should converges at least $\tilde{\mathcal{O}}(\exp(-\mu^{1/(p-1)}~T))$ for $\mu$-strongly monotone operators, or equivalently (under black-box reductions <d-cite key="allen2016optimal,ostroukhov2020tensor,huang2022approximation,lin2022perseus"></d-cite> ), the $\tilde{\mathcal{O}}(T^{-(p-1)})$ convergence rate for monotone operators.
 
 However, the classical convergence rate of ${\mathcal{O}}(T^{-(p+1)/2})$ achieved by high-order NPE <d-cite key="bullins2022higher,huang2022approximation"></d-cite> does not satisfy the above requirement when $p\geq 4$. In the following, we first introduce an Anchored Tensor Method (ATM) that achieves the required convergence rate of ${\mathcal{O}}(T^{-p})$ in <a href="#5-1-atm-achieves-the-mathcal-o-t-p-1-rate"> Section 5.1 </a>, then we further accelerate it with the Halpern iteration as in $p=2$ to achieve the $\tilde{\mathcal{O}}(T^{-p})$ convergence rate in <a href="#5-2-halpern-atm-achieves-the-tilde-mathcal-o-t-p-rate"> Section 5.2 </a>.
 
 <a id="5-1-atm-achieves-the-mathcal-o-t-p-1-rate"></a>
-### 5.1 ATM Achieves the ${\mathcal{O}}(T^{-(p-1)})$ Rate
+<a id="5-1-atm-subroutine"></a>
+### 5.1 ATM Subroutine
 
 Recall Section 4.2 that approximating the resolvent is ${\boldsymbol{P}}&#95;{\eta}({\boldsymbol{x}})=({\rm Id}+\eta({\boldsymbol{F}}+{\mathcal{N}}&#95;{\mathcal{X}}))^{-1}({\boldsymbol{x}})$ is equivalent to solving the MVI problem induced by the $\eta^{-1}$-strongly monotone operator ${\boldsymbol{G}}({\boldsymbol{y}}):={\boldsymbol{F}}({\boldsymbol{y}})+({\boldsymbol{y}}-{\boldsymbol{x}})/\eta$. We introduce a novel Anchored Tensor Method (ATM) that can solve the problem in the $p$th-order oracle complexity of ${\mathcal{O}}(\eta^{1/(p-1)})$. It also implies a complexity of ${\mathcal{O}}({\epsilon}^{-1/(p-1)})$ for finding an ${\epsilon}$-solution in the monotone case by applying the same algorithm on an ${\epsilon}$-regularized operator <d-cite key="chen2026solving"></d-cite> .
 
-<figure class="algorithm-figure" id="algorithm-3"><div class="algorithm-heading"><span class="algorithm-number">Algorithm 3</span><span class="algorithm-title">Anchored-Tensor-Method</span><span class="algorithm-params">$(\boldsymbol{G},\boldsymbol{y}_0,\mu,M,R,K,S)$</span></div><div class="algorithm-body">
+<figure class="algorithm-figure" id="algorithm-3"><div class="algorithm-heading"><span class="algorithm-number">Algorithm 3</span><span class="algorithm-title">Anchored-Tensor-Method</span><span class="algorithm-params">$(\boldsymbol{G},\boldsymbol{y}&#95;0,\mu,M,R,K,S)$</span></div><div class="algorithm-body">
 <div class="algorithm-row"><span class="algorithm-line-no">1</span><span class="algorithm-content"><strong>for</strong> $k=0,\ldots,K-1$</span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">2</span><span class="algorithm-content algorithm-indent-1">Select the regularization parameter $\mu_k$ according to <a href="#eq-19">equation 19</a>.</span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">3</span><span class="algorithm-content algorithm-indent-1">Define $\boldsymbol{G}_k(\boldsymbol{y})=\boldsymbol{G}(\boldsymbol{y})+(\mu_k-\mu)(\boldsymbol{y}-\boldsymbol{y}_0)$.</span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">4</span><span class="algorithm-content algorithm-indent-1">Perform a tensor step $\boldsymbol{y}_{k+1}=\mathcal{T}^{p}_{\boldsymbol{G}_k}(\boldsymbol{y}_k;M)$.</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">2</span><span class="algorithm-content algorithm-indent-1">Select the regularization parameter $\mu&#95;k$ according to <a href="#eq-19">equation 19</a>.</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">3</span><span class="algorithm-content algorithm-indent-1">Define $\boldsymbol{G}&#95;k(\boldsymbol{y})=\boldsymbol{G}(\boldsymbol{y})+(\mu&#95;k-\mu)(\boldsymbol{y}-\boldsymbol{y}&#95;0)$.</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">4</span><span class="algorithm-content algorithm-indent-1">Perform a tensor step $\boldsymbol{y}&#95;{k+1}=\mathcal{T}^{p}&#95;{\boldsymbol{G}&#95;k}(\boldsymbol{y}&#95;k;M)$.</span></div>
 <div class="algorithm-row"><span class="algorithm-line-no">5</span><span class="algorithm-content"><strong>end for</strong></span></div>
 <div class="algorithm-row"><span class="algorithm-line-no">6</span><span class="algorithm-content"><strong>for</strong> $s=K,\ldots,K+S-1$</span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">7</span><span class="algorithm-content algorithm-indent-1">Perform a tensor step $\boldsymbol{y}_{s+1}=\mathcal{T}^{p}_{\boldsymbol{G}}(\boldsymbol{y}_s;M)$.</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">7</span><span class="algorithm-content algorithm-indent-1">Perform a tensor step $\boldsymbol{y}&#95;{s+1}=\mathcal{T}^{p}&#95;{\boldsymbol{G}}(\boldsymbol{y}&#95;s;M)$.</span></div>
 <div class="algorithm-row"><span class="algorithm-line-no">8</span><span class="algorithm-content"><strong>end for</strong></span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">9</span><span class="algorithm-content"><strong>return</strong> $\boldsymbol{y}_{K+S}$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">9</span><span class="algorithm-content"><strong>return</strong> $\boldsymbol{y}&#95;{K+S}$</span></div>
 </div>
 </figure>
 
@@ -598,13 +694,13 @@ With the help of these two lemmas, we carefully design the schedule of $\mu&#95;
 
 <div>
 <a id="eq-19"></a>
-$$ r&#95;{k}:=\max\left\{\rho(\mu),\left(\frac{1}{R}+\frac{k(1-\theta&#95;{p})}{2R(p-1)}\right)^{-1}\right\},\qquad\mu&#95;{k}:=\rho^{-1}(r&#95;{k})=C&#95;{p}L&#95;{p}(2r&#95;{k})^{p-1}, \tag{19} $$
+$$ r&#95;{k}:=\max\left\lbrace \rho(\mu),\left(\frac{1}{R}+\frac{k(1-\theta&#95;{p})}{2R(p-1)}\right)^{-1}\right\rbrace ,\qquad\mu&#95;{k}:=\rho^{-1}(r&#95;{k})=C&#95;{p}L&#95;{p}(2r&#95;{k})^{p-1}, \tag{19} $$
 </div>
 
 where $R>0$ satisfies $\Vert{\boldsymbol{y}}&#95;{0}-{\boldsymbol{y}}^{&#42;}\Vert\leq R$. By this definition, $r&#95;{k}$ is decreasing from $r&#95;{0}$ that satisfies $r&#95;{0}\leq R$ to $\rho(\mu)$. Consequently, $\mu&#95;{j}$ is decreasing from $\mu&#95;{0}$ such that $\mu&#95;{0}\geq\rho^{-1}(R)$ to $\mu$. We summarize the properties of these sequences in the following.
 
 <div id="lemma-5.4" class="theorem-block" style="border-left:3px solid #7a5195; padding:0.6em 1em; margin:1em 0; background:#f8f6fb;">
-<strong>Lemma 5.4.</strong> The sequences $\{r&#95;{k}\}&#95;{k=0}^{K-1}$ and $\{\mu&#95;{k}\}&#95;{k=0}^{K-1}$ defined in <a href="#eq-19">equation 19</a> satisfy:<br>
+<strong>Lemma 5.4.</strong> The sequences $\lbrace r&#95;{k}\rbrace &#95;{k=0}^{K-1}$ and $\lbrace \mu&#95;{k}\rbrace &#95;{k=0}^{K-1}$ defined in <a href="#eq-19">equation 19</a> satisfy:<br>
 (a) $r&#95;{k+1}/r&#95;{k}\geq(1+\theta&#95;{p})/2$.
 (b) $1-\mu&#95;{k+1}/\mu&#95;{k}\leq(1-\theta&#95;{p})r&#95;{k}/(2R)$.
 </div>
@@ -710,21 +806,22 @@ After phase 1 ends, we have $\mu&#95;{K}=\mu$ and thus ${\boldsymbol{G}}&#95;{K}
 Treating the ${\mathcal{O}}(\log\log(D/\delta))$ factor as a constant, the above theorem shows that ATM achieves a new complexity upper bound of ${\mathcal{O}}((L&#95;{p}/\mu)^{1/(p-1)})$ for $L&#95;{p}$-$p$th-order smooth and $\mu$-strongly monotone operators. This improves the classical ${\mathcal{O}}((L&#95;{p}/\mu)^{2/(p+1)})$ complexity achieved by high-order NPE <d-cite key="monteiro2012iteration,bullins2022higher,lin2022perseus,huang2022approximation,adil2022optimal"></d-cite> for any $p\geq 4$. As we have discussed, it also implies a complexity of ${\mathcal{O}}({\epsilon}^{-1/(p-1)})$ for finding an ${\epsilon}$-solution in the monotone case by applying the same algorithm on an ${\epsilon}$-regularized operator <d-cite key="chen2026solving"></d-cite> .
 
 <a id="5-2-halpern-atm-achieves-the-tilde-mathcal-o-t-p-rate"></a>
-### 5.2 Halpern-ATM Achieves the $\tilde{\mathcal{O}}(T^{-p})$ Rate
+<a id="5-2-final-algorithm-and-total-complexity"></a>
+### 5.2 Final Algorithm and Total Complexity
 
-<figure class="algorithm-figure" id="algorithm-4"><div class="algorithm-heading"><span class="algorithm-number">Algorithm 4</span><span class="algorithm-title">Halpern-ATM</span><span class="algorithm-params">$(\boldsymbol{F},\boldsymbol{x}_0,\eta,T,M,D,\{K_t\},\{S_t\})$</span></div><div class="algorithm-body">
+<figure class="algorithm-figure" id="algorithm-4"><div class="algorithm-heading"><span class="algorithm-number">Algorithm 4</span><span class="algorithm-title">Halpern-ATM</span><span class="algorithm-params">$(\boldsymbol{F},\boldsymbol{x}&#95;0,\eta,T,M,D,\lbrace K&#95;t\rbrace ,\lbrace S&#95;t\rbrace )$</span></div><div class="algorithm-body">
 <div class="algorithm-row"><span class="algorithm-line-no">1</span><span class="algorithm-content"><strong>for</strong> $t=0,\ldots,T-1$</span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">2</span><span class="algorithm-content algorithm-indent-1">Let $\boldsymbol{G}_t(\boldsymbol{y})=\boldsymbol{F}(\boldsymbol{y})+(\boldsymbol{y}-\boldsymbol{x}_t)/\eta$. Approximately solve $\boldsymbol{0}\in\boldsymbol{G}_t(\boldsymbol{y})+\mathcal{N}_{\mathcal{X}}(\boldsymbol{y})$ using</span></div>
-<div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-1 algorithm-math">$\boldsymbol{y}_t=\textsf{Anchored-Tensor-Method}(\boldsymbol{G}_t,\boldsymbol{x}_t,1/\eta,M,R_t,K_t,S_t)$</span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">3</span><span class="algorithm-content algorithm-indent-1">where $R_t=4D/(t+1)$ according to <a href="#eq-16">equation 16</a>.</span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">4</span><span class="algorithm-content algorithm-indent-1">Perform the Halpern iteration $\boldsymbol{x}_{t+1}=(\boldsymbol{x}_0+(t+1)\boldsymbol{y}_t)/ (t+2)$.</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">2</span><span class="algorithm-content algorithm-indent-1">Let $\boldsymbol{G}&#95;t(\boldsymbol{y})=\boldsymbol{F}(\boldsymbol{y})+(\boldsymbol{y}-\boldsymbol{x}&#95;t)/\eta$. Approximately solve $\boldsymbol{0}\in\boldsymbol{G}&#95;t(\boldsymbol{y})+\mathcal{N}&#95;{\mathcal{X}}(\boldsymbol{y})$ using</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-1 algorithm-math">$\boldsymbol{y}&#95;t=\textsf{Anchored-Tensor-Method}(\boldsymbol{G}&#95;t,\boldsymbol{x}&#95;t,1/\eta,M,R&#95;t,K&#95;t,S&#95;t)$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">3</span><span class="algorithm-content algorithm-indent-1">where $R&#95;t=4D/(t+1)$ according to <a href="#eq-16">equation 16</a>.</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">4</span><span class="algorithm-content algorithm-indent-1">Perform the Halpern iteration $\boldsymbol{x}&#95;{t+1}=(\boldsymbol{x}&#95;0+(t+1)\boldsymbol{y}&#95;t)/ (t+2)$.</span></div>
 <!-- <div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-1 algorithm-math">$\boldsymbol{x}_{t+1}=\dfrac{1}{t+2}\boldsymbol{x}_0+\dfrac{t+1}{t+2}\boldsymbol{y}_t$</span></div> -->
 <div class="algorithm-row"><span class="algorithm-line-no">5</span><span class="algorithm-content"><strong>end for</strong></span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">6</span><span class="algorithm-content"><strong>return</strong> $\boldsymbol{x}_T$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">6</span><span class="algorithm-content"><strong>return</strong> $\boldsymbol{x}&#95;T$</span></div>
 </div>
 </figure>
 
-The sequence $R_t=4D/(t+1)$ used in <a href="#algorithm-4">Algorithm 4</a> is defined in <a href="#eq-16">equation 16</a>.
+The sequence $R&#95;t=4D/(t+1)$ used in <a href="#algorithm-4">Algorithm 4</a> is defined in <a href="#eq-16">equation 16</a>.
 
 The ATM introduced in the previous section achieves the complexity upper bound of $\tilde{\mathcal{O}}({\epsilon}^{-1/(p-1)})$ for monotone problems. In this section, we further show an accelerated complexity of $\tilde{\mathcal{O}}({\epsilon}^{-1/p})$ by applying ATM to solve the resolvent operator in the Halpern iteration in Section 4.1. We present the resulting method in <a href="#algorithm-4">Algorithm 4</a>. In light of <a href="#theorem-4.1">Theorem 4.1</a>, we choose a large stepsize $\eta=\Theta(T^{p-1})$, which indicates that the outer Halpern iteration converges at the rate of ${\mathcal{O}}((\eta T)^{-1})={\mathcal{O}}(T^{-p})$. We can then complete the proof by providing a global upper bound of the total oracle complexity via a similar analysis to the proof of <a href="#theorem-4.1">Theorem 4.1</a> in $p=2$. This leads to the following main theorem.
 
@@ -799,29 +896,29 @@ This theorem shows that the proposed Halpern-ATM converges at a fast rate of $\t
 <!-- <a id="6-conclusion-and-future-work"></a> ## 6 Conclusion and Future Work In this paper, we propose a novel Halpern-NPE method that achieves a fast convergence rate of $\tilde{\mathcal{O}}(T^{-2})$ for solving MVI problems, which improves the classical rate of ${\mathcal{O}}(T^{-1.5})$ by NPE <d-cite key="monteiro2012iteration"></d-cite> and the rate of $\tilde{\mathcal{O}}(T^{-1.75})$ via primal-dual A-NPE <d-cite key="chen2025solving"></d-cite> for minimax problems. We also provide the $p$th-order generalization of our method, which can achieve the fast rate of $\tilde{\mathcal{O}}(T^{-p})$. However, the optimality of our methods remains open for $p\geq 2$, where the lower bound in <d-cite key="chen2026solving"></d-cite> is $\Omega(T^{-2.5})$ for $p=2$ and $\Omega(T^{-(3p-1)/2})$ in general. We hope the gap can be closed in future work. -->
 
 <a id="appendix-d-the-original-ai-provided-algorithm"></a>
-## Appendix: The Original AI-Provided Algorithm
+## Appendix: The Original Algorithm by AI
 
 The initial resolvent sub-solver generated by AI has triple loops, whose full procedure is presented in <a href="#algorithm-5">Algorithm 5</a>. The initial proof by AI is also accessible through the following link: [chatgpt.com/share/6a6c372c-6efc-83e8-a378-c6aa1ea3b527](https://chatgpt.com/share/6a6c372c-6efc-83e8-a378-c6aa1ea3b527).
 
 The authors simplified the algorithm and its proof, using the Restarted-NPE algorithm <d-cite key="huang2022approximation"></d-cite> for $p=2$ and the single-loop Anchored-Tensor-Method introduced in <a href="#algorithm-3">Algorithm 3</a> for general $p\geq 2$.
 
-<figure class="algorithm-figure" id="algorithm-5"><div class="algorithm-heading"><span class="algorithm-number">Algorithm 5</span><span class="algorithm-title">Triple-Looped-Anchored-Tensor-Method</span><span class="algorithm-params">$(\boldsymbol{G},\boldsymbol{y}_0,R,S,K)$</span></div><div class="algorithm-body">
-<div class="algorithm-row"><span class="algorithm-line-no">1</span><span class="algorithm-content">$R_0=R$</span></div>
+<figure class="algorithm-figure" id="algorithm-5"><div class="algorithm-heading"><span class="algorithm-number">Algorithm 5</span><span class="algorithm-title">Triple-Looped-Anchored-Tensor-Method</span><span class="algorithm-params">$(\boldsymbol{G},\boldsymbol{y}&#95;0,R,S,K)$</span></div><div class="algorithm-body">
+<div class="algorithm-row"><span class="algorithm-line-no">1</span><span class="algorithm-content">$R&#95;0=R$</span></div>
 <div class="algorithm-row"><span class="algorithm-line-no">2</span><span class="algorithm-content"><strong>for</strong> $s=0,\ldots,S-1$</span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">3</span><span class="algorithm-content algorithm-indent-1">$\boldsymbol{y}_{s,0}=\boldsymbol{y}_s$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">3</span><span class="algorithm-content algorithm-indent-1">$\boldsymbol{y}&#95;{s,0}=\boldsymbol{y}&#95;s$</span></div>
 <div class="algorithm-row"><span class="algorithm-line-no">4</span><span class="algorithm-content algorithm-indent-1"><strong>for</strong> $k=0,\ldots,K-1$</span></div>
 <div class="algorithm-row"><span class="algorithm-line-no">5</span><span class="algorithm-content algorithm-indent-2">Define the anchoring coefficient</span></div>
-<div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-2 algorithm-math">$\displaystyle\mu_k=\frac{L_pR_s^{p-1}}{(h_p+k\Delta_p)^{p-1}},\qquad h_p=\frac12c_p^{-1/(p-1)},\quad\Delta_p=\frac{h_p}{8(p-1)},\quad c_p=\frac{2^p(5p-2)}{p!}.$</span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">6</span><span class="algorithm-content algorithm-indent-2">Define $\boldsymbol{G}_k(\boldsymbol{y})=\boldsymbol{G}(\boldsymbol{y})+\mu_k(\boldsymbol{y}-\boldsymbol{y}_s)$ and initialize $\boldsymbol{y}_{s,k,0}=\boldsymbol{y}_{s,k}$.</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no"></span><span class="algorithm-content algorithm-indent-2 algorithm-math">$\displaystyle\mu&#95;k=\frac{L&#95;pR&#95;s^{p-1}}{(h&#95;p+k\Delta&#95;p)^{p-1}},\qquad h&#95;p=\frac12c&#95;p^{-1/(p-1)},\quad\Delta&#95;p=\frac{h&#95;p}{8(p-1)},\quad c&#95;p=\frac{2^p(5p-2)}{p!}.$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">6</span><span class="algorithm-content algorithm-indent-2">Define $\boldsymbol{G}&#95;k(\boldsymbol{y})=\boldsymbol{G}(\boldsymbol{y})+\mu&#95;k(\boldsymbol{y}-\boldsymbol{y}&#95;s)$ and initialize $\boldsymbol{y}&#95;{s,k,0}=\boldsymbol{y}&#95;{s,k}$.</span></div>
 <!-- <div class="algorithm-row"><span class="algorithm-line-no">7</span><span class="algorithm-content algorithm-indent-2"></span></div> -->
 <div class="algorithm-row"><span class="algorithm-line-no">8</span><span class="algorithm-content algorithm-indent-2"><strong>for</strong> $j=0,\ldots,5$</span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">9</span><span class="algorithm-content algorithm-indent-3">Perform one tensor step $\boldsymbol{y}_{s,k,j+1}=\mathcal{T}^{p}_{\boldsymbol{G}_k}(\boldsymbol{y}_{s,k,j};5L_p)$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">9</span><span class="algorithm-content algorithm-indent-3">Perform one tensor step $\boldsymbol{y}&#95;{s,k,j+1}=\mathcal{T}^{p}&#95;{\boldsymbol{G}&#95;k}(\boldsymbol{y}&#95;{s,k,j};5L&#95;p)$</span></div>
 <div class="algorithm-row"><span class="algorithm-line-no">10</span><span class="algorithm-content algorithm-indent-2"><strong>end for</strong></span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">11</span><span class="algorithm-content algorithm-indent-2">$\boldsymbol{y}_{s,k+1}=\boldsymbol{y}_{s,k,6}$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">11</span><span class="algorithm-content algorithm-indent-2">$\boldsymbol{y}&#95;{s,k+1}=\boldsymbol{y}&#95;{s,k,6}$</span></div>
 <div class="algorithm-row"><span class="algorithm-line-no">12</span><span class="algorithm-content algorithm-indent-1"><strong>end for</strong></span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">13</span><span class="algorithm-content algorithm-indent-1">Change the anchor point to $\boldsymbol{y}_{s+1}=\boldsymbol{y}_{s,K}$ and shrink the region by $R_{s+1}=R_s/4$.</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">13</span><span class="algorithm-content algorithm-indent-1">Change the anchor point to $\boldsymbol{y}&#95;{s+1}=\boldsymbol{y}&#95;{s,K}$ and shrink the region by $R&#95;{s+1}=R&#95;s/4$.</span></div>
 <div class="algorithm-row"><span class="algorithm-line-no">14</span><span class="algorithm-content"><strong>end for</strong></span></div>
-<div class="algorithm-row"><span class="algorithm-line-no">15</span><span class="algorithm-content"><strong>return</strong> $\boldsymbol{y}_S$</span></div>
+<div class="algorithm-row"><span class="algorithm-line-no">15</span><span class="algorithm-content"><strong>return</strong> $\boldsymbol{y}&#95;S$</span></div>
 </div>
 </figure>
 
