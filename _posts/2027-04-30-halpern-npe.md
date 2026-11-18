@@ -140,52 +140,17 @@ A classical approach to solving an MVI is the **proximal point method** <d-cite 
 The **Halpern iteration** ${\boldsymbol{x}}&#95;{t+1}=\beta&#95;t{\boldsymbol{x}}&#95;0+(1-\beta&#95;t){\boldsymbol{P}}&#95;\eta({\boldsymbol{x}}&#95;t)$ with $\beta&#95;t=1/(t+2)$ <d-cite key="halpern1967fixed"></d-cite> adds a pull toward the initial point ${\boldsymbol{x}}&#95;0$ per iteration，which gives an alternative to achieving the same convergence rate of PPM.  This iteration is recently studied for first-order methods, resulting the anchored extragradient methods <d-cite key="diakonikolas2020halpern,yoon2021accelerated,cai2022finite"></d-cite> that achieves the optimal $\mathcal{O}(T^{-1})$ convergence rate on the proximal redisual
 ${\rm res}_\eta({\boldsymbol{x}}&#95;t) = \Vert{\boldsymbol{x}}&#95;t-{\boldsymbol{P}}&#95;\eta({\boldsymbol{x}}&#95;t)\Vert / \eta$. See the illustration below.
 
-<figure id="halpern-intro-animation" style="margin:1.4em 0;">
-<iframe class="halpern-intro-frame" src="/2027/assets/html/2027-04-30-halpern-npe/halpern-trajectories.html" title="Interactive comparison of PPA and Halpern trajectories and proximal residuals" loading="lazy" style="display:block; width:100%; border:0;"></iframe>
-</figure>
-<script>
-window.addEventListener('message', function (event) {
-  var frame = document.querySelector('#halpern-intro-animation iframe');
-  if (!frame || event.source !== frame.contentWindow || event.origin !== window.location.origin) return;
-  if (event.data && event.data.type === 'halpern-animation-height' && Number.isFinite(event.data.height)) {
-    frame.style.height = Math.max(200, Math.min(2000, event.data.height)) + 'px';
-  }
-});
-</script>
-
-This blog post discovers a new application of Halpern iteration in high-order methods. **Our observation is that a smaller proximal residual also makes high-order proximal subproblems cheaper to solve, which leading to new convergence rates for high-order methods.** Note that $R_t = \eta {\rm res}_\eta({\boldsymbol{x}}&#95;t) = \Vert{\boldsymbol{x}}&#95;t-{\boldsymbol{P}}&#95;\eta({\boldsymbol{x}}&#95;t)\Vert$ is exactly the distance from the starting point to the solution of the $t$th subproblem. Although the complexity of first-order methods is independent of it, $R_t$ is in fact a key quantity in the complexity bounds of high-order methods <d-cite key="monteiro2012iteration,huang2022approximation,jiang2022generalized"></d-cite>. For instance, for second-order methods $p=2$, the dependency is $R_t^{2/3}$. Therefore, a straightforward applications of the Halpern iteration in the high-order setting leads to lower inner proximal solver costs, which finally improves the best-known complexity from $\mathcal{O}(T^{-(p+1)/2})$  <d-cite key="monteiro2012iteration,bullins2022higher"></d-cite> to  $\tilde{\mathcal{O}}(T^{-p})$.
-
 <style>
-.halpern-comparison-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-  margin: 1.4em 0 1.8em;
+#halpern-intro-animation iframe { height: 660px; }
+@media (max-width: 700px) {
+  #halpern-intro-animation iframe { height: 1080px; }
 }
 </style>
-<div class="halpern-comparison-grid" role="img" aria-label="Known: for first-order methods, Halpern converts restricted-gap convergence into proximal-residual convergence. New: for high-order methods, Halpern's smaller proximal residual lowers subproblem-solving cost and improves the convergence rate.">
-  <div style="border:1px solid #cbd8e6; border-top:4px solid #6686a8; border-radius:10px; background:#f5f8fb; padding:16px 18px;">
-    <div style="font-size:.78em; letter-spacing:.08em; font-weight:700; color:#55718e; text-transform:uppercase;">Known · Halpern for p = 1</div>
-    <div style="margin-top:12px; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; text-align:center;">
-      <div style="border:1px solid #d7e1eb; border-radius:7px; background:white; padding:10px 8px; font-weight:600;">Restricted-gap<br>convergence</div>
-      <div aria-hidden="true" style="font-size:1.4em; color:#6686a8;">→</div>
-      <div style="border:1px solid #d7e1eb; border-radius:7px; background:white; padding:10px 8px; font-weight:600;">Proximal-residual<br>convergence</div>
-    </div>
-    <div style="margin-top:10px; color:#536579; font-size:.9em; text-align:center;">strengthens the convergence guarantee, but the rate $\mathcal{O}(T^{-1})$ is unchanged.</div>
-  </div>
-  <div style="border:1px solid #d3dfd7; border-top:4px solid #4f8a69; border-radius:10px; background:#f4f9f5; padding:16px 18px;">
-    <div style="font-size:.78em; letter-spacing:.08em; font-weight:700; color:#397451; text-transform:uppercase;">New here · Halpern for p ≥ 2</div>
-    <div style="margin-top:12px; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; text-align:center;">
-      <div style="border:1px solid #d8e5db; border-radius:7px; background:white; padding:10px 8px; font-weight:600;">Smaller proximal<br>residual</div>
-      <div aria-hidden="true" style="font-size:1.4em; color:#4f8a69;">→</div>
-      <div style="border:1px solid #d8e5db; border-radius:7px; background:white; padding:10px 8px; font-weight:600;">Cheaper high-order<br>subproblem solves</div>
-    </div>
-    <div style="margin:10px 0 0; color:#397451; text-align:center; font-weight:700;">Lower total cost = faster rate</div>
-    <div style="margin-top:5px; color:#536b5a; font-size:.88em; text-align:center;">Classical: O(T<sup>−(p+1)/2</sup>) &nbsp;→&nbsp; This blog: Õ(T<sup>−p</sup>)</div>
-  </div>
-</div>
+<figure id="halpern-intro-animation" style="margin:1.4em 0;">
+<iframe src="/2027/assets/html/2027-04-30-halpern-npe/halpern-trajectories.html" title="Interactive comparison of PPM and Halpern trajectories and proximal residuals" loading="lazy" frameborder="0" scrolling="no" height="660" width="100%" style="display:block; border:0;"></iframe>
+</figure>
 
-
+This blog post discovers a new application of Halpern iteration in high-order methods. **Our observation is that a smaller proximal residual also makes high-order proximal subproblems cheaper to solve, which leading to new convergence rates for high-order methods.** Note that $R_t = \eta {\rm res}_\eta({\boldsymbol{x}}&#95;t) = \Vert{\boldsymbol{x}}&#95;t-{\boldsymbol{P}}&#95;\eta({\boldsymbol{x}}&#95;t)\Vert$ is exactly the distance from the starting point to the solution of the $t$th subproblem. Although the complexity of first-order methods is independent of it, $R_t$ is in fact a key quantity in the complexity bounds of high-order methods <d-cite key="monteiro2012iteration,huang2022approximation,jiang2022generalized"></d-cite>. For instance, for second-order methods $p=2$, the dependency is $R_t^{2/3}$. Therefore, a straightforward applications of the Halpern iteration in the high-order setting leads to lower inner proximal solver costs, which finally improves the best-known complexity from $\mathcal{O}(T^{-(p+1)/2})$  <d-cite key="monteiro2012iteration,bullins2022higher"></d-cite> to  $\tilde{\mathcal{O}}(T^{-p})$.
 <!-- Thus, in the high-order setting $p\geq2$, Halpern's stronger residual control can reduce the cumulative inner-solver cost and allow a larger proximal stepsize. For $p=2$, combining Halpern iteration with the classical Newton Proximal Extragradient (NPE) method yields a $\widetilde{\mathcal{O}}(N^{-2})$ rate in the total number $N$ of oracle calls, improving on the classical ${\mathcal{O}}(N^{-3/2})$ rate established in 2012 <d-cite key="monteiro2012iteration"></d-cite>. For general $p\geq2$, we develop an Anchored Tensor Method to obtain the required inner-solver efficiency and extend the result to $\widetilde{\mathcal{O}}(N^{-p})$; see the <a href="#1-1-technical-overview">technical overview</a> below. -->
 
 <!-- $R&#95;t=\eta\,{\rm res}&#95;\eta({\boldsymbol{x}}&#95;t)$. -->
@@ -221,8 +186,6 @@ We also assume that the operator is $p$th-order $L&#95;{p}$-smooth, i.e., $D^{p-
 <!-- 
 **Our Findings.** In this blog post, we revisit the classical Halpern iteration—an old method for finding fixed points dating back to 1967 <d-cite key="halpern1967fixed"></d-cite>—and surprisingly discover that combining it directly with the classic Monteiro-Svaiter's NPE method yields a faster algorithm, improving the convergence rate of NPE from $\mathcal{O}(T^{-1.5})$ to $\tilde{\mathcal{O}}(T^{-2})$ for $p=2$. Moreover, we also extend our method to any $p$th-order, improving the rate achieved by the $p$th-order generalization of NPE from 
 $\mathcal{O}(T^{-(p+1)/2})$ to $\tilde {\mathcal{O}}(T^{-p})$ for any $p \ge 2$.  -->
-
-
  <!-- propose a superfast high-order method that solves the MVI problem at the convergence rate of $\tilde{\mathcal{O}}(L&#95;{2}/T^{2})$ for $p=2$ and $\tilde{\mathcal{O}}(L&#95;{p}/T^{p})$ for general $p\geq 2$. Our new upper bound achieves a significant improvement in the exponent compared to both the classical rate of ${\mathcal{O}}(L&#95;{p}/T^{(p+1)/2})$ for MVI and the recently established fast rate of $\tilde{\mathcal{O}}(L&#95;{p}/T^{(3p+1)/4})$ for minimax problems, because -->
 
 <!-- <div>
@@ -241,10 +204,7 @@ $$ {\boldsymbol{x}}&#95;{t+1}=\beta&#95;{t}{\boldsymbol{x}}&#95;{0}+(1-\beta&#95
 </div>
 
 where $\lbrace \beta&#95;t \rbrace&#95;{t=0}^{T-1} \in (0,1)$ is a decreasing sequence and the initial point ${\boldsymbol{x}}&#95;{0}$ is also called the anchor <d-cite key="yoon2021accelerated,lee2021fast"></d-cite> . A simple and common choice of $\beta&#95;{t}={\mathcal{O}}(t^{-1})$ can lead to the optimal convergence rate to the fixed point $\Vert{\boldsymbol{x}}&#95;{T}-{\boldsymbol{P}}({\boldsymbol{x}}&#95;{T})\Vert\leq{\mathcal{O}}(T^{-1})$ <d-cite key="lieder2020convergence,halpern1967fixed,alacaoglu2024revisiting,cai2024variance"></d-cite> . When solving MVI problems, a natural candidate operator ${\boldsymbol{P}}$ that satisfies non-expansiveness is the resolvent/proximal operator ${\boldsymbol{P}}&#95;{\eta({\boldsymbol{F}}+{\mathcal{N}}&#95;{\mathcal{X}})}=({\rm Id}+\eta({\boldsymbol{F}}+{\mathcal{N}}&#95;{\mathcal{X}}))^{-1})$ <d-cite key="rockafellar1976monotone,ryu2016primer"></d-cite> . Let ${\rm res}({\boldsymbol{x}})=\Vert{\boldsymbol{x}}-{\boldsymbol{P}}&#95;{\eta({\boldsymbol{F}}+{\mathcal{N}}&#95;{\mathcal{X}})}({\boldsymbol{x}})\Vert/\eta$ be the normalized proximal residual then the Halpern iteration guarantees the convergence rate of ${\rm res}({\boldsymbol{x}}&#95;{T})={\mathcal{O}}((\eta T)^{-1})$. For first-order methods, we can take $\eta=\mathcal{O}(1)$, and the resolvent can be solved in ${\mathcal{O}}(1)$ gradient steps. As a result, it can convert a method with the optimal ${\mathcal{O}}(T^{-1})$ convergence rate in the gap function <d-cite key="nesterov2007dual,korpelevich1976extragradient"></d-cite> to a counterpart with the same rate in terms of the stronger notions, known as the gradient norm <d-cite key="yoon2021accelerated,lee2021fast"></d-cite> or tangent residual <d-cite key="cai2022finite,cai2023accelerated,cai2024accelerated"></d-cite> .
-
-
 <div style="margin:1.5em 0 0.65em; padding:0.35em 0.7em; border-left:3px solid #4f7cac; background:#f2f6fa; color:#254b70; font-size:1.08em; font-weight:700;">(B) <span style="font-weight:500;"> Halpern-NPE for $p=2$</span></div> To our surprise, in the second- and  high-order setting, we found that the power of Halpern iteration <d-cite key="diakonikolas2020halpern,cai2024variance"></d-cite> or anchoring technique <d-cite key="ryu2019ode,yoon2021accelerated,lee2021fast"></d-cite> is not limited to converting solution concepts as in $p=1$, but also can lead to a faster convergence rate for $p\geq 2$. We first focus on the simpler setting that $p=2$, and  show that a simple algorithm called Halpern-NPE can achieve the fast convergence rate of $\tilde{\mathcal{O}}(T^{-2})$ by using the following two observations:
-
 
 1. Since the proximal subproblem is second-order smooth and $\eta^{-1}$-strongly monotone, the NPE method <d-cite key="monteiro2012iteration,huang2022approximation,lin2022perseus,adil2022optimal"></d-cite> achieve the complexity of $N&#95;{t}=\tilde{\mathcal{O}}((\eta R&#95;{t})^{2/3})$ for solving the $t$th subproblem, where $R&#95;{t}=\Vert{\boldsymbol{x}}&#95;{t}-{\boldsymbol{P}}&#95;{\eta({\boldsymbol{F}}+{\mathcal{N}}&#95;{\mathcal{X}})}({\boldsymbol{x}}&#95;{t})\Vert=\eta{\rm res}({\boldsymbol{x}}&#95;{t})$ is the distance between the initialization ${\boldsymbol{x}}&#95;{t}$ and the proximal point ${\boldsymbol{P}}&#95;{\eta({\boldsymbol{F}}+{\mathcal{N}}&#95;{\mathcal{X}})}({\boldsymbol{x}}&#95;{t})$.
 
@@ -694,7 +654,12 @@ With the help of these two lemmas, we carefully design the schedule of $\mu&#95;
 
 <div>
 <a id="eq-19"></a>
-$$ r&#95;{k}:=\max\left\lbrace \rho(\mu),\left(\frac{1}{R}+\frac{k(1-\theta&#95;{p})}{2R(p-1)}\right)^{-1}\right\rbrace ,\qquad\mu&#95;{k}:=\rho^{-1}(r&#95;{k})=C&#95;{p}L&#95;{p}(2r&#95;{k})^{p-1}, \tag{19} $$
+$$
+\begin{aligned}
+r&#95;{k} &:= \max\left\lbrace \rho(\mu),\left(\frac{1}{R}+\frac{k(1-\theta&#95;{p})}{2R(p-1)}\right)^{-1}\right\rbrace,\\
+\mu&#95;{k} &:= \rho^{-1}(r&#95;{k})=C&#95;{p}L&#95;{p}(2r&#95;{k})^{p-1}.
+\end{aligned}\tag{19}
+$$
 </div>
 
 where $R>0$ satisfies $\Vert{\boldsymbol{y}}&#95;{0}-{\boldsymbol{y}}^{&#42;}\Vert\leq R$. By this definition, $r&#95;{k}$ is decreasing from $r&#95;{0}$ that satisfies $r&#95;{0}\leq R$ to $\rho(\mu)$. Consequently, $\mu&#95;{j}$ is decreasing from $\mu&#95;{0}$ such that $\mu&#95;{0}\geq\rho^{-1}(R)$ to $\mu$. We summarize the properties of these sequences in the following.
