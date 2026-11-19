@@ -1,7 +1,7 @@
 ---
 layout: distill
-title: "The Mirror Test: Does a Physics-Like Orbit Model Respect a Symmetry It Never Saw?"
-description: "Small transformers trained on planetary orbits can behave much like a textbook integration rule on held-out orbits from their training distribution. Mirroring an orbit leaves the physics unchanged, but every training orbit runs counter-clockwise. I mirror the test orbits to see whether the models carry this symmetry, and then measure how much of the gap closes when mirrored orbits are added to the training data at the same budget."
+title: "Does a Verlet-Like Orbit Transformer Respect the Mirror?"
+description: "Small transformers trained only on counter-clockwise planetary orbits have been described as close to Verlet, a textbook integration rule. Reflecting held-out orbits about their major axes leaves the physics intact, yet all five noise-free baseline models, trained on counter-clockwise orbits only, fail the mirror test while their rotation-equivariance error stays small. Adding mirrored orbits at the same training budget narrows the gap in steps, and for the recipe with input noise the outcome at 50% mirrored data is undetermined by the criterion set in advance."
 date: 2027-04-30
 future: true
 htmlwidgets: true
@@ -27,183 +27,199 @@ toc:
 
 ## Why physics should respect the mirror
 
-Picture a planet on an elliptical orbit, moving counter-clockwise around its star. Reflect the whole picture across the long axis of the ellipse, and the planet traces the same ellipse clockwise (Figure 1).
+Take a planet circling its star counter-clockwise on an ellipse, and reflect its path across the long axis of the ellipse. The ellipse does not move and the planet still starts at its closest point to the star, but it now travels clockwise (Figure 1).
 
-Newtonian gravity does not notice the difference. The force depends only on the distance to the star and points toward it, so the mirrored motion is as valid an orbit as the original. A rule that computes the next position of the planet from its last two positions should therefore return the mirrored output when it is given mirrored inputs. This property is called *equivariance*, and it holds for rotations of the picture as well.
+Newtonian gravity cannot tell the two paths apart: the pull depends only on the distance to the star and points at it, so the reflected path obeys the same law. Hence a correct rule that maps the planet's two latest positions to the next one must answer a reflected pair with the reflection of its earlier answer, and a rotated pair with a rotated answer. Such a rule is called *equivariant*: transform the input, and the output transforms the same way.
 
 <div class="l-page">
   {% include figure.liquid path="assets/img/2027-04-30-mirror-test/fig1_mirror_orbit.png" class="img-fluid" zoomable=true %}
 </div>
 
 <div class="caption" style="text-align: left;">
-    <strong>Figure 1.</strong> An orbit from the training distribution, its mirror image, and a rotated copy. Geometry only: no model output is shown. Dots are consecutive samples at the time step of the data, the open circle is the starting point, and the dotted line is the major axis. Mirroring keeps the ellipse and reverses the direction of travel; rotation keeps the direction. Every training orbit runs counter-clockwise. <a href="{{ 'assets/img/2027-04-30-mirror-test/fig1_mirror_orbit.png' | relative_url }}">Open the full-size figure.</a>
+    <strong>Figure 1.</strong> Left, an original orbit; middle, its reflection about the major axis; right, a rotated copy. Only geometry is drawn, and no model is involved. Small dots are successive samples at the time step of the data, the open circle marks the start, the dotted line is the major axis, and large black dots mark the same frame numbers in all three panels. Reflection keeps the ellipse but reverses the direction of travel; rotation keeps the direction. The released data generator produces only counter-clockwise orbits. <a href="{{ 'assets/img/2027-04-30-mirror-test/fig1_mirror_orbit.png' | relative_url }}">Open the full-size figure.</a>
 </div>
 
-This post puts that requirement to small transformers that predict orbits. Earlier work describes one kind of them as close to a textbook integration rule, and every orbit they were trained on runs counter-clockwise. Does such a model also have a symmetry of that rule which training never exercised? In brief, it does not: on mirrored orbits the one-step error grows roughly 9 to 40 times, depending on the training run, and adding mirrored orbits to the training data at the same budget narrows the gap in steps.
+The released data generator produces only counter-clockwise orbits, and models trained on them with this recipe have been described as close to a textbook integration rule that is itself equivariant under reflection. Does a model that resembles the rule share this symmetry, which its training never exercised?
+
+I first test a baseline group trained on counter-clockwise orbits only. For its noise-free models the answer is no: on mirrored orbits their one-step error rises by a factor of roughly 9 to 40, depending on the training run. I then retrain with mirrored orbits mixed in at the same budget, which shrinks the gap in stages, and finally ask whether a local look at the models could have predicted the failure.
 
 ## The models under test
 
-The models come out of three pieces of earlier work with different status.
+The background comes from Vafa et al. <d-cite key="vafa2025foundation"></d-cite>, a peer-reviewed ICML 2025 paper. Their large transformer predicts planetary trajectories accurately but, when adapted to new physics tasks, does not use Newtonian mechanics. Liu et al. <d-cite key="liu2026kepler"></d-cite> argue in an arXiv preprint that three design choices change this: continuous coordinates, noisy training inputs, and a context of just two positions. They speculate that such models should also do better outside the training distribution, without testing it.
 
-Vafa et al. <d-cite key="vafa2025foundation"></d-cite>, a peer-reviewed paper (ICML 2025), trained a large transformer on planetary trajectories: it predicts them accurately, yet fails to apply Newtonian mechanics when adapted to new physics tasks. Liu et al. <d-cite key="liu2026kepler"></d-cite>, in an arXiv preprint, argued that three design choices change this: continuous coordinates, noise added to the inputs, and a context of only two positions. They speculated, without testing it, that such a model should generalize better outside its training distribution. Sandler and York <d-cite key="sandler2026keplerish"></d-cite>, in an Arcadia Science publication that is not peer reviewed, analysed the two-position models and concluded that the one trained with noise computes a circular-orbit heuristic, while the one trained without noise is close to a Verlet integrator with a central acceleration that falls off roughly as $$r^{-1.9}$$.
+Sandler and York <d-cite key="sandler2026keplerish"></d-cite>, in an Arcadia Science publication that is not peer reviewed, analyzed two-position models trained with this recipe; these are not the models of this post. In their reading, the model trained with noise uses a circular-orbit heuristic, and the noise-free model is close to a Verlet integrator whose acceleration toward the center decays roughly as $$r^{-1.9}$$.
 
-I test these small two-position models, not the large model of Vafa et al. Each has about 25,000 parameters, reads two consecutive positions and predicts the next. All 30 models reported here were trained for this study with the recipe of Liu et al., as implemented in the code released with the Arcadia analysis: with or without input noise, three kinds of training data introduced below, and five training seeds (independent training runs) each.
+My subjects are small two-position models of the same kind, not the large model of Vafa et al. Each has about 25,000 parameters and maps two consecutive positions to the next. All 30 models in this post were trained for this study, using the recipe of Liu et al. in the implementation released with the Arcadia analysis: two recipes (with or without input noise), three kinds of training data, and five seeds (independent training runs) per combination. The baseline group of 10 models sees counter-clockwise orbits only; the other 20 models are trained on mixtures with mirrored orbits, introduced later.
 
-One property of the data matters throughout. The released data-generation code starts every orbit at its closest point to the star, draws its orientation uniformly at random, and always runs it counter-clockwise. (I read the direction from the code; the paper does not state it.) The training distribution therefore covers rotations and contains no reflected orbit, which makes rotation a natural control.
+The released generator starts each orbit at perihelion, its point closest to the star, picks the orientation of the ellipse uniformly at random, and always runs the orbit counter-clockwise. The direction is set in the code; the main text of the paper of Liu et al. does not state it. The training distribution of the baseline group therefore covers every orientation but no reflection, which makes rotation a natural control.
 
-All measurements below use held-out orbits: 500 new orbits drawn from the training distribution, independently of the training data. I call them in-distribution orbits, and first ask what "close to Verlet" amounts to on them.
+All model results in this post use one shared validation set: 500 held-out orbits, drawn from the training distribution independently of the training data, each paired with its mirror image. I call the two members of a pair the *original orbit* and the *mirrored orbit*. For the baseline group, the original orbits come from the training distribution and the mirrored ones do not; for the models trained with mirrored orbits, both kinds do.
 
 ## How close to Verlet, and where
 
-Position Verlet computes the next position from the current and the previous one:
+Position Verlet steps an orbit forward from its two latest positions. With the star at the origin and $$\Delta t$$ the time between samples,
 
 $$
 r_{t+1} = 2 r_t - r_{t-1} - \Delta t^2 \, GM \, \frac{r_t}{\lvert r_t \rvert^3}
 $$
 
-Here $$\Delta t$$ is the time between two samples and the star sits at the origin. By *Verlet with exact force* I mean this rule with the true inverse-square force; it is still a discrete approximation, not the exact orbit.
+*Verlet with exact force* means this rule with the true inverse-square force; it is still a discrete approximation, with a small error of its own.
 
-The first two terms continue the last displacement, as if nothing acted on the planet. I call this the inertial part (Figure 2). Only the last term contains gravity. A rule that assumes constant velocity has the same first two terms, so linear weights close to 2 and −1 in a model say nothing about gravity.
+The *inertial part*, $$2 r_t - r_{t-1}$$, carries the last displacement forward, as if no force acted. The *gravity correction*, the final term, is the only term that contains the force (Figure 2). A constant-velocity rule shares the inertial part and lacks the correction, so a model that weights the current and previous positions by about 2 and −1 has shown only that it has the inertial part (see the supplement below).
 
 <div style="max-width: 520px; margin: 0 auto;">
   {% include figure.liquid path="assets/img/2027-04-30-mirror-test/fig2_verlet_step.png" class="img-fluid" zoomable=true %}
 </div>
 
 <div class="caption" style="text-align: left;">
-    <strong>Figure 2.</strong> One position-Verlet step, drawn as a schematic with an enlarged time step. The inertial extrapolation (dashed arrow) plus the gravity correction (orange arrow) gives the Verlet prediction (hollow square), shown next to the true next position (black star). <a href="{{ 'assets/img/2027-04-30-mirror-test/fig2_verlet_step.png' | relative_url }}">Open the full-size figure.</a>
+    <strong>Figure 2.</strong> Schematic of one position-Verlet step, with the time step enlarged so the parts are visible. The dashed arrow (inertial part) continues the last displacement; the orange arrow (gravity correction) points toward the star. Their sum is the Verlet prediction (hollow square), next to the true next position (black star). <a href="{{ 'assets/img/2027-04-30-mirror-test/fig2_verlet_step.png' | relative_url }}">Open the full-size figure.</a>
 </div>
 
 <details markdown="1">
-<summary>Supplement: the average linear weights of all 30 models</summary>
+<summary>Supplement: the linear weights of all 30 models</summary>
 
 {% include figure.liquid path="assets/img/2027-04-30-mirror-test/figS1_linear_weights.png" class="img-fluid" zoomable=true %}
 
 <div class="caption" style="text-align: left;">
-    <strong>Figure S1.</strong> The equivalent linear mapping <d-cite key="golden2025elm"></d-cite>, the tool used by Sandler and York, rewrites the output of a network for one input as an exact linear function of that input. Each marker is one model: the weights that this map puts on the current and on the previous position, averaged over in-distribution inputs. The noise-free models lie near the inertial point (2, −1) and the noisy ones do not. Being near that point does not show a gravity term, because constant-velocity extrapolation sits exactly on it. <a href="{{ 'assets/img/2027-04-30-mirror-test/figS1_linear_weights.png' | relative_url }}">Open the full-size figure.</a>
+    <strong>Figure S1.</strong> Average linear weights of all 30 models. The equivalent linear map <d-cite key="golden2025elm"></d-cite>, which Sandler and York used, expresses the output of a network at a given input as an exact linear function of that input, with weights that vary from input to input. Each marker is one model, positioned at the weights its map assigns to the current and previous positions, averaged over inputs from the original orbits. Noise-free models cluster near (2, −1); noisy ones do not. The star marks the inertial part on its own. A constant-velocity rule lies exactly on it, so being near the star is no evidence of gravity. <a href="{{ 'assets/img/2027-04-30-mirror-test/figS1_linear_weights.png' | relative_url }}">Open the full-size figure.</a>
 </div>
 
 </details>
 
-To look at the gravity term directly, I subtract the inertial part from the prediction $$\hat r_{t+1}$$ of a model and divide by the squared time step:
+Subtracting the inertial part from the prediction $$\hat r_{t+1}$$ of a model and dividing by $$\Delta t^2$$ isolates what the model adds:
 
 $$
 a_{\mathrm{eff}} = \frac{\hat r_{t+1} - 2 r_t + r_{t-1}}{\Delta t^2}
 $$
 
-I call this the *implied acceleration*. For Verlet with exact force it equals the Newtonian acceleration, which points at the star and has size $$GM/r^2$$. Because the samples are coarse in time, even a perfect predictor does not imply exactly the Newtonian value, so a second reference applies the same formula to the true next position.
+This is the *implied acceleration*. For Verlet with exact force it equals the Newtonian acceleration, of size $$GM/r^2$$ and directed at the star. With samples this coarse in time, even the true next position does not give exactly the Newtonian value, so the formula applied to it serves as a second reference.
 
-For the five noise-free models trained on counter-clockwise orbits, on in-distribution orbits (Figure 3a and 3c):
+On the original orbits, the five noise-free baseline models give (Figure 3a and 3c):
 
-- the direction is off the direction to the star by a median of 2.5 to 4.8 degrees;
-- the component toward the star has a median of roughly 0.91 to 1.01 times the Newtonian value;
-- the size falls off with distance as a power law with an exponent between −1.90 and −2.08, where Newton's law gives −2.
+- a median angle between the implied acceleration and the direction of the star of 2.5 to 4.8 degrees;
+- a median component toward the star of roughly 0.91 to 1.01 times the Newtonian value;
+- a power-law decay with distance, with fitted exponents from −1.90 to −2.08 against Newton's −2.
 
-These are typical values. The direction has a wide tail: its 99th percentile is 32 to 73 degrees. The fit is best at intermediate distances and worse far from the star, where gravity is weak. Close to the star the discrete sampling error is not negligible: even the reference computed from the true positions points off-centre by a median of about 5 degrees.
+The angle has a long tail, its 99th percentile ranging from 32 to 73 degrees across models. Agreement is best at intermediate distances and gets worse far from the star, where gravity is weak. Near the star the discrete sampling error is not negligible: even the true-position reference deviates from the direction toward the star by a median of about 5 degrees.
 
 <details markdown="1">
-<summary>Details: numbers by distance from the star</summary>
+<summary>Details: the numbers by distance from the star</summary>
 
-Distances are in the units of the data, in which orbit sizes range from 0.5 to 2. At radii between 0.5 and 1, the median angle is under 2 degrees for all five models. At radii of 2 or more (about 16 per cent of the samples), it is roughly 8 to 22 degrees, and the implied acceleration differs from the true-position reference by a median of roughly 23 to 44 per cent. At radii below 0.5 (about 4 per cent of the samples), the true-position reference itself is off-centre by a median of about 5 degrees.
+Distances use the units of the data, in which the semi-major axes of training orbits range from 0.5 to 2. In the band from 0.5 to 1, all five models have a median angle below 2 degrees. From a distance of 2 outward, where about 16% of the samples lie, the median angle is roughly 8 to 22 degrees, and the median gap to the true-position reference is roughly 23% to 44%. Inside 0.5 (about 4% of the samples), the true-position reference itself deviates from the star direction by a median of about 5 degrees.
 
 </details>
 
-The implied acceleration is therefore behavioural evidence for the description: on typical in-distribution inputs, these models act like a Verlet step with a central, roughly inverse-square acceleration, with deviations of the order of ten per cent. It is not enough to show that they hold a Newtonian law that carries over to other inputs. The models trained with input noise do not fit the description: their implied acceleration is off-centre by a median of 36 to 42 degrees and falls off with exponents of −0.64 to −0.70, in line with the circular-orbit heuristic reported by Sandler and York.
+As behavioral evidence, this supports a bounded description. For typical inputs from their training distribution, the noise-free baseline models behave like a Verlet step with a central, nearly inverse-square acceleration; the median deviation of their implied acceleration from the true-position reference is 7.4% to 12.3%. It does not show that the models carry a Newtonian law that holds on other inputs. The noisy baseline models do not fit even this description. Their implied acceleration deviates from the direction of the star by a median of 36 to 42 degrees and decays with exponents of −0.64 to −0.70, consistent with the circular-orbit heuristic that Sandler and York describe.
 
-The evidence has two stages. For seeds 1 to 3 this analysis was added after the mirror results were known, so it is post hoc; for seeds 4 and 5 it was fixed in a written plan before the models were trained. The two groups agree.
+For seeds 1 to 3 this analysis is post hoc, added once the mirror results were in; for seeds 4 and 5 it was specified in a written plan before training. Both groups give the same picture.
 
 <div class="l-body-outset">
   {% include figure.liquid path="assets/img/2027-04-30-mirror-test/fig3_implied_acceleration.png" class="img-fluid" zoomable=true %}
 </div>
 
 <div class="caption" style="text-align: left;">
-    <strong>Figure 3.</strong> Implied acceleration of the models trained without input noise, on 500 held-out orbits and their mirror images. (a, b) Median size per distance bin for the five models trained on one direction, against the Newtonian value (dashed) and the reference from true positions (solid); both axes are logarithmic. (c) Angle to the direction of the star, median and 5–95% range, on a logarithmic axis: the true-position reference, the five models trained on one direction, and the five trained with 50% mirrored orbits. Open markers are follow-up seeds 4–5 (analysis fixed before training); filled markers are seeds 1–3 (post hoc). <a href="{{ 'assets/img/2027-04-30-mirror-test/fig3_implied_acceleration.png' | relative_url }}">Open the full-size figure.</a>
+    <strong>Figure 3.</strong> Implied acceleration of the noise-free models, on the 500 original orbits (blue) and their mirror images (orange). (a, b) For the five baseline models, the median size within each distance bin, compared with the Newtonian value (dashed) and the true-position reference (solid line); both axes are logarithmic. (c) Median angle between the implied acceleration and the direction of the star, with the 5–95% range, on a logarithmic axis: the true-position reference, the five baseline models, and the five models trained with 50% mirrored orbits. Filled markers: seeds 1–3, post hoc analysis. Open markers: seeds 4–5, analysis fixed before training. <a href="{{ 'assets/img/2027-04-30-mirror-test/fig3_implied_acceleration.png' | relative_url }}">Open the full-size figure.</a>
 </div>
 
-The mirror test asks whether this description extends beyond in-distribution orbits.
+Everything in this section, including the judgment that these models are close to Verlet, was measured on original orbits, the kind of input the baseline models were trained on. The next section asks whether the Verlet-like behavior brings the rule's mirror symmetry with it.
 
 ## What breaks in the mirror
 
-The test reflects each held-out orbit about its own major axis. A model predicts each next position from the two true previous positions, on both versions. The error is the distance between prediction and truth in units of 1.25, the mean orbit size in training, averaged over each orbit. The quantity of interest is the paired increase: the error on the mirrored orbit minus the error on the original, averaged over the 500 pairs, with a 95 per cent bootstrap interval over orbits.
+The test reflects each validation orbit about its own major axis and runs the model on both members of the pair, always feeding it the two true previous positions (teacher forcing) so that each prediction is scored alone. The one-step error $$e$$ of an orbit is the distance between the prediction and the true next position, in units of 1.25 (the mean semi-major axis in training), averaged along the orbit.
 
-I calibrated the test on hand-written rules before looking at any trained model. Rules that are equivariant by construction, Verlet with exact force among them, have an increase of zero up to rounding error; a circular-orbit rule that always turns counter-clockwise has an increase of 0.233. I set the threshold at 0.01: a model is *degraded* if its whole interval lies above the threshold and *not degraded* if its whole interval lies below. "Not degraded" means only that the increase stayed under this threshold, not that the symmetry holds exactly.
+The quantity of interest is the paired increase
 
-All five noise-free models trained on one direction are degraded (Figure 4, top left). Their mean error rises from 0.0020–0.0033 on in-distribution orbits to 0.030–0.085 on the mirrored ones, a factor of roughly 9, 30 and 40 for seeds 1 to 3 and 25 and 20 for seeds 4 and 5. The size of the failure depends on the training run; the verdict does not. Verlet with exact force has an error of about 0.0026 on both versions.
+$$
+\Delta = \frac{1}{500} \sum_{i=1}^{500} \left( e_i^{\mathrm{mirrored}} - e_i^{\mathrm{original}} \right),
+$$
 
-Two observations narrow down the failure. The models are not simply turning the wrong way: on more than 97 per cent of the mirrored steps the predicted motion is clockwise, as it should be, and the prediction still lands in the wrong place. The failure is also specific to the mirror. The rotation-equivariance error, which measures how far the output is from rotating together with the input, is 0.0013 to 0.0023, the same order as the in-distribution prediction error. The mirror-equivariance error is 14 to 57 times larger.
+with a 95% bootstrap interval from resampling the pairs. The interval reflects the choice of test orbits, not differences between training runs, so every seed is listed.
 
-The implied acceleration shows what the wrong predictions look like (Figure 3b and 3c). On mirrored orbits it no longer points at the star: the median angle is 25, 69, 68, 57 and 72 degrees for the five seeds. Beyond that, the seeds fail in different ways. In four of them a sideways component appears that pushes against the direction of motion, with a median size of roughly 0.9 to 3.5 times the Newtonian acceleration. Seed 4 is a counter-example: its sideways component is close to zero in the median, and its pull toward the star is only about half of the Newtonian value. This describes the failures without explaining them.
+I calibrated the test on hand-written rules before evaluating any trained model, using a separate batch of orbit pairs drawn for that purpose. Each rule that is equivariant by construction, Verlet with exact force included, shows an increase of zero up to rounding error; a circular-orbit rule hard-wired to turn counter-clockwise shows 0.233. Between the two, I placed the threshold at 0.01. A model is *degraded* if its interval lies entirely above 0.01, *not degraded* if entirely below, and *undetermined* if it straddles the threshold. *Not degraded* says only that the increase stayed under the threshold; it claims neither that there is no difference nor that the symmetry is exact.
 
-The numbers were obtained in stages. Seeds 1 to 3 were first measured on one set of held-out orbits; the models, metrics and criteria were then fixed in writing, 500 new orbit pairs were drawn, and all 18 verdicts for these seeds (six training conditions each) came out the same on the new set. Seeds 4 and 5 were trained afterwards under a plan fixed in advance and were measured on that same second set, not on a third one.
+Every one of the five noise-free baseline models is degraded (Figure 4, top left). Mean error climbs from 0.0020–0.0033 on the original orbits to 0.030–0.085 on the mirrored ones; seed by seed, the factors are about 9, 30, 40, 25 and 20. The size of the failure varies across training runs, but the verdict does not. Verlet with exact force, by contrast, has an error of about 0.0026 whichever way the orbit runs.
 
-The most direct explanation is that the models never saw a clockwise orbit. That can be tested.
+The models almost always turn the right way: on more than 97% of the mirrored steps the predicted motion is clockwise, yet the predicted position is wrong. And the failure appears under the mirror but not under rotation. Equivariance can be measured head-on: transform the input pair, predict, and compare with the transformed original prediction, in the same units. For a rotation by a random angle per orbit, this rotation-equivariance error is 0.0013 to 0.0023, the same order as the one-step error on the original orbits. Computed with the reflection instead, the mirror-equivariance error comes out 14 to 57 times larger.
+
+On mirrored orbits the implied acceleration no longer points at the star (Figure 3b and 3c); its median angle to the star is 25, 69, 68, 57 and 72 degrees for seeds 1 to 5. A sideways component appears in every seed: the median of its size is 0.86, 2.24, 3.47, 0.85 and 1.33 times the Newtonian acceleration for seeds 1 to 5. In four seeds it pushes consistently against the motion. Seed 4 is the exception: its sideways push is about as large as that of seed 1, but it falls on either side of the motion, so its signed median is close to zero. A consistent backward push is therefore not a general feature of the failure. These observations describe the failure without explaining it.
+
+Seeds 1 to 3 were first measured on a separate exploration set of orbits. I then froze their weights, wrote down the metrics and criteria, drew the 500 validation pairs and measured again: all 18 verdicts for these seeds, across six training conditions, were unchanged. Seeds 4 and 5 were trained later under a plan written in advance and evaluated on the same validation set; no third set was drawn.
+
+The obvious suspect is the training data, which held no clockwise orbit. That can be tested.
 
 ## Adding mirrored orbits at the same budget
 
-For each seed I retrained with the same trajectories, training windows, initial weights and number of steps, after mirroring a random 10 or 50 per cent of the trajectories. The budget is unchanged, so each direction gets fewer examples. Supplying a symmetry through the training data is a well-known idea <d-cite key="chen2020group"></d-cite>; here it is not a method but a control for one explanation. Before training these models I wrote down what would count as confirmation at 50 per cent: the increase is not degraded, and in every seed the mirror-equivariance error is at most twice the rotation-equivariance error. I call this the joint criterion.
+The control keeps the 10,000 training orbits, the training windows, the initial weights and the number of steps of each seed, but reflects each orbit before training with probability 10% or 50%. Depending on the seed, this mirrors 973 to 1,018 orbits in the 10% condition and 4,947 to 5,025 in the 50% condition. The total stays fixed, so counter-clockwise examples become fewer, while clockwise ones go from none to about a tenth or a half of the data.
 
-Without input noise the gap narrows in two steps (Figure 4, top row). With 10 per cent mirrored orbits the increase falls to about 0.002–0.003 and all five models are not degraded, but the error on clockwise orbits is still 1.4 to 2.0 times the error on counter-clockwise ones. With 50 per cent the absolute increase is below 0.0004 in all five seeds and the mirror-equivariance error is 1.0 to 1.2 times the rotation-equivariance error, so the joint criterion is met. That is a statement relative to rotation, not a proof of exact mirror equivariance. The implied acceleration of these models points at the star to within a median of 2.4 to 4.3 degrees on original and mirrored orbits alike (Figure 3c). On in-distribution orbits the two groups of models look alike; they differ on mirrored inputs.
+Teaching a symmetry through the data is an established idea <d-cite key="chen2020group"></d-cite>; here it is not a proposed method but a test of one explanation. Before these models were trained, I wrote down the *joint criterion* for 50%: every seed not degraded, and in every seed a mirror-equivariance error no more than twice the rotation-equivariance error.
 
-The second recipe adds Gaussian noise of standard deviation 0.1 to the training inputs and, as in the earlier work, evaluates on clean inputs. Coverage acts more slowly here (Figure 4, bottom row). Trained on one direction, these models predict counter-clockwise motion on more than 99.8 per cent of the mirrored steps, and the increase is about 0.30. With 10 per cent mirrored orbits all five are still degraded (increase 0.09 to 0.11) and turn clockwise on only 32 to 39 per cent of the mirrored steps. With 50 per cent, all five are not degraded: the increase is between −0.006 and +0.009, and the interval closest to the threshold ends at about 0.0090. The ratio of mirror to rotation equivariance error, however, is 1.5, 2.6, 1.7, 1.3 and 2.2 for the five seeds. Three seeds are within the factor of two and two are not, so by the rule set in advance the joint criterion is neither confirmed nor refuted. I report it as undetermined.
+**Noise-free recipe.** The gap closes in two stages (Figure 4, top row). At 10%, all five models are not degraded, with increases of about 0.002–0.003, yet some asymmetry remains: on clockwise orbits the error is still 1.4 to 2.0 times the counter-clockwise error.
 
-The 50 per cent models of this recipe also do worse on counter-clockwise orbits: their error is roughly 15 to 29 per cent higher than the one-direction model of the same seed, in all five seeds. The cause is not identified. Without noise there is no consistent cost; the corresponding error is higher in four seeds and lower in one.
+At 50%, no seed has an absolute increase of 0.0004 or more, and the ratio of mirror- to rotation-equivariance error falls to 1.0–1.2, which meets the joint criterion. That is relative to rotation, not proof of exact mirror equivariance. The implied acceleration of these 50% models stays central on both kinds of orbit, with a median angle of roughly 2.4 to 4.3 degrees (Figure 3c). On original orbits it looks like that of the baseline models; the two groups differ on mirrored inputs.
 
-The control supports the explanation that the mirror failure of the noise-free models comes from the missing mirrored training data. It does not rule out other contributing factors, and two tested fractions do not show how much mirrored data would be the minimum.
+**Noisy recipe.** Training inputs here carry Gaussian noise of standard deviation 0.1; evaluation, as in the earlier work, uses clean inputs. Coverage works more slowly (Figure 4, bottom row). The noisy baseline models predict counter-clockwise motion on more than 99.8% of the mirrored steps, with an increase of about 0.30. At 10%, every seed is still degraded, with increases of 0.09 to 0.11, and only 32% to 39% of the mirrored steps turn clockwise.
+
+At 50%, all five noisy models are not degraded. Their increases lie between −0.006 and +0.009, and the largest upper end of an interval, about 0.0090, sits just under the threshold. The ratio of mirror- to rotation-equivariance error is less tidy: 1.5, 2.6, 1.7, 1.3 and 2.2 for seeds 1 to 5, which puts seeds 2 and 5 above the factor of two. The rule fixed in advance counts this as neither support nor failure, so the joint criterion is undetermined.
+
+On original (counter-clockwise) orbits, the noisy 50% models are also less accurate than the noisy baseline model of the same seed: their error is roughly 15% to 29% higher, in all five seeds, for reasons I have not identified. The noise-free recipe shows no consistent shift: four seeds go up and one goes down.
+
+The control therefore supports one explanation for the noise-free models: their mirror failure comes from the absence of mirrored training data. It does not exclude other contributing factors, and two tested fractions cannot locate the smallest share of mirrored data that would suffice.
 
 <div class="l-page">
   {% include figure.liquid path="assets/img/2027-04-30-mirror-test/fig4_coverage.png" class="img-fluid" zoomable=true %}
 </div>
 
 <div class="caption" style="text-align: left;">
-    <strong>Figure 4.</strong> The mirror test for all 30 models on the same 500 held-out orbit pairs; logarithmic vertical axes, shared between the rows. Each marker is one model, and a line joins the two measurements of that model; within a group, seeds run from 1 to 5, left to right. Left: one-step error on in-distribution orbits and on their mirror images. Right: how far the output is from rotating, or from reflecting, together with the input. The criteria for the models with mirrored training data were written down before those models were trained. <a href="{{ 'assets/img/2027-04-30-mirror-test/fig4_coverage.png' | relative_url }}">Open the full-size figure.</a>
+    <strong>Figure 4.</strong> Mirror-test results for all 30 models on the shared validation set of 500 orbit pairs. Upper row, no training noise; lower row, training noise 0.1. Groups: one direction (the baseline), 10% and 50% mirrored. Left panels: one-step error on the original (counter-clockwise) orbits and on their mirror images, with Verlet with exact force as a dashed line. Right panels: rotation- and mirror-equivariance errors. Each model appears as a pair of markers joined by a thin line, one marker for each of its two values in that panel; within each group the seeds run from 1 to 5, left to right, and open markers are seeds 4–5. Vertical axes are logarithmic and shared by both rows. The criteria for the mirror-trained models were set before those models were trained. <a href="{{ 'assets/img/2027-04-30-mirror-test/fig4_coverage.png' | relative_url }}">Open the full-size figure.</a>
 </div>
-
-One question is left: could the failure have been seen without running a mirrored orbit, from how a model behaves near in-distribution inputs?
 
 ## Why a local extrapolation flags even the true rule
 
-This part is secondary, and its model-level numbers are exploratory: they were computed after the test results were known, and only for seeds 1 to 3.
+Could the behavior of a model near its usual inputs have revealed the failure before its answers on mirrored orbits were seen? The extrapolations below use the mirrored inputs, which are known in advance from the geometry, but never the model's actual output for them. This is a side question, and it covers only the nine noise-free models of seeds 1 to 3. Their Jacobian-based numbers were computed after the test results were known and are exploratory.
 
-The simplest attempt is a first-order extrapolation. At an in-distribution input, the Jacobian of the model says how the output changes for small changes of the input. This tangent approximation gives an estimate of the output at the mirrored input, and with it an estimate of the error increase.
+The obvious tool is a first-order extrapolation: take the Jacobian of the model at an input from an original orbit, follow that tangent out to the mirrored input, and read off an estimated output and error increase.
 
-For all nine noise-free models of seeds 1 to 3 the predicted increase is between 0.09 and 0.11 (Figure 5b). That includes the six models trained with mirrored data, whose observed increase is below 0.003.
+For all nine models, the estimate sits between 0.09 and 0.11 (Figure 5b), including the six mirror-trained models whose measured increase is below 0.003.
 
-A case with a known answer shows why. Verlet with exact force has a true increase of zero, and the same extrapolation predicts an increase of about 0.106, roughly ten times the threshold. The inertial part of the rule is linear and is extrapolated exactly. The gravity term is not linear, and mirroring moves the input by a distance comparable to the size of the orbit, far outside the range in which a tangent approximation is accurate (Figure 5a).
+The reason shows up on a rule whose answer is known. For Verlet with exact force the true increase is zero, yet the extrapolation predicts about 0.106, roughly ten times the threshold. The inertial part is linear, and the tangent captures it exactly. The gravity correction is nonlinear, and mirroring shifts the input by a distance on the scale of the orbit itself, far beyond where a tangent is reliable (Figure 5a).
 
 <details markdown="1">
 <summary>Details: the extrapolation error in closed form, and a second variant</summary>
 
-For Verlet with exact force, the first-order extrapolation across the mirror misses the prediction of the rule itself by
+For Verlet with exact force, the first-order extrapolation across the mirror differs from the output of the rule at the mirrored input by
 
 $$
--\,6 \, \Delta t^2 \, GM \, s^2 \, \frac{r_t}{\lvert r_t \rvert^5}
+-6 \, \Delta t^2 \, GM \, s^2 \, \frac{r_t}{\lvert r_t \rvert^5}
 $$
 
-where $$s$$ is the distance of the current position from the mirror axis. The first-order terms cancel, and this is the second-order remainder. On the held-out orbits its mean size is about three times the mean size of the gravity correction.
+with $$s$$ the distance of the current position from the mirror axis. The terms of first order in $$s$$ cancel, leaving this second-order term as the entire error. Averaged over the held-out orbits, its size is about three times that of the gravity correction.
 
-A second variant keeps the equivalent linear map of a model (see the supplement above) fixed while the input changes. It also predicts a clear degradation for the six mirror-trained models.
+A second variant freezes the equivalent linear map of a model (the map behind Figure S1) at the original input and reuses it at the mirrored input; its predictions were saved before the test inputs were run. It too predicts a degradation for all six models trained with mirrored orbits.
 
 </details>
 
-The conclusion is narrow. Across a change of input as large as a mirror, this extrapolation cannot tell whether a rule is mirror-equivariant, since Verlet with exact force is flagged too. That does not show that looking inside a model is uninformative about how it generalizes.
+Two results should be kept apart. First, on these nine models, neither extrapolation's threshold verdict separates the three degraded models from the six not-degraded ones: both call all nine degraded. Yet the predicted values of the frozen map place all six mirror-trained models below the three baseline models, so the information is not absent; the verdicts are what fail. Second, and more strongly, the Jacobian extrapolation flags even Verlet with exact force, an exactly equivariant rule. Across a change as large as a mirror, such threshold verdicts cannot be trusted. That falls well short of showing that looking inside a model reveals nothing about how it generalizes.
 
 <div class="l-page">
   {% include figure.liquid path="assets/img/2027-04-30-mirror-test/fig5_first_order.png" class="img-fluid" zoomable=true %}
 </div>
 
 <div class="caption" style="text-align: left;">
-    <strong>Figure 5.</strong> First-order extrapolation across the mirror. (a) One mirrored orbit, at the frame where the original and the mirrored positions are farthest apart. Verlet with exact force, applied to the mirrored input, lands very close to the true next position at the scale of the plot; the first-order extrapolation of the same rule from the original input does not. (b) Error increase predicted by the extrapolation and observed, for Verlet with exact force and for the noise-free models of seeds 1–3 (post hoc, exploratory). <a href="{{ 'assets/img/2027-04-30-mirror-test/fig5_first_order.png' | relative_url }}">Open the full-size figure.</a>
+    <strong>Figure 5.</strong> First-order extrapolation across the mirror. (a) Validation orbit pair 0, at the frame where the original and mirrored positions lie farthest apart. Applied to the mirrored input, Verlet with exact force lands near the true next position at this scale; the first-order extrapolation of the same rule from the original input misses. (b) Predicted versus measured error increase for Verlet with exact force and for the noise-free models of seeds 1–3 (post hoc, exploratory); dashed line, threshold 0.01. <a href="{{ 'assets/img/2027-04-30-mirror-test/fig5_first_order.png' | relative_url }}">Open the full-size figure.</a>
 </div>
 
 ## What the study supports
 
-The study covers two short-context recipes, five training seeds per condition and one set of held-out orbits. Within that scope, the noise-free two-position models act like Verlet on typical in-distribution inputs and do not carry the mirror symmetry of that rule, while their rotation-equivariance error stays small. Mirrored training data at equal budget narrow the gap in steps. With input noise, 10 per cent is not enough, and at 50 per cent the increase is under the threshold in all five seeds while the joint criterion remains undetermined, with three of five seeds within the bound.
+The scope of this study is two short-context recipes, five seeds per condition and one shared validation set. Within it, the noise-free baseline models act approximately like Verlet on typical inputs from their training distribution, within the limits measured above. They lack the mirror symmetry of that rule, while their rotation-equivariance error stays small. Mirrored training data at the same budget narrows this gap in steps.
 
-Several things remain open: why the mirror failure takes the form it does and differs between training runs, with seed 4 as the clearest case; what causes the cost in the noisy recipe; and how the gap depends on the share of mirrored data beyond the two values tested. Only two seeds per condition were trained under a plan fixed in advance, and they were not measured on a third set of orbits.
+The noisy baseline models are not Verlet-like even on original orbits, and coverage helps the noisy recipe more slowly, at a cost that appears in all five seeds. At 50%, every noisy seed stays under the threshold, but only three of five meet the factor-of-two bound, so the joint criterion is undetermined. Finally, on the nine models tested, the threshold verdicts of both local extrapolations fail to separate the degraded models from the not-degraded ones, and the Jacobian extrapolation flags even Verlet with exact force.
 
-The results say nothing about the large model of Vafa et al., models with a longer context, or transformers in general. "Not degraded" and "meets the joint criterion" are statements about thresholds, not proofs of exact symmetry, and the failure of the local extrapolations tested here is not a verdict on mechanistic analysis.
+Still open: why the mirror failure takes this form and differs between training runs (seed 4 most visibly), what causes the cost in the noisy recipe, and how the gap depends on the mirrored share beyond the two fractions tested. Gaps remain too: only two seeds per condition followed a plan fixed before training, and no third set of orbits confirmed them.
 
-A description such as "this network is close to a Verlet integrator" is obtained on inputs from the training distribution, and it is a statement about those inputs. The rule it names has symmetries. Whether the model has them is a separate question, and here a paired test on reflected inputs, with rotation as a control and hand-written rules as calibration, answered it directly.
+Nothing here extends to the large model of Vafa et al., to longer-context models or to transformers in general. *Not degraded* and *meets the joint criterion* are threshold statements, not proofs of exact symmetry, and two extrapolations with failed verdicts are no verdict on mechanistic analysis.
+
+My main takeaway is that a description such as *close to a Verlet integrator*, established on inputs from the training distribution, applies to those inputs. Whether the network also has the symmetries of the rule it names is a separate question, and a paired test answers it directly: transform the inputs, use a symmetry the data cover as the control, and calibrate the threshold on hand-written rules with known answers. Here, for the noise-free baseline models, resemblance on the training distribution did not bring the symmetry with it.
 
 ## Notes on evidence
 
-Numbers are read from saved result files and figures are produced by script. Values are rounded to the digits shown; a range such as "0.0020–0.0033" gives the smallest and the largest value over the five seeds. Where a sentence states a bound ("below", "under", "more than", "between"), the unrounded values satisfy it. The plans mentioned above are version-controlled local records, not external registrations. Code, weights and raw results are not linked here, to keep the post anonymous during review.
+Results come from saved result files, and a script draws the figures from them. Numbers are rounded to the digits shown, a range like 0.0020–0.0033 spans the smallest to the largest value over the models concerned (usually the five seeds), and every bound stated in words, such as below, more than or between, holds for the unrounded values. The plans I mention are version-controlled local records, not external registrations. No code, weights or raw results are linked, to keep the post anonymous during review.
