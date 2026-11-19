@@ -296,6 +296,11 @@ low = np.array([-2.0, -0.4, -2.6, -1.3, -2.2, -1.9, -0.7, -0.4, -2.1, -2.4, -2.5
 high = np.array([1.1, 2.6, 0.7, 1.9, 1.3, 2.6, 3.4, 3.8, 3.4, 3.4, 1.9, 2.1])
 ```
 
+> It is not a requirement to use a trained PPO agent to define the limits.
+In the "quick fix" section, a simple rescaling (3% of the original space) was already enough.
+The percentiles make the choice more principled and less arbitrary.
+Ideally, these action limits would be properly defined directly in the base environment.
+
 ## Need for Speed or: How I Learned to Stop Worrying About Sample Efficiency
 
 The second aspect I can improve is the hyperparameters of the SAC algorithm.
