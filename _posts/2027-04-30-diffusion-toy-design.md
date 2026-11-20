@@ -2,7 +2,7 @@
 layout: distill
 title: What Makes a Good Toy Example for Diffusion Models?
 description: >-
-  Toy examples help us see how probability mass moves and what structure is kept or lost along the way.
+  Toys help us see diffusion algorithms at the level of distributions—but the moment we design a toy, we may also (without noticing) choose a side by baking in preferences.
   Using guidance in diffusion models, we examine how class separation and within-class branching shape what we conclude from a toy.
 date: 2027-04-30
 future: true
