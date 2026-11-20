@@ -31,11 +31,11 @@ But this simplicity comes with a price: what we conclude from a toy example migh
 
 Consider a simple toy distribution: a two-component Gaussian mixture, with Class A centered at $$(-2, 0)$$ and Class B centered at $$(2, 0)$$. We train a toy diffusion model conditioned on the class label. In the visualization below, you can see:
 
-- **Light green dots**: Class A ground truth samples
-- **Dark green dots**: Class B ground truth samples
-- **Orange dots**: Generated samples for Class B using classifier-free guidance (CFG)<d-cite key="ho2021classifier"></d-cite>
+- **Light green contours**: Class A ground truth samples
+- **Dark green contours**: Class B ground truth samples
+- **Orange contours**: Generated samples for Class B using classifier-free guidance (CFG)<d-cite key="ho2021classifier"></d-cite>
 
-<iframe title="Two-Gaussian samples by guidance scale" src="{{ 'assets/html/2027-04-30-diffusion-toy-design/gaussians.html' | relative_url }}" style="width:100%;height:440px;border:0"></iframe>
+<iframe title="Two-Gaussian samples by guidance scale" src="{{ 'assets/html/2027-04-30-diffusion-toy-design/gaussians.html' | relative_url }}" style="width:100%;height:1000px;border:0"></iframe>
 
 Notice the effect of increasing the guidance scale. When $$w = 1.0$$, that is, without additional guidance beyond the conditional prediction, the orange samples closely match the dark green Class B distribution. As $$w$$ increases beyond $$1.0$$, the behavior changes. The orange samples drift away from the dark green target. Their mean x-coordinate moves from 2.007 at scale 1 to 2.583 at scale 10. The target sample mean is 2.005. At first glance, this seems at odds with practical image generation, where much larger guidance scales are often preferred, such as $$w=7.5$$ in Stable Diffusion <d-cite key="rombach2022high"></d-cite>.
 
@@ -85,12 +85,12 @@ In this setting, CFG tends to concentrate samples in the high-density region of 
 Other studies have found that CFG remains competitive with AG in some settings<d-cite key="hoogeboom2024simpler,liu2025flowing"></d-cite>. Our interpretation is that the difference arises from context. Consider a *well-trained* conditional model such as EDM2<d-cite key="karras2024edm2"></d-cite> on ImageNet. In that context, class information is already captured reliably, so the main remaining issue is mode coverage in the class, which is precisely where AG helps.
 
 <table style="width: 100%; text-align: center;">
-<caption style="text-align: center; font-size: 0.85em; caption-side: bottom;">Fréchet inception distance (FID) on ImageNet at 512 × 512 resolution. Lower is better. ADM-U uses a classifier-guided base model and an upsampler. The scale column gives the CFG weight for the other models. FID values are from Table 2 of Karras et al.<d-cite key="karras2024edm2"></d-cite></caption>
+<caption style="text-align: center; font-size: 0.85em; caption-side: bottom;">Fréchet inception distance (FID) on ImageNet at 512 × 512 resolution. Lower is better. The scale is the classifier-guidance weight for the ADM-U base model and the classifier-free guidance weight for the other models. FID values are from Table 2 of Karras et al.<d-cite key="karras2024edm2"></d-cite></caption>
 <thead>
-<tr><th style="text-align: center;">Model</th><th style="text-align: center;">FID without guidance</th><th style="text-align: center;">FID with guidance</th><th style="text-align: center;">CFG scale <em>w</em></th></tr>
+<tr><th style="text-align: center;">Model</th><th style="text-align: center;">FID without guidance</th><th style="text-align: center;">FID with guidance</th><th style="text-align: center;">Guidance scale <em>w</em></th></tr>
 </thead>
 <tbody>
-<tr><td>ADM-U<d-cite key="dhariwal2021diffusion"></d-cite></td><td>9.96</td><td>3.85</td><td>—</td></tr>
+<tr><td>ADM-U<d-cite key="dhariwal2021diffusion"></d-cite></td><td>9.96</td><td>3.85</td><td>2.0</td></tr>
 <tr><td>DiT-XL/2<d-cite key="peebles2023scalable"></d-cite></td><td>12.03</td><td>3.04</td><td>1.5</td></tr>
 <tr><td>EDM2-S<d-cite key="karras2024edm2"></d-cite></td><td>2.56</td><td>2.23</td><td>1.4</td></tr>
 <tr><td>EDM2-XXL<d-cite key="karras2024edm2"></d-cite></td><td>1.91</td><td>1.81</td><td>1.2</td></tr>
