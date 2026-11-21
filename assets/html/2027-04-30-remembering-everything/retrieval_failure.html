@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stale-Value Stream Explorer</title>
+    <script>
+    /* Follow the site's light/dark toggle (iframe is same-origin); fall back to the OS setting. */
+    (function () {
+      function pick() {
+        try {
+          var r = window.parent.document.documentElement;
+          var t = r.getAttribute('data-theme');
+          if (t === 'dark' || t === 'light') return t;
+          var st = r.getAttribute('data-theme-setting');
+          if (st === 'dark' || st === 'light') return st;
+        } catch (e) {}
+        return window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      function apply() {
+        var t = pick();
+        document.documentElement.setAttribute('data-theme', t);
+        window.__theme = t;
+        if (window.onWidgetTheme) window.onWidgetTheme(t);
+      }
+      apply();
+      try {
+        new MutationObserver(apply).observe(window.parent.document.documentElement,
+          { attributes: true, attributeFilter: ['data-theme', 'data-theme-setting'] });
+      } catch (e) {}
+      if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', apply);
+    })();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #fafafa; --ink: #333; --panel: #ffffff; --panel-line: #eaeaea;
+            --h3: #111; --h3-line: #eeeeee; --muted: #888888; --subtle: #4b5563;
+            --field-bg: #ffffff; --field-line: #cccccc;
+            --stream-bg: #f8f9fa; --stream-line: #e9ecef; --stale: #9ca3af;
+            --cur-bg: #eff6ff; --cur-ink: #1d4ed8; --cur-line: #3b82f6;
+            --query-bg: #f3f4f6; --query-line: #d1d5db; --shadow: rgba(0,0,0,0.05);
+        }
+        :root[data-theme="dark"] {
+            --bg: #12151b; --ink: #e7eaf0; --panel: #1a1f28; --panel-line: #2a3140;
+            --h3: #f1f3f7; --h3-line: #2a3140; --muted: #8b95a5; --subtle: #aab3c2;
+            --field-bg: #242b37; --field-line: #3a4356;
+            --stream-bg: #151a22; --stream-line: #2a3140; --stale: #6b7688;
+            --cur-bg: #14233f; --cur-ink: #93c5fd; --cur-line: #3b82f6;
+            --query-bg: #1f2530; --query-line: #3a4356; --shadow: rgba(0,0,0,0.3);
+            color-scheme: dark;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg);
+            color: var(--ink);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        .container {
+            display: flex;
+            gap: 24px;
+            width: 100%;
+            margin: 0 auto;
+            height: 620px;
+        }
+        .panel {
+            flex: 1 1 50%;
+            min-width: 0;
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px var(--shadow);
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--panel-line);
+        }
+        h3 {
+            margin-top: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--h3);
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--h3-line);
+            padding-bottom: 8px;
+        }
+        .controls {
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .control-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        select {
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--field-line);
+            background: var(--field-bg);
+            color: var(--ink);
+            font-size: 13px;
+            max-width: 55%;
+            text-overflow: ellipsis;
+        }
+        .stream-container {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+            background: var(--stream-bg);
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid var(--stream-line);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .update-item {
+            padding: 6px 10px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .stale {
+            color: var(--stale);
+            background: transparent;
+        }
+        .current {
+            background: var(--cur-bg);
+            color: var(--cur-ink);
+            border-left: 3px solid var(--cur-line);
+            font-weight: 500;
+        }
+        .query-box {
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--query-bg);
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            text-align: center;
+            border: 1px dashed var(--query-line);
+        }
+        .chart-container {
+            position: relative;
+            height: 220px;
+            width: 100%;
+            margin-bottom: 16px;
+        }
+        .chart-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--subtle);
+            margin-bottom: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="panel">
+        <h3>Lost in the Middle Simulator</h3>
+        <div class="controls">
+            <div>
+                <div class="control-group">
+                    <label for="n-slider"><strong>Stale Updates (N)</strong>: <span id="n-display">4</span></label>
+                </div>
+                <input type="range" id="n-slider" min="0" max="9" step="1" value="2">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--muted);">
+                    <span>1</span>
+                    <span>512</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="placement-toggle"><strong>Target Placement</strong></label>
+                <select id="placement-toggle">
+                    <option value="LostInMiddle">Literal Match (Easy Retrieval)</option>
+                    <option value="SemanticLostInMiddle">Semantic Match (Hard Retrieval)</option>
+                </select>
+            </div>
+        </div>
+        <div class="stream-container" id="stream-box">
+            <!-- Populated by JS -->
+        </div>
+        <div class="query-box" id="query-box">
+            Question: What day is the Engineering sync?
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>Model Retrieval Probabilities</h3>
+        <div class="chart-title">Probability Mass: Target vs. Highest Stale Competitor</div>
+        <div class="chart-container">
+            <canvas id="barChart"></canvas>
+        </div>
+        
+        <div class="chart-title" style="margin-top: 16px;">Target Probability Decay</div>
+        <div class="chart-container">
+            <canvas id="lineChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Data Generation
+    const N_VALUES = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512];
+    const DAYS = ["Monday", "Tuesday", "Wednesday", "Friday", "Saturday", "Sunday", "Monday", "Tuesday"];
+    const TARGET_DAY = "Thursday";
+
+    const probData = {
+        LostInMiddle: [
+            {target: 0.984, stale: 0.000},
+            {target: 0.992, stale: 0.000},
+            {target: 0.996, stale: 0.000},
+            {target: 0.996, stale: 0.001},
+            {target: 0.992, stale: 0.004},
+            {target: 0.965, stale: 0.026},
+            {target: 0.969, stale: 0.016},
+            {target: 0.848, stale: 0.130},
+            {target: 0.930, stale: 0.046},
+            {target: 0.840, stale: 0.114}
+        ],
+        SemanticLostInMiddle: [
+            {target: 0.836, stale: 0.061},
+            {target: 0.428, stale: 0.295},
+            {target: 0.645, stale: 0.163},
+            {target: 0.605, stale: 0.197},
+            {target: 0.453, stale: 0.167},
+            {target: 0.105, stale: 0.324},
+            {target: 0.075, stale: 0.338},
+            {target: 0.050, stale: 0.289},
+            {target: 0.035, stale: 0.258},
+            {target: 0.024, stale: 0.336}
+        ]
+    };
+
+    // Use Target Prob * 100 for the accuracy decay curve
+    const accuracyData = {
+        LostInMiddle: probData.LostInMiddle.map(d => d.target * 100),
+        SemanticLostInMiddle: probData.SemanticLostInMiddle.map(d => d.target * 100)
+    };
+
+    // Chart.js instances
+    let barChart, lineChart;
+
+    function initCharts() {
+        const barCtx = document.getElementById('barChart').getContext('2d');
+        barChart = new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Current (Target)', 'Max Stale (Intrusion)'],
+                datasets: [{
+                    data: [0, 0],
+                    backgroundColor: ['rgba(59, 130, 246, 0.8)', 'rgba(156, 163, 175, 0.8)'],
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, max: 1, title: { display: true, text: 'Probability' } }
+                },
+                plugins: { legend: { display: false } },
+                animation: { duration: 300 }
+            }
+        });
+
+        const lineCtx = document.getElementById('lineChart').getContext('2d');
+        lineChart = new Chart(lineCtx, {
+            type: 'line',
+            data: {
+                labels: N_VALUES,
+                datasets: [{
+                    label: 'Probability Curve',
+                    data: accuracyData.easy,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.2,
+                    fill: true
+                }, {
+                    label: 'Current N',
+                    data: [],
+                    pointBackgroundColor: '#ef4444',
+                    pointBorderColor: '#fff',
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    showLine: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { type: 'category', title: { display: true, text: 'Number of Stale Updates (Log Scale)' } },
+                    y: { beginAtZero: true, max: 100, title: { display: true, text: 'Target Probability (%)' } }
+                },
+                plugins: { legend: { display: false } },
+                animation: { duration: 300 }
+            }
+        });
+    }
+
+    function updateView(shouldScroll = true) {
+        const sliderVal = parseInt(document.getElementById('n-slider').value);
+        const placement = document.getElementById('placement-toggle').value;
+        const N = N_VALUES[sliderVal];
+        
+        document.getElementById('n-display').innerText = N;
+
+        // 1. Update Stream Explorer
+        const streamBox = document.getElementById('stream-box');
+        streamBox.innerHTML = '';
+        
+        const TEAMS = ["Marketing", "Sales", "HR", "Design", "Product", "Support", "Finance", "Legal", "Ops", "Research", "Security", "IT"];
+        
+        const mid = Math.floor(N/2);
+        let firstHalf = '';
+        let secondHalf = '';
+        for(let i=0; i<mid; i++) {
+            firstHalf += `<div class="update-item stale">[Update ${i+1}] The ${TEAMS[i % TEAMS.length]} sync is scheduled for ${DAYS[i % DAYS.length]}.</div>`;
+        }
+        for(let i=mid; i<N; i++) {
+            secondHalf += `<div class="update-item stale">[Update ${i+2}] The ${TEAMS[i % TEAMS.length]} sync is scheduled for ${DAYS[i % DAYS.length]}.</div>`;
+        }
+        const targetHtml = `<div class="update-item current">[Update ${mid+1}] The Engineering sync is scheduled for ${TARGET_DAY}.</div>`;
+        streamBox.innerHTML = firstHalf + targetHtml + secondHalf;
+        
+        if (placement === 'LostInMiddle') {
+            document.getElementById('query-box').innerHTML = "Question: What day is the Engineering sync?";
+        } else {
+            document.getElementById('query-box').innerHTML = "Question: What day is the Tech team's sync?";
+        }
+
+        // Auto-scroll to target within stream container
+        if (shouldScroll) {
+            setTimeout(() => {
+                const targetEl = streamBox.querySelector('.current');
+                if (targetEl) {
+                    streamBox.scrollTo({
+                        top: targetEl.offsetTop - (streamBox.clientHeight / 2) + (targetEl.clientHeight / 2),
+                        behavior: 'smooth'
+                    });
+                }
+            }, 50);
+        }
+
+        // 2. Update Charts
+        const accCurve = accuracyData[placement];
+        const probs = probData[placement][sliderVal];
+
+        barChart.data.datasets[0].data = [probs.target, probs.stale];
+        barChart.update();
+
+        // Create point data for line chart
+        const pointData = Array(N_VALUES.length).fill(null);
+        pointData[sliderVal] = accCurve[sliderVal];
+
+        lineChart.data.datasets[0].data = accCurve;
+        lineChart.data.datasets[1].data = pointData;
+        lineChart.update();
+    }
+
+    // Event Listeners
+    document.getElementById('n-slider').addEventListener('input', updateView);
+    document.getElementById('placement-toggle').addEventListener('change', updateView);
+
+
+    // Theme-aware chart colours
+    function applyChartTheme() {
+        const dark = window.__theme === 'dark';
+        const text = dark ? '#aab3c2' : '#4b5563';
+        const grid = dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)';
+        Chart.defaults.color = text;
+        Chart.defaults.borderColor = grid;
+        [barChart, lineChart].forEach(ch => {
+            if (!ch) return;
+            Object.values(ch.options.scales).forEach(sc => {
+                sc.ticks = sc.ticks || {}; sc.ticks.color = text;
+                sc.grid = sc.grid || {}; sc.grid.color = grid;
+                sc.title = sc.title || {}; sc.title.color = text;
+            });
+            ch.update('none');
+        });
+    }
+    window.onWidgetTheme = applyChartTheme;
+
+    // Init
+    initCharts();
+    applyChartTheme();
+    updateView(false);
+</script>
+
+</body>
+</html>

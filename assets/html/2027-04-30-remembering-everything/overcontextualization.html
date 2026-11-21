@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Overcontextualization under Context Load & Boundary Markers</title>
+<!-- KaTeX for LaTeX Math Rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<!-- Marked for Markdown Rendering -->
+<script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+
+<style>
+:root {
+  --bg: #f5f6f8;
+  --panel: #ffffff;
+  --ink: #1d2330;
+  --mute: #5f6b7d;
+  --line: #dfe3ea;
+  --user: #2f4a7d;
+  --user-ink: #ffffff;
+  --bot: #edf0f4;
+  --hl: #ffd966;
+  --hl-ink: #4a3000;
+  --code: rgba(100,110,130,.14);
+  --marker-bg: #e0e7ff;
+  --marker-ink: #1e1b4b;
+  --marker-border: #818cf8;
+  
+  --clean-bg: #e6f4ea; --clean-ink: #137333; --clean-border: #a8dab5;
+  --reset-bg: #e8f0fe; --reset-ink: #1a73e8; --reset-border: #aecbfa;
+  --leak-bg: #fef7e0; --leak-ink: #b06000; --leak-border: #fdd663;
+  --break-bg: #fce8e6; --break-ink: #c5221f; --break-border: #f5c2c7;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media(prefers-color-scheme:dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151b;
+    --panel: #1a1f28;
+    --ink: #e7eaf0;
+    --mute: #9aa4b5;
+    --line: #2a3140;
+    --user: #4a6cb0;
+    --bot: #242b37;
+    --hl: #6b5200;
+    --hl-ink: #ffe9a8;
+    --marker-bg: #1e2538;
+    --marker-ink: #c7d2fe;
+    --marker-border: #6366f1;
+    --clean-bg: #0d2818; --clean-ink: #81c995; --clean-border: #1e4620;
+    --reset-bg: #12243d; --reset-ink: #8ab4f8; --reset-border: #183e6d;
+    --leak-bg: #332005; --leak-ink: #fdd663; --leak-border: #593e0b;
+    --break-bg: #371210; --break-ink: #f28b82; --break-border: #611e1b;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151b;
+  --panel: #1a1f28;
+  --ink: #e7eaf0;
+  --mute: #9aa4b5;
+  --line: #2a3140;
+  --user: #4a6cb0;
+  --bot: #242b37;
+  --hl: #6b5200;
+  --hl-ink: #ffe9a8;
+  --marker-bg: #1e2538;
+  --marker-ink: #c7d2fe;
+  --marker-border: #6366f1;
+  --clean-bg: #0d2818; --clean-ink: #81c995; --clean-border: #1e4620;
+  --reset-bg: #12243d; --reset-ink: #8ab4f8; --reset-border: #183e6d;
+  --leak-bg: #332005; --leak-ink: #fdd663; --leak-border: #593e0b;
+  --break-bg: #371210; --break-ink: #f28b82; --break-border: #611e1b;
+}
+
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14.5px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  border-radius: 14px;
+  overflow-x: hidden;
+}
+main {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 16px 16px 20px;
+}
+.header {
+  margin-bottom: 12px;
+}
+h1 {
+  font-size: 18.5px;
+  font-weight: 650;
+  margin: 0 0 3px;
+  letter-spacing: -0.01em;
+}
+.meta {
+  font-size: 12px;
+  color: var(--mute);
+  margin: 0;
+}
+
+/* Controls */
+.controls-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.row-label {
+  font-size: 11.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mute);
+  min-width: 115px;
+  flex-shrink: 0;
+}
+.pill-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.pill {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  padding: 4.5px 11px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.pill:hover:not(:disabled) {
+  border-color: var(--user);
+}
+.pill[aria-pressed="true"] {
+  background: var(--user);
+  border-color: var(--user);
+  color: var(--user-ink);
+  font-weight: 550;
+}
+.pill:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+.pill:focus-visible {
+  outline: 2px solid var(--user);
+  outline-offset: 2px;
+}
+
+/* Banner */
+.banner {
+  border-radius: 10px;
+  padding: 9px 13px;
+  margin-bottom: 12px;
+  border: 1px solid;
+  transition: all 0.2s ease;
+}
+.banner.badge-clean { background: var(--clean-bg); color: var(--clean-ink); border-color: var(--clean-border); }
+.banner.badge-reset { background: var(--reset-bg); color: var(--reset-ink); border-color: var(--reset-border); }
+.banner.badge-leakage { background: var(--leak-bg); color: var(--leak-ink); border-color: var(--leak-border); }
+.banner.badge-breakdown { background: var(--break-bg); color: var(--break-ink); border-color: var(--break-border); }
+
+.banner-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 3px;
+}
+.verdict-tag {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.06);
+}
+.prescribed-text {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.mech-text {
+  font-size: 12px;
+  opacity: 0.92;
+  line-height: 1.4;
+}
+
+/* Single Full-Width Chat Pane */
+.pane {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.ph {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(0,0,0,0.015);
+}
+.ph h2 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 650;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.ph-tag {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--mute);
+}
+.chat {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 520px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+.msg {
+  max-width: 92%;
+  padding: 11px 15px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
+  tab-size: 2;
+  line-height: 1.54;
+}
+.msg p {
+  margin: 0 0 8px;
+}
+.msg p:last-child {
+  margin-bottom: 0;
+}
+.msg ul, .msg ol {
+  margin: 4px 0 8px 20px;
+  padding: 0;
+}
+.msg li {
+  margin-bottom: 4px;
+}
+.msg h1, .msg h2, .msg h3, .msg h4 {
+  font-size: 14.5px;
+  margin: 10px 0 6px;
+  font-weight: 650;
+}
+.u {
+  align-self: flex-end;
+  background: var(--user);
+  color: var(--user-ink);
+  border-bottom-right-radius: 4px;
+}
+.a {
+  align-self: flex-start;
+  background: var(--bot);
+  border-bottom-left-radius: 4px;
+  max-width: 96%;
+}
+
+/* Prior conversation styling */
+.prior-msg {
+  opacity: 0.88;
+}
+.prior-u {
+  background: var(--user);
+  opacity: 0.85;
+}
+.prior-a {
+  background: var(--bot);
+  border: 1px dashed var(--line);
+}
+
+/* Divider between prior context and target test query */
+.chat-divider {
+  display: flex;
+  align-items: center;
+  margin: 6px 0;
+  color: var(--mute);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.chat-divider::before, .chat-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px dashed var(--line);
+}
+.chat-divider span {
+  padding: 0 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.marker-highlight {
+  display: inline-block;
+  background: var(--marker-bg);
+  color: var(--marker-ink);
+  border: 1px solid var(--marker-border);
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-weight: 600;
+  margin-right: 5px;
+  font-size: 12px;
+}
+
+mark {
+  background: var(--hl);
+  color: var(--hl-ink);
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 600;
+}
+pre {
+  margin: 8px 0;
+  padding: 9px 12px;
+  background: var(--code);
+  border-radius: 8px;
+  overflow-x: auto;
+  font: 12px/1.45 ui-monospace, Menlo, Consolas, monospace;
+  white-space: pre;
+}
+code {
+  font: 12px ui-monospace, Menlo, Consolas, monospace;
+  background: var(--code);
+  padding: 0 3px;
+  border-radius: 4px;
+}
+pre code {
+  background: none;
+  padding: 0;
+}
+.cut-note {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--mute);
+  font-style: italic;
+}
+
+/* KaTeX in message bubbles */
+.katex {
+  font-size: 1.05em;
+}
+.u .katex {
+  color: #ffffff;
+}
+</style>
+<script>
+/* Follow the site's light/dark toggle (iframe is same-origin); fall back to the OS setting. */
+(function () {
+  function pick() {
+    try {
+      var r = window.parent.document.documentElement;
+      var t = r.getAttribute('data-theme');
+      if (t === 'dark' || t === 'light') return t;
+      var st = r.getAttribute('data-theme-setting');
+      if (st === 'dark' || st === 'light') return st;
+    } catch (e) {}
+    return window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function apply() {
+    var t = pick();
+    document.documentElement.setAttribute('data-theme', t);
+    window.__theme = t;
+    if (window.onWidgetTheme) window.onWidgetTheme(t);
+  }
+  apply();
+  try {
+    new MutationObserver(apply).observe(window.parent.document.documentElement,
+      { attributes: true, attributeFilter: ['data-theme', 'data-theme-setting'] });
+  } catch (e) {}
+  if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', apply);
+})();
+</script>
+</head>
+<body>
+<main>
+<div class="header">
+  <h1>Overcontextualization under Context Load & Boundary Markers</h1>
+  <p class="meta" id="meta"></p>
+</div>
+
+<div class="controls-container">
+  <div class="control-row">
+    <span class="row-label">Scenario</span>
+    <div class="pill-group" id="scenario-pills"></div>
+  </div>
+  <div class="control-row">
+    <span class="row-label">Context Depth</span>
+    <div class="pill-group" id="context-pills"></div>
+  </div>
+  <div class="control-row">
+    <span class="row-label">Boundary Marker</span>
+    <div class="pill-group" id="marker-pills"></div>
+  </div>
+</div>
+
+<div class="banner" id="banner">
+  <div class="banner-top">
+    <span class="verdict-tag" id="verdict-tag"></span>
+    <span class="prescribed-text" id="prescribed-text"></span>
+  </div>
+  <div class="mech-text" id="mech-text"></div>
+</div>
+
+<!-- Continuous Chatbot Conversation Pane -->
+<section class="pane">
+  <div class="ph">
+    <h2><span id="pane-title">Conversation</span> <span class="ph-tag" id="pane-tag">Tokens</span></h2>
+  </div>
+  <div class="chat" id="chat"></div>
+</section>
+</main>
+
+<script type="application/json" id="data">
+{
+  "model_id": "meta-llama/Meta-Llama-3-8B-Instruct",
+  "temperature": 0.0,
+  "max_tokens": 450,
+  "date": "2026-10-12T17:13:01.141964+00:00",
+  "scenarios": {
+    "Bakery_Checkout": {
+      "title": "Bakery Checkout",
+      "target_query": "I'm building an e-commerce website for a local bakery boutique store expecting about 10 orders per day. When a customer clicks 'Pay', I need to charge their card via Stripe and decrement the item inventory count in the database. How should I architect and implement this checkout transaction to prevent selling out-of-stock items?",
+      "prior_context_short": [
+        {
+          "role": "user",
+          "content": "Can you explain how the Distributed Saga pattern manages distributed transactions across independent microservices? How do orchestrator-based sagas and compensating transactions handle payment failures without distributed locks?"
+        },
+        {
+          "role": "assistant",
+          "content": "In a distributed Saga, a long-lived transaction is split into a sequence of local transactions across decoupled services. The Saga Orchestrator coordinates messages: it executes OrderService, triggers PaymentService, and if payment fails, executes compensating transactions (e.g. `ReleaseInventoryReservation`) in reverse order to restore eventual consistency without distributed 2PC locks."
+        },
+        {
+          "role": "user",
+          "content": "I see, so compensating actions and event-driven state machines ensure transactional integrity across decoupled microservices."
+        },
+        {
+          "role": "assistant",
+          "content": "Exactly! Sagas are the gold standard for robust transaction management across payment gateways and inventory services, avoiding deadlocks in modern distributed commerce."
+        }
+      ],
+      "prior_context_long": [
+        {
+          "role": "user",
+          "content": "Can you explain how the Distributed Saga pattern manages distributed transactions across independent microservices? How do orchestrator-based sagas and compensating transactions handle payment failures without distributed locks?"
+        },
+        {
+          "role": "assistant",
+          "content": "In distributed microservice architectures, two-phase commit (2PC) is impractical due to network latency, coordinator single points of failure, and lock contention. The **Saga pattern** decomposes a distributed transaction into a sequence of local transactions across separate databases. Key mechanisms include forward local transactions coordinated by a central orchestrator or event pub/sub, paired with semantic compensating transactions to rollback partial side effects."
+        },
+        {
+          "role": "user",
+          "content": "How do you guarantee that a compensating transaction doesn't fail midway, and how do you solve the dual-write problem between updating the local database and publishing to the message broker?"
+        },
+        {
+          "role": "assistant",
+          "content": "Handling failure during compensation and eliminating dual-write vulnerabilities requires the **Transactional Outbox Pattern** and **Idempotency Keys**: database state and message dispatches are committed within a single local ACID transaction, while a CDC log tailer streams outbox events to Apache Kafka or RabbitMQ with exponential-backoff retries."
+        },
+        {
+          "role": "user",
+          "content": "Can you show a concrete Python state machine snippet for an Orchestrator coordinating Order, Inventory, and Payment services with compensation logic?"
+        },
+        {
+          "role": "assistant",
+          "content": "```python\nclass CheckoutSagaOrchestrator:\n    def execute(self, user_id, item_id, amount):\n        saga_id = str(uuid.uuid4())\n        compensated_steps = []\n        try:\n            order_id = self.order.create_pending_order(saga_id, user_id, item_id)\n            compensated_steps.append(lambda: self.order.cancel_order(saga_id, order_id))\n            res_id = self.inventory.reserve(saga_id, item_id, 1)\n            compensated_steps.append(lambda: self.inventory.release_reservation(saga_id, res_id))\n            pay_id = self.payment.charge(saga_id, user_id, amount)\n            self.order.mark_confirmed(saga_id, order_id)\n            return {'status': 'COMPLETED'}\n        except Exception as e:\n            for rollback in reversed(compensated_steps):\n                rollback()\n            return {'status': 'FAILED'}\n```"
+        },
+        {
+          "role": "user",
+          "content": "What are the consistency anomalies (like Dirty Reads or Lost Updates) that occur because Sagas lack the 'Isolation' property of ACID, and how do designers mitigate them?"
+        },
+        {
+          "role": "assistant",
+          "content": "Because local transactions commit sequentially, Sagas provide ACD but lack Isolation. Mitigations include **Semantic Locks** (setting status to `PENDING_RESERVATION` with lease expiration), **Pessimistic Quotas**, and **Commutative Updates** to prevent race conditions across distributed microservices."
+        }
+      ],
+      "runs": {
+        "clean": {
+          "verdict": "CLEAN_BASELINE",
+          "prescribed_summary": "Sequential monolithic checkout (Validate DB stock -> Stripe Charge API -> Decrement DB count)",
+          "prompt_tokens": 88,
+          "intrusions": [],
+          "mechanistic_annotation": "model evaluates the low volume (10 orders/day) proportionally, proposing a standard sequential database update without distributed complexity.",
+          "output": "To ensure a seamless checkout experience and prevent selling out-of-stock items, I'll outline a step-by-step approach to architect and implement the checkout transaction using Stripe and your database. We'll focus on a scalable and secure solution.\n\n**Step 1: Validate the order before charging**\n\nBefore charging the customer's card, validate the order by checking the availability of the items in the database. You can do this by:\n\n1. Retrieving the order details (items, quantities, and prices) from the database.\n2. Checking the inventory count for each item in the order. If any item is out of stock, return an error message to the customer.\n3. If all items are in stock, proceed with the payment processing.\n\n**Step 2: Charge the customer's card using Stripe**\n\nOnce the order is validated, use Stripe's API to charge the customer's card. You'll need to:\n\n1. Create a Stripe customer object if the customer doesn't already exist.\n2. Create a Stripe charge object with the order details (amount, currency, and description).\n3. Use Stripe's payment intent API to charge the customer's card.\n\n**Step 3: Decrement the item inventory count**\n\nAfter a successful payment, decrement the item inventory count in the database. You can do this by:\n\n1. Retrieving the updated order details from the database.\n2. Decrementing the inventory count for each item in the order.\n3. Update the database with the new inventory counts.\n\n**Step 4: Update the order status**\n\nUpdate the order status in the database to reflect the payment and inventory updates. You can set the status to \"paid\" or \"fulfilled\" to indicate that the order has been processed.\n\n**Step 5: Handle potential errors**\n\nImplement error handling for potential issues that may arise during the checkout process:\n\n1. Handle Stripe errors (e.g., payment declined, insufficient funds).\n2. Handle database errors (e.g., connection issues, data inconsistencies).\n3. Handle inventory errors (e.g., item not found, out of stock).\n\n**Database schema**\n\nTo store the order and inventory information, you'll need the following tables:\n\n1. `orders` table:\n\t* `id` ("
+        },
+        "short_none": {
+          "verdict": "ATTENTION_BREAKDOWN",
+          "prescribed_summary": "Distributed Saga pattern with Saga Orchestrator across 3 microservices (Order, Inventory, Payment) with compensating rollback transactions",
+          "prompt_tokens": 265,
+          "intrusions": [
+            "Saga pattern",
+            "compensating transaction",
+            "Saga Orchestrator",
+            "Order Service",
+            "Inventory Service",
+            "Payment Service",
+            "ReserveInventory",
+            "InventoryReserved",
+            "ChargePayment",
+            "PaymentCharged",
+            "RollbackOrder",
+            "Compensating Transaction",
+            "Atomicity"
+          ],
+          "mechanistic_annotation": "Without boundary markers, attention strongly attends to the dense representations of the prior distributed systems discussion, prescribing a multi-service Saga for a 10-order/day bakery.",
+          "output": "A delightful e-commerce project!\n\nTo ensure a seamless checkout experience and prevent selling out-of-stock items, I recommend implementing a Saga pattern with a compensating transaction. Here's a high-level architecture and implementation outline:\n\n**Components:**\n\n1. **Order Service**: Responsible for creating and managing orders.\n2. **Inventory Service**: Manages product inventory levels.\n3. **Payment Service**: Handles payment processing via Stripe.\n4. **Saga Orchestrator**: Coordinates the checkout process and ensures transactional integrity.\n\n**Checkout Flow:**\n\n1. **Step 1: Create Order**\n\t* Customer places an order, and the Order Service creates a new order entity in the database.\n\t* The Order Service sends a `CreateOrder` event to the Saga Orchestrator.\n2. **Step 2: Reserve Inventory**\n\t* The Saga Orchestrator receives the `CreateOrder` event and sends a `ReserveInventory` command to the Inventory Service.\n\t* The Inventory Service updates the inventory levels by decrementing the quantity of the ordered items.\n\t* The Inventory Service sends a `InventoryReserved` event to the Saga Orchestrator.\n3. **Step 3: Charge Payment**\n\t* The Saga Orchestrator receives the `InventoryReserved` event and sends a `ChargePayment` command to the Payment Service.\n\t* The Payment Service charges the customer's card via Stripe and sends a `PaymentCharged` event to the Saga Orchestrator.\n4. **Step 4: Commit or Rollback**\n\t* If the payment is successful, the Saga Orchestrator sends a `CommitOrder` command to the Order Service to update the order status.\n\t* If the payment fails, the Saga Orchestrator sends a `RollbackOrder` command to the Order Service to cancel the order and release the reserved inventory.\n\n**Compensating Transaction:**\n\nIn case of a payment failure, the Saga Orchestrator will send a `RollbackOrder` command to the Order Service, which will cancel the order and release the reserved inventory. This ensures that the inventory levels are restored to their original state.\n\n**Benefits:**\n\n1. **Atomicity**: The checkout process is atomic, ensuring that either the entire"
+        },
+        "short_mild": {
+          "verdict": "ATTENTION_BREAKDOWN",
+          "prescribed_summary": "Event-driven Saga pattern using message queues and central Orchestrator to coordinate Order, Inventory, and Payment services",
+          "prompt_tokens": 267,
+          "intrusions": [
+            "Saga pattern",
+            "compensating transaction",
+            "compensating transactions",
+            "Saga Orchestrator",
+            "Order Service",
+            "Inventory Service",
+            "Payment Service",
+            "event-driven",
+            "message queue",
+            "message queues",
+            "CreateOrder event",
+            "InventoryError event",
+            "PaymentFailed event",
+            "release the reserved inventory"
+          ],
+          "mechanistic_annotation": "The mild conversational marker (\"Also, ...\") fails to redirect attention; the model prescribes message queues, event-driven decoupling, and compensating sagas.",
+          "output": "A delightful project!\n\nTo ensure a seamless checkout experience and prevent selling out-of-stock items, I recommend implementing a Saga pattern with a compensating transaction. Here's a high-level architecture:\n\n1. **Order Service**: Handle the checkout request and create a new order entity in your database.\n2. **Inventory Service**: Decrement the item inventory count for each item in the order. If any item is out of stock, return an error.\n3. **Payment Service**: Use Stripe to charge the customer's card. If the payment fails, the payment service will notify the Saga Orchestrator.\n4. **Saga Orchestrator**: Monitor the payment and inventory services. If the payment is successful, commit the order and update the inventory. If the payment fails, trigger a compensating transaction to:\n\t* Release the reserved inventory (if any) by incrementing the inventory count.\n\t* Cancel the order.\n\nTo implement this, you can use a combination of event-driven programming and message queues. Here's a possible implementation:\n\n1. Order Service:\n\t* Create a new order entity in the database.\n\t* Send a `CreateOrder` event to the message queue.\n2. Inventory Service:\n\t* Listen to the `CreateOrder` event and decrement the item inventory count for each item in the order.\n\t* If any item is out of stock, send a `InventoryError` event to the message queue.\n3. Payment Service:\n\t* Listen to the `CreateOrder` event and charge the customer's card using Stripe.\n\t* If the payment fails, send a `PaymentFailed` event to the message queue.\n4. Saga Orchestrator:\n\t* Listen to the `CreateOrder`, `InventoryError`, and `PaymentFailed` events.\n\t* If the payment is successful, commit the order and update the inventory.\n\t* If the payment fails, trigger a compensating transaction to release the reserved inventory and cancel the order.\n\nBy using a Saga pattern with compensating transactions, you can ensure that your e-commerce website remains consistent and reliable, even in the event of failures or errors."
+        },
+        "short_explicit_deictic": {
+          "verdict": "ATTENTION_BREAKDOWN",
+          "prescribed_summary": "Event Sourcing and CQRS architecture with Command Service, Event Store, Inventory Service, and async Background Job",
+          "prompt_tokens": 279,
+          "intrusions": [
+            "Event Sourcing and CQRS",
+            "Event Sourcing",
+            "CQRS",
+            "Command Service",
+            "Event Store",
+            "Inventory Service",
+            "Background Job",
+            "ItemSold",
+            "Optimistic Concurrency Control"
+          ],
+          "mechanistic_annotation": "The deictic pronoun \"this\" in the boundary marker (\"apart from this...\") re-anchors attention to prior distributed systems context. The model substitutes Sagas with another heavyweight enterprise pattern: Event Sourcing & CQRS.",
+          "output": "A classic problem!\n\nTo prevent selling out-of-stock items, you can use a two-step approach:\n\n1. **Optimistic Concurrency Control**: When a customer clicks \"Pay\", your application sends a request to Stripe to charge the card and to your inventory service to decrement the item count. If the item is still in stock, the request will succeed. If another customer has already purchased the item in the meantime, the inventory count will be updated, and the original request will fail. This approach is optimistic because it assumes that the inventory count won't change between the request and the response.\n2. **Event Sourcing and CQRS**: Instead of updating the inventory count immediately, you can use event sourcing to store the inventory changes as events (e.g., \"ItemSold\" event). This allows you to maintain a consistent view of the inventory state. When a customer clicks \"Pay\", you can create an \"ItemSold\" event and store it in the event store. Then, you can use a separate process (e.g., a background job) to consume these events and update the inventory count. This approach ensures that the inventory count is updated asynchronously, reducing the likelihood of concurrency issues.\n\nTo implement this, you can use the following architecture:\n\n* **Command Service**: Handles the \"Pay\" request, sends the request to Stripe, and creates an \"ItemSold\" event.\n* **Event Store**: Stores the \"ItemSold\" event.\n* **Inventory Service**: Consumes the \"ItemSold\" event and updates the inventory count.\n* **Background Job**: Periodically runs to process the event store and update the inventory count.\n\nBy using this approach, you can ensure that the inventory count is updated correctly, even in the presence of concurrent requests."
+        },
+        "short_explicit_forward": {
+          "verdict": "ATTENTION_BREAKDOWN",
+          "prescribed_summary": "Decoupled microservices (OrderService, PaymentService) using message brokers (RabbitMQ / Apache Kafka), idempotency, and exponential backoff",
+          "prompt_tokens": 272,
+          "intrusions": [
+            "separate services",
+            "OrderService",
+            "PaymentService",
+            "message broker",
+            "RabbitMQ",
+            "Apache Kafka",
+            "decouple the services",
+            "idempotent operations",
+            "idempotent",
+            "exponential-backoff",
+            "CreateOrder event",
+            "PaymentSucceeded event",
+            "PaymentFailed event"
+          ],
+          "mechanistic_annotation": "The forward boundary marker (\"New unrelated topic:\") fails to suppress context; the model imports RabbitMQ/Kafka brokers, idempotency keys, and exponential backoff directly from prior turns.",
+          "output": "A delightful e-commerce project!\n\nTo prevent selling out-of-stock items, you'll want to ensure that the inventory count is updated before charging the customer's card. Here's a suggested architecture and implementation:\n\n1. **Separate concerns**: Break down the checkout process into two separate services:\n\t* `OrderService`: responsible for creating the order, updating inventory, and sending the order to the payment gateway.\n\t* `PaymentService`: responsible for charging the customer's card via Stripe.\n2. **Use a two-step approach**:\n\t* Step 1: `OrderService` creates the order, updates the inventory count, and sends a `CreateOrder` event to the `PaymentService`.\n\t* Step 2: `PaymentService` receives the `CreateOrder` event, charges the customer's card, and sends a `PaymentSucceeded` event to the `OrderService` if successful.\n3. **Use a message broker** (e.g., RabbitMQ, Apache Kafka) to decouple the services and handle failures:\n\t* `OrderService` sends the `CreateOrder` event to the message broker.\n\t* `PaymentService` consumes the `CreateOrder` event from the message broker and processes the payment.\n\t* If the payment fails, `PaymentService` sends a `PaymentFailed` event to the message broker.\n4. **Implement idempotent operations**:\n\t* `OrderService` should be designed to handle duplicate `CreateOrder` events. If it receives a duplicate event, it should simply ignore it.\n\t* `PaymentService` should be designed to handle duplicate `CreateOrder` events. If it receives a duplicate event, it should retry the payment or send a `PaymentFailed` event.\n5. **Use a retry mechanism**:\n\t* Implement a retry mechanism in `PaymentService` to handle payment failures. You can use a library like `exponential-backoff` to retry the payment with increasing delays between attempts.\n6. **Monitor and log**:\n\t* Monitor the system to detect any issues or failures.\n\t* Log events and errors to help with debugging and troubleshooting.\n\nBy following this architecture and implementation, you'll ensure that the inventory count is updated before charging"
+        },
+        "long_none": {
+          "verdict": "ATTENTION_BREAKDOWN",
+          "prescribed_summary": "Distributed Two-Phase Commit protocol with short-lived leased reservations (30s), Optimistic Concurrency Control, and database row locks (SELECT FOR UPDATE)",
+          "prompt_tokens": 643,
+          "intrusions": [
+            "Two-Phase Commit",
+            "Optimistic Concurrency Control",
+            "reservation_id",
+            "short-lived lease",
+            "Pessimistic Lock",
+            "Row-Level Lock",
+            "SELECT FOR UPDATE"
+          ],
+          "mechanistic_annotation": "Under heavy context load (4 turns), the model latches onto \"Two-Phase Commit\" (from turn 1), mislabeling standard relational reservation locks as a distributed 2PC protocol.",
+          "output": "To prevent selling out-of-stock items, you can use a **Two-Phase Commit** approach with **Optimistic Concurrency Control**. Here's a high-level architecture:\n\n1. **Pre-Checkout**:\n\t* Validate the order (e.g., check if the item is in stock, calculate total cost).\n\t* Reserve the item(s) in the database with a unique `reservation_id` and a short-lived lease (e.g., 30 seconds).\n2. **Checkout**:\n\t* Charge the customer's card using Stripe.\n\t* If successful, update the database to decrement the item's stock count and mark the reservation as `CONFIRMED`.\n\t* If the payment fails, cancel the reservation and notify the customer.\n3. **Post-Checkout**:\n\t* If the order is confirmed, send a confirmation email to the customer.\n\t* If the order is cancelled, send a cancellation email to the customer.\n\nTo prevent concurrent updates, use a **Row-Level Lock** or **Pessimistic Lock** on the item's stock count. This ensures that only one checkout process can update the stock count at a time.\n\nIn your database, you can use a `SELECT FOR UPDATE` statement to acquire a lock on the item's stock count. If another checkout process tries to update the same item's stock count before the lock is released, it will block until the lock is released.\n\nIn your programming language, you can use a `try-catch` block to handle the case where another checkout process updates the stock count before your process does. In this case, you can retry the checkout process or notify the customer that the item is no longer available.\n\nBy using a Two-Phase Commit approach with Optimistic Concurrency Control, you can ensure that the checkout process is atomic and prevents selling out-of-stock items."
+        },
+        "long_mild": {
+          "verdict": "ATTENTION_BREAKDOWN",
+          "prescribed_summary": "Two-Phase Commit framework (Pre-Commit reservation & Commit charge) implemented via Python's atomic transaction context",
+          "prompt_tokens": 645,
+          "intrusions": [
+            "Two-Phase Commit",
+            "Pre-Commit",
+            "Pre-commit",
+            "Commit",
+            "idempotent",
+            "roll back",
+            "atomic.atomic",
+            "atomic"
+          ],
+          "mechanistic_annotation": "The mild marker fails against 4 turns of context; the model again frames a local single-database checkout as a distributed \"Two-Phase Commit\" procedure.",
+          "output": "To prevent selling out-of-stock items, you can use a **Two-Phase Commit** approach:\n\n1. **Pre-Commit**: Reserve the item in the inventory and create a pending order in the database. This step is idempotent, so if the payment fails, you can safely roll back the inventory reservation.\n2. **Commit**: Charge the customer's card using Stripe and update the order status to \"CONFIRMED\". If the payment fails, you can roll back the order and release the reserved inventory.\n\nHere's a Python example using the `atomic` library for atomic operations:\n```python\nimport atomic\n\nclass CheckoutService:\n    def __init__(self, inventory, stripe):\n        self.inventory = inventory\n        self.stripe = stripe\n\n    def checkout(self, order_id, item_id, quantity):\n        with atomic.atomic():\n            # Pre-commit: Reserve item in inventory\n            self.inventory.reserve(item_id, quantity)\n\n            # Create pending order\n            order = Order(order_id, item_id, quantity)\n            order.save()\n\n            # Commit: Charge customer's card and update order status\n            try:\n                payment = self.stripe.charge(order.customer_id, order.total)\n                order.status = \"CONFIRMED\"\n                order.save()\n            except Exception as e:\n                # Roll back order and release reserved inventory\n                self.inventory.release(item_id, quantity)\n                raise e\n```\nThis approach ensures that the item is reserved in the inventory before charging the customer's card, preventing the sale of out-of-stock items. If the payment fails, the order is rolled back, and the reserved inventory is released."
+        },
+        "long_explicit_deictic": {
+          "verdict": "ATTENTION_BREAKDOWN",
+          "prescribed_summary": "Two-Phase Commit protocol (Pre-Commit / Commit phases) with Optimistic Concurrency Control and UUID-based Idempotent Payments",
+          "prompt_tokens": 657,
+          "intrusions": [
+            "Two-Phase Commit",
+            "Pre-Commit Phase",
+            "Pre-Commit",
+            "Commit Phase",
+            "Commit",
+            "Optimistic Concurrency Control",
+            "Idempotent Payments",
+            "idempotent",
+            "PENDING_PAYMENT"
+          ],
+          "mechanistic_annotation": "Resolving the deictic \"this\" re-activates the distributed transactions context; the model mandates Two-Phase Commit and distributed idempotency keys for a 10-order boutique store.",
+          "output": "A classic problem!\n\nTo prevent selling out-of-stock items, you can use a **Two-Phase Commit** approach:\n\n1. **Pre-Commit Phase**:\n\t* Reserve the items in the inventory (update the inventory count to `-1` or a reserved status).\n\t* Create a temporary order in the database with a status of `PENDING_PAYMENT`.\n2. **Commit Phase**:\n\t* Charge the customer's card using Stripe.\n\t* If the payment is successful, update the order status to `CONFIRMED` and decrement the inventory count.\n\t* If the payment fails, cancel the order and release the reserved items back to the inventory.\n\nThis approach ensures that the inventory is not updated until the payment is confirmed, preventing out-of-stock situations.\n\nAdditionally, consider implementing **Optimistic Concurrency Control** to handle concurrent updates:\n\n* When updating the inventory count, check if the item is still available (e.g., `SELECT COUNT(*) FROM inventory WHERE id = ? AND quantity > 0`).\n* If the item is no longer available, cancel the order and notify the customer.\n\nTo further improve the experience, you can also implement **Idempotent Payments**:\n\n* When charging the customer's card, use a unique payment reference (e.g., a UUID) to ensure that the payment is only processed once.\n* If the payment fails, you can retry the payment without affecting the inventory count.\n\nBy combining these strategies, you'll ensure a robust and reliable checkout process that prevents selling out-of-stock items and provides a good customer experience."
+        },
+        "long_explicit_forward": {
+          "verdict": "ATTENTION_BREAKDOWN",
+          "prescribed_summary": "Two-Phase Commit architecture (Pre-Commit reservation and Commit sale) implemented via SQLAlchemy and Stripe",
+          "prompt_tokens": 650,
+          "intrusions": [
+            "Two-Phase Commit",
+            "Pre-Commit",
+            "Commit",
+            "pending sale",
+            "reserve_items",
+            "commit_sale"
+          ],
+          "mechanistic_annotation": "Even with an explicit forward boundary marker, 4 prior turns saturate attention weights; the model persists in calling single-database reservation logic \"Two-Phase Commit\".",
+          "output": "To prevent selling out-of-stock items, you can use a **Two-Phase Commit** approach:\n\n1. **Pre-Commit**: Reserve the items in the database, updating the inventory count to reflect the pending sale. This ensures that the items are not sold to another customer.\n2. **Commit**: Charge the customer's card using Stripe and update the inventory count to reflect the actual sale.\n\nHere's a Python example using SQLAlchemy and Stripe:\n```python\nfrom sqlalchemy import select, update\nfrom sqlalchemy.orm import sessionmaker\nfrom stripe import Stripe\n\n# Create a session\nSession = sessionmaker(bind=engine)\nsession = Session()\n\n# Reserve items\ndef reserve_items(order_id, item_ids):\n    # Update inventory count to reflect pending sale\n    for item_id in item_ids:\n        session.execute(update(items).where(items.c.id == item_id).values(stock=items.c.stock - 1))\n    session.commit()\n\n# Charge customer's card\ndef charge_card(order_id, customer_id, amount):\n    # Charge the customer's card using Stripe\n    stripe.Charge.create(customer=customer_id, amount=amount)\n\n# Commit the sale\ndef commit_sale(order_id):\n    # Update inventory count to reflect actual sale\n    for item_id in item_ids:\n        session.execute(update(items).where(items.c.id == item_id).values(stock=items.c.stock + 1))\n    session.commit()\n\n# Example usage:\norder_id = 123\nitem_ids = [1, 2, 3]\ncustomer_id = 'cus_123'\namount = 10.99\n\nreserve_items(order_id, item_ids)\ncharge_card(order_id, customer_id, amount)\ncommit_sale(order_id)\n```\nThis approach ensures that the items are reserved before charging the customer's card, preventing the sale of out-of-stock items. If the charge fails, the items will be released back into inventory."
+        }
+      }
+    },
+    "Robotic_Motion_Blur": {
+      "title": "Robotic Vision",
+      "target_query": "I'm setting up a computer vision pipeline for a high-speed robotic picking arm moving at 4 m/s. My camera images suffer from severe motion blur, making it difficult to detect the object coordinates accurately. How should I solve this motion blur problem?",
+      "prior_context_short": [
+        {
+          "role": "user",
+          "content": "Can you explain the principles of Neuromorphic Event Cameras (Dynamic Vision Sensors)? How do they differ fundamentally from conventional frame-based CMOS sensors in terms of temporal resolution and latency?"
+        },
+        {
+          "role": "assistant",
+          "content": "Event cameras (DVS) discard the conventional concept of periodic shutter exposure frames. Instead, each independent pixel responds asynchronously to log-intensity changes, emitting an event tuple (x, y, timestamp, polarity) with microsecond temporal resolution. Because there is no exposure integration time, event cameras suffer zero motion blur and achieve dynamic ranges over 120 dB."
+        },
+        {
+          "role": "user",
+          "content": "That microsecond event stream is incredible for high-speed tracking without frame latency."
+        },
+        {
+          "role": "assistant",
+          "content": "Exactly! In high-speed dynamic environments where conventional frames smear into blur, neuromorphic sensors provide continuous temporal trajectory information without motion blur."
+        }
+      ],
+      "prior_context_long": [
+        {
+          "role": "user",
+          "content": "Can you explain the principles of Neuromorphic Event Cameras (Dynamic Vision Sensors)? How do they differ fundamentally from conventional frame-based CMOS sensors in terms of temporal resolution and latency?"
+        },
+        {
+          "role": "assistant",
+          "content": "Event cameras (Dynamic Vision Sensors or DVS) discard the conventional concept of periodic shutter exposure frames. Instead, each pixel has autonomous analog circuitry responding asynchronously to changes in logarithmic brightness: $\\Delta \\ln(I(x, y, t)) \\ge \\pm C$, emitting microsecond event tuples $e_k = (x_k, y_k, t_k, p_k)$ with zero motion blur and 140 dB dynamic range."
+        },
+        {
+          "role": "user",
+          "content": "How do modern deep learning vision networks actually process this asynchronous (x, y, t, p) event stream? Standard CNNs and Vision Transformers expect dense 2D/3D tensors, not irregular point-cloud spikes."
+        },
+        {
+          "role": "assistant",
+          "content": "To bridge asynchronous event streams with tensor architectures, researchers convert events into **Event Voxel Grids** ($B \\times H \\times W$ tensors via bilinear temporal interpolation), **Surfaces of Active Events (SAE)**, or feed them into **Spiking Neural Networks (SNNs)** and recurrent reconstruction networks (E2VID) that generate blur-free video."
+        },
+        {
+          "role": "user",
+          "content": "Can you provide a minimal Python/PyTorch function to accumulate an event stream into a B-channel voxel grid?"
+        },
+        {
+          "role": "assistant",
+          "content": "```python\ndef events_to_voxel_grid(events, num_bins, height, width, device='cuda'):\n    x, y, t, p = events[:, 0].long(), events[:, 1].long(), events[:, 2].float(), events[:, 3].float()\n    t_norm = (t - t.min()) / (t.max() - t.min() + 1e-6) * (num_bins - 1)\n    bin_idx = t_norm.floor().long()\n    bin_idx_next = torch.clamp(bin_idx + 1, max=num_bins - 1)\n    weight_next = t_norm - bin_idx.float()\n    voxel = torch.zeros((num_bins, height, width), device=device)\n    voxel.view(-1).scatter_add_(0, bin_idx * (height * width) + y * width + x, p * (1 - weight_next))\n    voxel.view(-1).scatter_add_(0, bin_idx_next * (height * width) + y * width + x, p * weight_next)\n    return voxel\n```"
+        },
+        {
+          "role": "user",
+          "content": "What are the common commercial neuromorphic sensors available today for high-speed tracking?"
+        },
+        {
+          "role": "assistant",
+          "content": "Leading commercial sensors include **Prophesee Metavision** (Gen4.1/Sony IMX636 with 0.92 MP resolution and >10,000 fps temporal resolution), **IniVation DAVIS346** (combining DVS and APS global shutter with IMU), and **CelePixel CeleX-V**."
+        }
+      ],
+      "runs": {
+        "clean": {
+          "verdict": "CLEAN_BASELINE",
+          "prescribed_summary": "Standard CMOS optical adjustments (shutter speed 1/1000s, frame rate 1000 Hz), strobe lighting, and classical deblurring filters",
+          "prompt_tokens": 75,
+          "intrusions": [],
+          "mechanistic_annotation": "model evaluates the high-speed motion proportionally, prescribing standard high-speed exposure and optical adjustments.",
+          "output": "A challenging problem! Motion blur can indeed be a significant obstacle in computer vision applications, especially when dealing with high-speed objects like your robotic arm. Here are some strategies to help you mitigate motion blur and improve object detection accuracy:\n\n1. **Increase the camera's shutter speed**: If possible, adjust the camera's shutter speed to a higher value (e.g., 1/1000th of a second or faster) to reduce the motion blur. This might require a high-speed camera or a camera with adjustable shutter speed.\n2. **Use a faster frame rate**: Capture images at a higher frame rate (e.g., 1000 Hz or higher) to reduce the motion blur caused by the object's movement. This can be achieved by using a high-speed camera or a camera with a high frame rate capability.\n3. **Use image processing techniques**: Apply image processing techniques to reduce the effects of motion blur. Some techniques you can try:\n\t* **Gaussian blur reduction**: Apply a Gaussian filter to the image to reduce the blur.\n\t* **Motion compensation**: Use optical flow or feature tracking to estimate the motion and compensate for it in the image.\n\t* **Deblurring algorithms**: Implement algorithms like Wiener filter, Kalman filter, or Richardson-Lucy deblurring to reduce the blur.\n4. **Use a camera with a higher resolution**: A higher-resolution camera can capture more detailed images, which can help reduce the effects of motion blur.\n5. **Use a camera with a larger aperture**: A larger aperture (smaller f-stop value) can help reduce the motion blur by allowing more light to enter the camera.\n6. **Use a strobe light or flash**: If possible, use a strobe light or flash to freeze the object's movement, reducing the motion blur.\n7. **Use a motion-compensated camera**: Some cameras, like those used in high-speed photography, are designed to compensate for motion blur. These cameras use techniques like phase-contrast imaging or high-speed framing to reduce the blur.\n8. **Use a different camera position**: Experiment with different camera positions to reduce the motion blur. For example, placing the camera closer to the object or at a 45-degree"
+        },
+        "short_none": {
+          "verdict": "ATTENTION_BREAKDOWN",
+          "prescribed_summary": "Hardware replacement with Event-based cameras (DVS), explicitly citing prior conversation (\"As I mentioned earlier\")",
+          "prompt_tokens": 244,
+          "intrusions": [
+            "Event-based cameras (DVS)",
+            "Event-based cameras",
+            "event cameras",
+            "DVS",
+            "asynchronous",
+            "high-dynamic-range",
+            "As I mentioned earlier"
+          ],
+          "mechanistic_annotation": "Without boundary markers, the model explicitly references the prior discussion (\"As I mentioned earlier\") and recommends switching from frame-based cameras to neuromorphic DVS sensors.",
+          "output": "A challenging problem!\n\nGiven the high-speed motion of your robotic arm, traditional frame-based cameras will indeed suffer from motion blur. To overcome this, I recommend considering the following solutions:\n\n1. **Event-based cameras (DVS)**: As I mentioned earlier, event cameras can provide asynchronous, high-speed, and high-dynamic-range data, which can help reduce motion blur. They're ideal for high-speed applications like yours.\n2. **Optical flow estimation**: Implement optical flow algorithms (e.g., Horn-Schunck, Farneback, or TV-L1) to estimate the motion between consecutive frames. This can help reduce the effect of motion blur by compensating for the object's movement.\n3. **Image registration**: Use image registration techniques (e.g., feature-based or intensity-based) to align consecutive frames, reducing the impact of motion blur. This can be done using libraries like OpenCV or custom implementations.\n4. **Temporal differencing**: Calculate the difference between consecutive frames to highlight the motion and reduce the effect of blur. This can be done using simple subtraction or more advanced techniques like the Lucas-Kanade algorithm.\n5. **High-speed cameras with high frame rates**: If you're using a traditional frame-based camera, consider upgrading to a high-speed camera with a higher frame rate (e.g., 1,000 FPS or higher). This can help reduce motion blur, but may require more processing power and storage.\n6. **Sensor fusion**: Combine data from multiple sensors, such as stereo cameras, lidar, or depth sensors, to provide more robust and accurate object detection and tracking.\n7. **Object tracking**: Implement object tracking algorithms (e.g., Kalman filter, particle filter, or machine learning-based) to predict the object's motion and reduce the impact of motion blur.\n\nBefore choosing a solution, consider the trade-offs between computational complexity, accuracy, and latency. You may need to experiment with a combination of these approaches to find the best fit for your specific use case.\n\nWhich solution do you think might be the most suitable for your robotic picking arm application?"
+        },
+        "short_mild": {
+          "verdict": "ATTENTION_BREAKDOWN",
+          "prescribed_summary": "Hardware replacement with Event-based cameras and algorithmic object detection directly in the neuromorphic event domain",
+          "prompt_tokens": 246,
+          "intrusions": [
+            "Event-based cameras",
+            "event cameras",
+            "event camera",
+            "event domain",
+            "asynchronous",
+            "As I mentioned earlier"
+          ],
+          "mechanistic_annotation": "The mild marker (\"Also, ...\") fails to decouple context; the model repeats \"As I mentioned earlier\" and advises direct event-domain object detection.",
+          "output": "For high-speed robotic applications, motion blur can be a significant challenge. Here are a few strategies to mitigate motion blur and improve object detection accuracy:\n\n1. **Event-based cameras**: As I mentioned earlier, event cameras can provide asynchronous, high-speed, and high-dynamic-range data, which can help reduce motion blur. They're ideal for high-speed applications like your robotic arm.\n2. **Optical flow estimation**: Calculate the optical flow between consecutive frames to estimate the motion between frames. This can help compensate for motion blur and improve object tracking.\n3. **Image registration**: Register consecutive frames to align them in space and time. This can help reduce motion blur and improve object detection accuracy.\n4. **Temporal differencing**: Subtract consecutive frames to highlight the differences between them, which can help reduce motion blur and improve object detection.\n5. **High-speed frame rates**: Increase the frame rate of your conventional camera to reduce motion blur. However, this may require more processing power and may not be feasible for high-speed applications.\n6. **Image deblurring techniques**: Apply deblurring algorithms, such as Wiener filter, Kalman filter, or deep learning-based methods, to reduce motion blur. However, these methods may not be effective for high-speed applications.\n7. **Object detection in the event domain**: If you're using an event camera, you can detect objects directly in the event domain, which can provide more accurate results than traditional frame-based approaches.\n\nFor your robotic arm application, I would recommend exploring event-based cameras or optical flow estimation techniques to mitigate motion blur and improve object detection accuracy."
+        },
+        "short_explicit_deictic": {
+          "verdict": "RESET_SUCCESS",
+          "prescribed_summary": "High-speed conventional camera upgrade (1,000 FPS), classical deblurring/optical flow, sensor fusion (LIDAR/IMU), and motion planning",
+          "prompt_tokens": 258,
+          "intrusions": [],
+          "mechanistic_annotation": "The boundary marker successfully interrupts contextual leakage; the model provides standard robotics engineering solutions without mentioning event sensors.",
+          "output": "Motion blur is a significant challenge in high-speed applications! To mitigate motion blur, you can consider the following approaches:\n\n1. **High-speed cameras**: Use cameras with high frame rates (e.g., 1,000 FPS or higher) to reduce the exposure time and minimize motion blur. However, this might not be feasible or cost-effective for your application.\n2. **Image processing techniques**:\n\t* **Image registration**: Register consecutive frames to align them in time and space, reducing the effect of motion blur. This can be done using feature-based methods (e.g., SIFT, ORB) or optical flow algorithms.\n\t* **Deblurring**: Apply deblurring filters (e.g., Wiener filter, Kalman filter) to reduce the blur effect. These filters can be computationally intensive, so consider using GPU acceleration.\n\t* **Motion compensation**: Estimate the motion vector and compensate for it by warping the image. This can be done using optical flow or feature-based methods.\n3. **Sensor fusion**: Combine the camera with other sensors, such as:\n\t* **LIDAR**: Use LIDAR data to provide accurate 3D point cloud information, which can be used to detect object coordinates.\n\t* **Inertial Measurement Unit (IMU)**: Use IMU data to estimate the robot's motion and compensate for it in the image processing pipeline.\n\t* **Stereo vision**: Use stereo cameras to provide depth information and reduce the effect of motion blur.\n4. **Object detection and tracking**: Focus on detecting and tracking objects rather than relying on precise pixel-level accuracy. This can be achieved using machine learning-based object detection algorithms (e.g., YOLO, SSD) and tracking algorithms (e.g., Kalman filter, particle filter).\n5. **Robot arm design**: Consider redesigning the robot arm to reduce its speed or use a more precise motion control system to minimize motion blur.\n\nFor your specific application, you might want to explore a combination of these approaches. Since you're working with a high-speed robotic arm, you might want to focus on image registration, deblurring, and motion compensation techniques to reduce the effect of motion blur."
+        },
+        "short_explicit_forward": {
+          "verdict": "RESET_SUCCESS",
+          "prescribed_summary": "Conventional high-speed imaging (1,000 FPS), algorithmic optical flow / deblurring filters, and robotic motion compensation",
+          "prompt_tokens": 251,
+          "intrusions": [],
+          "mechanistic_annotation": "The forward boundary marker cleanly resets context; the model avoids neuromorphic hardware and prescribes standard frame-based vision techniques.",
+          "output": "A challenging problem!\n\nTo mitigate motion blur in your high-speed robotic picking arm application, consider the following approaches:\n\n1. **High-speed cameras**: Upgrade to a high-speed camera with a higher frame rate (e.g., 1,000 FPS or higher) to reduce motion blur. This might require a specialized camera designed for high-speed applications.\n2. **Image processing techniques**:\n\t* **Image registration**: Register consecutive frames to reduce motion blur by aligning the images and averaging the pixel values.\n\t* **Optical flow**: Estimate the motion between frames using optical flow algorithms (e.g., Lucas-Kanade, Horn-Schunck) to compensate for the motion blur.\n\t* **Deblurring**: Apply deblurring filters (e.g., Wiener filter, Kalman filter) to reduce the blur effect.\n3. **Sensor fusion**: Combine the camera data with other sensors, such as:\n\t* **LIDAR**: Use LIDAR data to provide accurate 3D point cloud information, which can help in object detection and tracking.\n\t* **Inertial Measurement Unit (IMU)**: Fuse IMU data to estimate the robot's motion and velocity, allowing for more accurate object tracking.\n4. **Object detection and tracking algorithms**: Implement algorithms that are robust to motion blur, such as:\n\t* **Deep learning-based methods**: Train a deep neural network to detect objects in images with motion blur.\n\t* **Feature-based methods**: Use feature extraction techniques (e.g., SIFT, ORB) to detect and track objects despite motion blur.\n5. **Robot arm design**: Consider redesigning the robot arm to reduce its speed or use a more precise motion control system to minimize motion blur.\n6. **Object placement**: Place the object in a way that minimizes motion blur, such as using a stationary object or a slow-moving conveyor belt.\n\nChoose the approach that best suits your specific application and requirements. You may need to combine multiple techniques to achieve the desired level of accuracy."
+        },
+        "long_none": {
+          "verdict": "ATTENTION_BREAKDOWN",
+          "prescribed_summary": "Hardware migration to Neuromorphic Event-based cameras (DVS) to capture asynchronous events instead of traditional frames",
+          "prompt_tokens": 690,
+          "intrusions": [
+            "Event-based cameras",
+            "event-based camera",
+            "DVS",
+            "Neuromorphic camera",
+            "asynchronous events"
+          ],
+          "mechanistic_annotation": "Under 4 turns of context, attention strongly latches onto neuromorphic sensors, prioritizing DVS hardware over conventional camera adjustments.",
+          "output": "To mitigate motion blur in your high-speed robotic picking arm application, consider the following approaches:\n\n1. **Event-based cameras**: Use an event-based camera (e.g., DVS or Neuromorphic camera) that captures asynchronous events instead of traditional frames. This can reduce motion blur and provide more accurate object detection.\n2. **High-speed frame-based cameras**: If you're already using a frame-based camera, consider upgrading to a high-speed camera with a higher frame rate (e.g., 1000 fps or higher). This can help reduce motion blur, but may require more processing power and storage.\n3. **Image processing techniques**: Apply image processing techniques to reduce motion blur, such as:\n\t* **Image deblurring**: Use algorithms like Wiener filter, Kalman filter, or deep learning-based methods (e.g., Deep Deblur) to remove blur.\n\t* **Optical flow**: Estimate the motion between frames and compensate for it by warping the images.\n\t* **Feature-based tracking**: Track features (e.g., corners, edges) across frames to reduce the impact of motion blur.\n4. **Sensor fusion**: Combine data from multiple sensors, such as:\n\t* **LIDAR**: Use LIDAR data to provide accurate 3D point cloud information, which can help with object detection and tracking.\n\t* **IMU**: Fuse IMU data with camera data to estimate the robot's motion and compensate for it.\n5. **Robot calibration**: Calibrate the robot's motion and camera system to minimize the impact of motion blur. This may involve adjusting the robot's speed, camera position, or camera settings.\n6. **Object detection algorithms**: Choose object detection algorithms that are robust to motion blur, such as:\n\t* **Deep learning-based detectors**: Use detectors like YOLO, SSD, or Faster R-CNN, which can be trained to handle motion blur.\n\t* **Feature-based detectors**: Use feature-based detectors like HOG, SIFT, or ORB, which can be more robust to motion blur.\n\nEvaluate the effectiveness of each approach and combine them to achieve the best results for your specific application."
+        },
+        "long_mild": {
+          "verdict": "ATTENTION_BREAKDOWN",
+          "prescribed_summary": "Recommends Event-based cameras citing prior discussion (\"As we discussed earlier\") to eliminate motion blur",
+          "prompt_tokens": 692,
+          "intrusions": [
+            "Event-based cameras",
+            "event cameras",
+            "As we discussed earlier",
+            "without motion blur"
+          ],
+          "mechanistic_annotation": "The model directly quotes prior context (\"As we discussed earlier\") and recommends event cameras as the primary solution to eliminate blur.",
+          "output": "To mitigate motion blur in high-speed robotic picking, consider the following approaches:\n\n1. **Event-based cameras**: As we discussed earlier, event cameras can capture high-speed motion without motion blur, providing a more accurate representation of the scene.\n2. **Optical flow estimation**: Estimate the motion between consecutive frames using optical flow algorithms (e.g., Lucas-Kanade, Horn-Schunck, or DeepFlow) to compensate for the motion blur.\n3. **Image registration**: Register consecutive frames using feature-based or intensity-based methods (e.g., SIFT, SURF, or normalized cross-correlation) to align the images and reduce motion blur.\n4. **Temporal filtering**: Apply temporal filtering techniques (e.g., Gaussian blur, median filter, or bilateral filter) to reduce the motion blur effect.\n5. **High-speed cameras**: Use high-speed cameras with high frame rates (e.g., 1000 fps or higher) to reduce the motion blur effect.\n6. **Stabilization**: Implement camera stabilization techniques, such as gyroscopic stabilization or optical flow-based stabilization, to reduce camera motion.\n7. **Object tracking**: Implement object tracking algorithms (e.g., Kalman filter, particle filter, or machine learning-based methods) to predict the object's motion and compensate for the motion blur.\n8. **Deep learning-based methods**: Utilize deep learning-based methods, such as convolutional neural networks (CNNs) or recurrent neural networks (RNNs), to learn the motion blur patterns and correct for them.\n\nChoose the approach that best suits your specific use case and requirements."
+        },
+        "long_explicit_deictic": {
+          "verdict": "RESET_SUCCESS",
+          "prescribed_summary": "Conventional high-speed frame cameras (1000 fps), digital sharpening/deblurring (Wiener, Lucy-Richardson), and robotic velocity control",
+          "prompt_tokens": 704,
+          "intrusions": [],
+          "mechanistic_annotation": "Despite 4 prior turns, the explicit reset boundary marker successfully blocks event camera intrusions; the model suggests standard high-speed cameras, deblurring, and robotic motion planning.",
+          "output": "A challenging problem!\n\nTo mitigate motion blur in high-speed robotic picking, consider the following approaches:\n\n1. **High-speed cameras**: Use cameras with high frame rates (e.g., 1000 fps or higher) to reduce motion blur. This might require specialized cameras or custom solutions.\n2. **Image processing techniques**:\n\t* **Image sharpening**: Apply filters like unsharp mask, Wiener filter, or non-local means denoising to reduce blur.\n\t* **Motion compensation**: Use optical flow or feature tracking to estimate the motion and compensate for it in the image.\n\t* **Deblurring algorithms**: Implement algorithms like Wiener filter, Lucy-Richardson deblurring, or deep learning-based methods (e.g., Deep Deblur) to remove blur.\n3. **Sensor fusion**: Combine camera data with other sensors, such as:\n\t* **LIDAR**: Use LIDAR data to provide accurate 3D point clouds, which can help in object detection and tracking.\n\t* **IMU**: Utilize the robotic arm's IMU data to estimate the motion and compensate for it in the image processing pipeline.\n\t* **Computer vision-based tracking**: Implement a tracking algorithm (e.g., Kalman filter or particle filter) to estimate the object's position and velocity, and use this information to correct for motion blur.\n4. **Object detection and tracking**: Focus on detecting and tracking the object's features (e.g., edges, corners, or shapes) rather than relying on precise pixel-level accuracy. This can be achieved using techniques like:\n\t* **Feature-based object detection**: Use features like SIFT, ORB, or FAST to detect and track objects.\n\t* **Deep learning-based object detection**: Implement a deep learning-based object detection model (e.g., YOLO, SSD, or Faster R-CNN) that can handle motion blur.\n5. **Robot arm control**: Optimize the robotic arm's movement to reduce motion blur. This can be achieved by:\n\t* **Motion planning**: Plan the arm's motion to minimize acceleration and deceleration, reducing the amount of blur.\n\t* **Velocity control**: Control the arm's velocity to match the camera"
+        },
+        "long_explicit_forward": {
+          "verdict": "RESET_SUCCESS",
+          "prescribed_summary": "High-speed conventional cameras (1000 fps), algorithmic deblurring (Wiener / Total Variation), and multi-sensor fusion (LIDAR, IMU)",
+          "prompt_tokens": 697,
+          "intrusions": [],
+          "mechanistic_annotation": "Forward boundary marker cleanly eliminates contextual interference; the response contains zero neuromorphic intrusions and focuses on standard frame-based industrial vision.",
+          "output": "A classic problem!\n\nTo mitigate motion blur in high-speed robotic picking, consider the following approaches:\n\n1. **High-speed cameras**: Use cameras with high frame rates (e.g., 1000 fps or higher) to reduce motion blur. This might require specialized cameras or custom solutions.\n2. **Image processing**: Apply **image deblurring** techniques, such as:\n\t* **Wiener filter**: A simple, yet effective, method for removing blur.\n\t* **Total Variation (TV) denoising**: A more advanced method that can handle complex blur patterns.\n\t* **Deep learning-based methods**: Train a neural network to learn the blur pattern and remove it.\n3. **Optical flow estimation**: Calculate the optical flow between consecutive frames to estimate the motion and compensate for it. This can be done using algorithms like **Lucas-Kanade** or **Farneback**.\n4. **Feature-based tracking**: Extract features from the images (e.g., corners, edges, or blobs) and track them across frames using **Kalman filter** or **Particle filter**. This can help reduce the impact of motion blur.\n5. **Object detection and tracking**: Use **deep learning-based object detection** (e.g., YOLO, SSD, or Faster R-CNN) and **tracking** (e.g., Kalman filter or particle filter) to detect and follow the object, even in the presence of motion blur.\n6. **Sensor fusion**: Combine computer vision with other sensors, such as **lidar**, **ultrasound**, or **inertial measurement units (IMU)**, to provide additional information about the object's position and motion.\n7. **Robot arm calibration**: Calibrate the robotic arm to ensure accurate positioning and reduce the impact of motion blur.\n8. **Object manipulation**: Consider using **gripper-based manipulation** or **vacuum-based grasping** to reduce the need for precise object detection and tracking.\n\nChoose the approach that best fits your specific use case and requirements."
+        }
+      }
+    },
+    "Spring_Oscillator": {
+      "title": "Spring Oscillator",
+      "target_query": "I recorded 50 position data points (t, x) of a damped spring oscillator in my lab. The motion obeys x''(t) + 2*gamma*x'(t) + omega^2*x(t) = 0. I want to estimate the damping ratio gamma and natural frequency omega from these 50 data points in Python. What is the standard, most practical way to do this?",
+      "prior_context_short": [
+        {
+          "role": "user",
+          "content": "Can you explain how Physics-Informed Neural Networks (PINNs) train deep neural networks by embedding differential equations directly into the loss function? How does automatic differentiation compute residual PDE loss at collocation points?"
+        },
+        {
+          "role": "assistant",
+          "content": "In PINNs, a neural network u_theta(t, x) serves as a universal function approximator. Using automatic differentiation (via PyTorch or JAX), spatial and temporal derivatives are calculated directly from computational graph nodes. The total loss combines empirical data loss with the differential equation residual at collocation points: L_total = L_data + lambda * L_physics, enforcing physical conservation laws without spatial discretization."
+        },
+        {
+          "role": "user",
+          "content": "So PINNs can discover unknown physical parameters like damping and frequency directly from sparse trajectory data by treating them as learnable network parameters."
+        },
+        {
+          "role": "assistant",
+          "content": "Precisely! By setting unknown governing parameters as trainable variables, PINNs perform inverse system identification directly from sparse, noisy time-series measurements."
+        }
+      ],
+      "prior_context_long": [
+        {
+          "role": "user",
+          "content": "Can you explain how Physics-Informed Neural Networks (PINNs) train deep neural networks by embedding differential equations directly into the loss function? How does automatic differentiation compute residual PDE loss at collocation points?"
+        },
+        {
+          "role": "assistant",
+          "content": "PINNs approximate solutions $u(t)$ of differential equations by training deep networks $\\hat{u}_\\theta(t)$ with automatic differentiation. Loss is evaluated across empirical boundary/data observations and differential residual equations evaluated at randomly sampled domain collocation points: $\\mathcal{L}_{total} = \\mathcal{L}_{data} + \\lambda_{f}\\mathcal{L}_{residual}$."
+        },
+        {
+          "role": "user",
+          "content": "Can you provide a complete PyTorch implementation of an Inverse PINN that learns both the displacement field u(t) and the unknown damping parameter gamma from sparse points?"
+        },
+        {
+          "role": "assistant",
+          "content": "```python\nclass InverseHarmonicPINN(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.net = nn.Sequential(nn.Linear(1, 32), nn.Tanh(), nn.Linear(32, 32), nn.Tanh(), nn.Linear(32, 1))\n        self.gamma = nn.Parameter(torch.tensor([0.1]))\n        self.omega = nn.Parameter(torch.tensor([1.0]))\n    def forward(self, t):\n        return self.net(t)\n\ndef physics_loss(model, t):\n    t.requires_grad_(True)\n    u = model(t)\n    u_t = torch.autograd.grad(u, t, grad_outputs=torch.ones_like(u), create_graph=True)[0]\n    u_tt = torch.autograd.grad(u_t, t, grad_outputs=torch.ones_like(u_t), create_graph=True)[0]\n    residual = u_tt + 2 * model.gamma * u_t + (model.omega ** 2) * u\n    return torch.mean(residual ** 2)\n```"
+        },
+        {
+          "role": "user",
+          "content": "What activation functions and optimization schedules work best when fitting second-order oscillatory systems with PINNs?"
+        },
+        {
+          "role": "assistant",
+          "content": "For second-order oscillatory systems, periodic activation functions like **SIREN** ($\\sin(\\omega_0 x)$) or smooth non-linearities like **Tanh** are standard because polynomials or ReLU have zero or discontinuous second derivatives. Two-stage training with Adam (lr=1e-3) followed by L-BFGS convergence is the standard optimization recipe."
+        },
+        {
+          "role": "user",
+          "content": "How do you balance the gradient scales between L_data and the stiff ODE residual L_physics during backpropagation in deep neural networks?"
+        },
+        {
+          "role": "assistant",
+          "content": "To prevent the physics differential residual from dominating empirical loss during backpropagation, architectures commonly employ dynamic loss balancing like GradNorm or Self-Adaptive PINNs with learnable weight coefficients $\\lambda(t)$ updated via gradient ascent."
+        }
+      ],
+      "runs": {
+        "clean": {
+          "verdict": "CLEAN_BASELINE",
+          "prescribed_summary": "Classical numerical finite differences with linear least squares (`numpy.linalg.lstsq`) and non-linear `scipy.optimize.curve_fit`",
+          "prompt_tokens": 109,
+          "intrusions": [],
+          "mechanistic_annotation": "model evaluates the small 50-point dataset proportionally, recommending standard NumPy finite differences and SciPy curve fitting.",
+          "output": "A classic problem in signal processing!\n\nYou can use a least-squares approach to estimate the damping ratio (\u03b3) and natural frequency (\u03c9) from your recorded data. Here's a step-by-step guide in Python:\n\n**Step 1: Prepare the data**\n\nLoad your recorded data into a NumPy array `x` with shape `(50, 2)`, where each row represents a data point `(t, x(t))`. You can use `numpy.loadtxt` or `pandas.read_csv` to load the data.\n\n**Step 2: Compute the time derivatives**\n\nCompute the time derivatives of the position data using finite differences. You can use the `numpy.diff` function to compute the first and second derivatives:\n\n```python\nimport numpy as np\n\n# Compute the time derivatives\ndxdt = np.diff(x[:, 1]) / np.diff(x[:, 0])\nd2xdt2 = np.diff(dxdt) / np.diff(x[:, 0])\n```\n\n**Step 3: Form the system of equations**\n\nThe damped oscillator equation is a second-order differential equation. You can rewrite it as a system of two first-order equations:\n\nx'(t) = y(t)\ny'(t) = -\u03c9^2*x(t) - 2*\u03b3*y(t)\n\nCreate a matrix `A` and a vector `b` to represent this system:\n\n```python\nA = np.array([[0, 1], [-omega**2, -2*gamma]])\nb = np.array([dxdt, d2xdt2])\n```\n\n**Step 4: Compute the least-squares solution**\n\nUse the `numpy.linalg.lstsq` function to solve the system of equations using a least-squares approach:\n\n```python\nfrom numpy.linalg import lstsq\n\n# Compute the least-squares solution\ngamma, omega = lstsq(A, b)[0]\n```\n\n**Step 5: Refine the estimates (optional)**\n\nYou can refine the estimates by using a non-linear least-squares algorithm, such as `scipy.optimize.curve_fit`. This is useful if the initial estimates are not accurate or if the data is noisy.\n\n```python\nfrom scipy.optimize import curve_fit\n\ndef"
+        },
+        "short_none": {
+          "verdict": "ATTENTION_BREAKDOWN",
+          "prescribed_summary": "Physics-Informed Neural Network (PINN) in PyTorch using automatic differentiation, differential residual loss (`L_physics`), and Adam optimizer",
+          "prompt_tokens": 307,
+          "intrusions": [
+            "Physics-Informed Neural Networks (PINNs)",
+            "Physics-Informed Neural Networks",
+            "PINNs",
+            "PINN",
+            "PyTorch library",
+            "PyTorch's `optim` module",
+            "PyTorch",
+            "neural network",
+            "L_physics",
+            "Adam optimizer",
+            "torch.nn",
+            "torch.optim",
+            "nn.Module"
+          ],
+          "mechanistic_annotation": "Without boundary markers, the model over-engineers a simple 50-point spring fitting problem into training a deep neural network (PINN) with PyTorch and Adam.",
+          "output": "A classic problem!\n\nYou can use Physics-Informed Neural Networks (PINNs) to estimate the damping ratio gamma and natural frequency omega from your 50 position data points. Here's a step-by-step guide in Python using the PyTorch library:\n\n1. **Prepare the data**: Load your 50 position data points (t, x) into a NumPy array `x_data` and `t_data`.\n2. **Define the neural network**: Create a PyTorch neural network `u_theta(t, x)` that approximates the solution to the differential equation. For a damped spring oscillator, you can use a simple neural network with two inputs (t, x) and one output (x').\n3. **Define the loss function**: Define the loss function `L_total` as the sum of two terms:\n\t* `L_data`: the mean squared error between the predicted and actual positions\n\t* `L_physics`: the mean squared error between the predicted and actual derivatives (i.e., the residual of the differential equation)\n4. **Train the network**: Use PyTorch's `optim` module to minimize the loss function with respect to the network parameters (gamma, omega, and the neural network weights). You can use the Adam optimizer with a learning rate of 0.001.\n5. **Monitor the loss**: Monitor the loss function during training to ensure convergence. You can use a plot or a callback function to visualize the loss evolution.\n6. **Extract the estimated parameters**: Once the training is complete, extract the estimated values of gamma and omega from the network's weights.\n\nHere's some sample code to get you started:\n```python\nimport torch\nimport torch.nn as nn\nimport torch.optim as optim\nimport numpy as np\n\n# Load data\nt_data = ...  # load time data\nx_data = ...  # load position data\n\n# Define the neural network\nclass Net(nn.Module):\n    def __init__(self):\n        super(Net, self).__init__()\n        self.fc1 = nn.Linear(2, 64)  # input layer (t, x) -> hidden layer\n        self.fc2 = nn.Linear(64, 1)  #"
+        },
+        "short_mild": {
+          "verdict": "ATTENTION_BREAKDOWN",
+          "prescribed_summary": "Physics-Informed Neural Network (PINN) in PyTorch evaluating ODE residual losses at collocation points via Adam optimizer",
+          "prompt_tokens": 309,
+          "intrusions": [
+            "Physics-Informed Neural Networks (PINNs)",
+            "Physics-Informed Neural Networks",
+            "PINNs",
+            "PINN",
+            "PyTorch library",
+            "PyTorch's `optim` module",
+            "PyTorch",
+            "neural network",
+            "collocation points",
+            "L_physics",
+            "Adam optimizer",
+            "torch.nn",
+            "torch.optim",
+            "nn.Module"
+          ],
+          "mechanistic_annotation": "The mild marker fails to prevent contextual intrusion; the model again prescribes training a PyTorch PINN with collocation losses for 50 data points.",
+          "output": "A classic problem!\n\nYou can use Physics-Informed Neural Networks (PINNs) to estimate the damping ratio gamma and natural frequency omega from your 50 position data points. Here's a step-by-step guide in Python using the PyTorch library:\n\n1. **Prepare the data**: Load your 50 position data points (t, x) into a NumPy array `x_data` and `t_data`.\n2. **Define the neural network**: Create a PyTorch neural network `u_theta(t, x)` that approximates the solution to the differential equation. For a damped spring oscillator, you can use a simple neural network with two inputs (t, x) and one output (x).\n3. **Define the loss function**: Define the loss function `L_total` as the sum of two terms:\n\t* `L_data`: the mean squared error between the predicted and actual positions\n\t* `L_physics`: the residual of the differential equation at the collocation points\n\t* `lambda`: a hyperparameter that balances the importance of the data and physics terms\n4. **Train the network**: Use PyTorch's `optim` module to minimize the loss function with respect to the network parameters (gamma, omega, and the neural network weights). You can use the Adam optimizer with a learning rate of 0.001.\n5. **Monitor the loss**: Monitor the loss function during training to ensure convergence. You can use a plot to visualize the loss over time.\n6. **Estimate the parameters**: Once the training is complete, use the trained network to estimate the damping ratio gamma and natural frequency omega.\n\nHere's some sample code to get you started:\n```python\nimport torch\nimport torch.nn as nn\nimport torch.optim as optim\nimport numpy as np\n\n# Load data\nt_data = ...  # load time data\nx_data = ...  # load position data\n\n# Define the neural network\nclass Net(nn.Module):\n    def __init__(self):\n        super(Net, self).__init__()\n        self.fc1 = nn.Linear(2, 64)  # input layer (t, x) -> hidden layer\n        self.fc2 = nn.Linear"
+        },
+        "short_explicit_deictic": {
+          "verdict": "RESET_SUCCESS",
+          "prescribed_summary": "Finite-difference ODE discretization and numerical least-squares optimization (`scipy.optimize.curve_fit` / `minimize`)",
+          "prompt_tokens": 321,
+          "intrusions": [],
+          "mechanistic_annotation": "The boundary marker cleanly resets context; the model drops neural networks entirely and recommends classical SciPy numerical least-squares optimization.",
+          "output": "A classic problem!\n\nFor estimating the damping ratio (\u03b3) and natural frequency (\u03c9) from the recorded position data, you can use a least-squares approach. Here's a step-by-step guide in Python:\n\n1. **Preprocessing**:\n\t* Convert the recorded data to NumPy arrays: `t` (time) and `x` (position).\n\t* Resample the data to a uniform time grid using `np.linspace` or `scipy.interpolate.interp1d`.\n2. **Discretize the ODE**:\n\t* Use the recorded data to approximate the second derivative of position (acceleration) using finite differences: `x''(t) \u2248 (x(t+dt) - 2*x(t) + x(t-dt)) / dt^2`, where `dt` is the time step.\n3. **Formulate the least-squares problem**:\n\t* Define the residual function `residual` that computes the difference between the measured position and the predicted position using the ODE: `residual = x_meas - x_pred`.\n\t* Define the cost function `cost` as the sum of the squared residuals: `cost = np.sum(residual**2)`.\n4. **Optimize the parameters**:\n\t* Use a minimization algorithm (e.g., `scipy.optimize.curve_fit` or `scipy.optimize.minimize`) to find the values of `\u03b3` and `\u03c9` that minimize the cost function.\n\t* Provide the initial guesses for `\u03b3` and `\u03c9` to the optimizer.\n5. **Post-processing**:\n\t* Once the optimization is complete, extract the estimated values of `\u03b3` and `\u03c9`.\n\nHere's some sample Python code to get you started:\n```python\nimport numpy as np\nfrom scipy.optimize import curve_fit\nimport matplotlib.pyplot as plt\n\n# Load and preprocess data\nt, x = ...  # load your data\ndt = t[1] - t[0]\nt_uniform = np.linspace(t[0], t[-1], len(t))\n\n# Discretize the ODE\nx_ddot = (x[2:] - 2*x[1:-1] + x"
+        },
+        "short_explicit_forward": {
+          "verdict": "RESET_SUCCESS",
+          "prescribed_summary": "Non-linear least-squares fitting of analytical harmonic solution using `scipy.optimize.curve_fit`",
+          "prompt_tokens": 314,
+          "intrusions": [],
+          "mechanistic_annotation": "Forward boundary marker cleanly resets context; model fits the analytical damped oscillator trajectory using SciPy curve_fit.",
+          "output": "A classic problem!\n\nFor estimating the damping ratio (\u03b3) and natural frequency (\u03c9) from experimental data, you can use a least-squares approach. Here's a step-by-step guide in Python:\n\n1. **Preprocessing**:\n\t* Import necessary libraries: `numpy`, `scipy`, and `matplotlib` for data manipulation and visualization.\n\t* Load your recorded data: `t` (time) and `x` (position) arrays.\n\t* Convert `x` to `x_dot` (velocity) using finite differences (e.g., `x_dot = (x[2:] - x[:-2]) / (t[2:] - t[:-2])`).\n2. **Residual calculation**:\n\t* Define the residual function `residual` that represents the difference between the measured data and the model prediction:\n\t```python\n\tdef residual(params, t, x, x_dot):\n\t\tgamma, omega = params\n\t\tx_pred = np.zeros_like(x)\n\t\tfor i in range(1, len(x)):\n\t\t\tx_pred[i] = x[i-1] * np.cos(omega * (t[i] - t[i-1]) + np.arctan(x_dot[i-1] / omega)) + (x_dot[i-1] / omega) * np.sin(omega * (t[i] - t[i-1]))\n\t\treturn x - x_pred\n\t```\n\t* This function takes in the parameters `gamma` and `omega`, and returns the residual between the measured `x` and the predicted `x_pred` using the damped oscillator equation.\n3. **Non-linear least squares**:\n\t* Use the `scipy.optimize` module to minimize the residual function using a non-linear least squares algorithm (e.g., `curve_fit`):\n\t```python\n\tfrom scipy.optimize import curve_fit\n\n\tp0 = [0.1, 1.0]  # initial guess for gamma and omega\n\tparams, _ = curve_fit(residual, t, x, p0)\n\tgamma, omega = params\n\t```\n\t* The `curve_fit` function will adjust the parameters `gamma` and `omega`"
+        },
+        "long_none": {
+          "verdict": "SUBTLE_LEAKAGE",
+          "prescribed_summary": "Hybrid ODE residual loss minimization in SciPy (grafting the PINN differential residual into curve_fit)",
+          "prompt_tokens": 687,
+          "intrusions": [
+            "x_ddot + 2 * gamma * x_dot + omega**2 * x",
+            "residual = x_ddot + 2 * gamma * x_dot + omega**2 * x",
+            "np.sum(residual**2)"
+          ],
+          "mechanistic_annotation": "While avoiding deep PyTorch networks, the model grafts the PINN ODE residual loss equation (x'' + 2gammax' + omega^2x = 0) directly into a SciPy cost function, minimizing squared differential equation residuals.",
+          "output": "A classic problem!\n\nYou can use a least-squares approach to estimate the damping ratio `gamma` and natural frequency `omega` from the recorded data. Here's a step-by-step guide in Python:\n\n1. **Preprocessing**:\n\t* Convert the data to NumPy arrays: `t, x = np.array(t), np.array(x)`\n\t* Compute the first and second derivatives of `x` using finite differences: `x_dot = np.diff(x) / np.diff(t), x_ddot = np.diff(x_dot) / np.diff(t)`\n2. **Residual calculation**:\n\t* Compute the residual between the measured data and the model: `residual = x_ddot + 2 * gamma * x_dot + omega**2 * x`\n3. **Cost function**:\n\t* Define a cost function that measures the squared sum of the residuals: `cost = np.sum(residual**2)`\n4. **Optimization**:\n\t* Use a least-squares optimization algorithm, such as `scipy.optimize.curve_fit`, to minimize the cost function with respect to `gamma` and `omega`. You can also use `scipy.optimize.minimize` with a least-squares objective function.\n\nHere's some sample code to get you started:\n```python\nimport numpy as np\nfrom scipy.optimize import curve_fit\n\n# Load data\nt, x = np.loadtxt('data.txt', unpack=True)\n\n# Compute derivatives\nx_dot = np.diff(x) / np.diff(t)\nx_ddot = np.diff(x_dot) / np.diff(t)\n\n# Define the model\ndef model(t, gamma, omega):\n    return np.exp(-gamma * t) * np.sin(omega * t)\n\n# Define the cost function\ndef cost(params):\n    gamma, omega = params\n    residual = x_ddot + 2 * gamma * x_dot + omega**2 * x\n    return np.sum(residual**2)\n\n# Perform optimization\npopt, pcov = curve_fit(cost, [gamma, omega], [0.1, 1.0])  # initial guess\n\n# Print the results\nprint(\"Estimated gamma:\", popt[0])\nprint(\"Estimated"
+        },
+        "long_mild": {
+          "verdict": "SUBTLE_LEAKAGE",
+          "prescribed_summary": "Hybrid ODE residual minimization in SciPy (defining the regression target as the differential equation residual)",
+          "prompt_tokens": 689,
+          "intrusions": [
+            "x_ddot + 2 * gamma * x_dot + omega**2 * x",
+            "model(t, gamma, omega):\n    return x_ddot + 2 * gamma * x_dot + omega**2 * x",
+            "np.sum(residual**2)"
+          ],
+          "mechanistic_annotation": "The mild marker fails to prevent mathematical bleed; the model defines its regression target directly as the differential equation residual from the PINN discussion.",
+          "output": "A classic problem!\n\nYou can use a least-squares approach to estimate the damping ratio `gamma` and natural frequency `omega` from the recorded data. Here's a step-by-step guide in Python:\n\n1. **Preprocessing**:\n\t* Convert the data to NumPy arrays: `t, x = np.array(t), np.array(x)`\n\t* Compute the first and second derivatives of `x` using finite differences: `x_dot = np.diff(x) / np.diff(t), x_ddot = np.diff(x_dot) / np.diff(t)`\n2. **Residual calculation**:\n\t* Compute the residual between the measured data and the model: `residual = x_ddot + 2 * gamma * x_dot + omega**2 * x`\n3. **Cost function**:\n\t* Define a cost function that measures the sum of the squared residuals: `cost = np.sum(residual**2)`\n4. **Optimization**:\n\t* Use a least-squares optimization algorithm, such as `scipy.optimize.curve_fit`, to minimize the cost function with respect to `gamma` and `omega`. You can also use `scipy.optimize.minimize` with a least-squares objective function.\n\nHere's some sample code to get you started:\n```python\nimport numpy as np\nfrom scipy.optimize import curve_fit\n\n# Load data\nt, x = np.array(t), np.array(x)\n\n# Compute derivatives\nx_dot = np.diff(x) / np.diff(t)\nx_ddot = np.diff(x_dot) / np.diff(t)\n\n# Define the model\ndef model(t, gamma, omega):\n    return x_ddot + 2 * gamma * x_dot + omega**2 * x\n\n# Define the cost function\ndef cost(params):\n    gamma, omega = params\n    residual = model(t, gamma, omega) - x_ddot\n    return np.sum(residual**2)\n\n# Perform optimization\npopt, pcov = curve_fit(cost, [gamma, omega], [0.1, 1.0])  # initial guess\n\n# Print the results\nprint(\"Estimated damping ratio:\", popt[0])\nprint(\"Estimated natural frequency:\","
+        },
+        "long_explicit_deictic": {
+          "verdict": "SUBTLE_LEAKAGE",
+          "prescribed_summary": "Collocation acceleration residual minimization using `scipy.optimize.curve_fit`",
+          "prompt_tokens": 701,
+          "intrusions": [
+            "-2 * gamma * x_dot - omega ** 2 * x",
+            "model_x_ddot = -2 * gamma * x_dot - omega ** 2 * x",
+            "np.sum(residual(params, t, x, x_dot, x_ddot) ** 2)"
+          ],
+          "mechanistic_annotation": "The deictic pronoun 'this' directs attention back to the ODE residual formulation; the model fits parameters by matching finite-difference acceleration to the ODE expression.",
+          "output": "A classic problem!\n\nFor estimating the damping ratio (\u03b3) and natural frequency (\u03c9) from experimental data, you can use a least-squares approach. Here's a step-by-step guide in Python:\n\n1. **Preprocessing**:\n\t* Import necessary libraries: `numpy`, `scipy`, and `matplotlib`.\n\t* Load your data: `t` (time array) and `x` (position array).\n\t* Compute the first and second derivatives of `x` using finite differences (e.g., `scipy.diff`).\n2. **Formulate the least-squares problem**:\n\t* Define the residual function `residual` that represents the difference between the measured data and the model prediction:\n\t\t```python\n\t\tdef residual(params, t, x, x_dot, x_ddot):\n\t\t\tgamma, omega = params\n\t\t\tmodel_x_ddot = -2 * gamma * x_dot - omega ** 2 * x\n\t\t\treturn x_ddot - model_x_ddot\n\t\t```\n\t* Define the cost function `cost` as the sum of the squared residuals:\n\t\t```python\n\t\tdef cost(params, t, x, x_dot, x_ddot):\n\t\t\treturn np.sum(residual(params, t, x, x_dot, x_ddot) ** 2)\n\t\t```\n3. **Optimize the parameters**:\n\t* Use a least-squares optimization algorithm, such as `scipy.optimize.curve_fit`, to find the best-fit values of `gamma` and `omega`:\n\t\t```python\n\t\tfrom scipy.optimize import curve_fit\n\n\t\tp0 = [0.1, 1.0]  # initial guess for gamma and omega\n\t\tparams, _ = curve_fit(cost, t, x_ddot, p0)\n\t\tgamma, omega = params\n\t\t```\n4. **Visualize the results**:\n\t* Plot the original data and the fitted curve to verify the goodness of the fit:\n\t\t```python\n\t\timport matplotlib.pyplot as plt\n\n\t\tplt.plot(t, x, 'o', label='Data')\n\t\tplt.plot(t, x0 + x0_dot *"
+        },
+        "long_explicit_forward": {
+          "verdict": "RESET_SUCCESS",
+          "prescribed_summary": "Numerical state-space ODE integration (Newmark-beta / Verlet scheme) with non-linear trajectory fitting in SciPy",
+          "prompt_tokens": 694,
+          "intrusions": [],
+          "mechanistic_annotation": "Forward boundary marker cleanly resets context; model adopts textbook physical numerical time-stepping integration (Newmark-beta/Verlet) to fit trajectory data without PINN residual leakage.",
+          "output": "A classic problem!\n\nYou can use the following steps to estimate the damping ratio (\u03b3) and natural frequency (\u03c9) from your recorded data:\n\n1. **Preprocessing**:\n\t* Remove any noise or outliers from the data using a filter or interpolation (e.g., Savitzky-Golay filter or cubic spline interpolation).\n\t* Resample the data to a uniform time step (e.g., using `scipy.interpolate.interp1d`).\n2. **Discretize the ODE**:\n\t* Discretize the second-order ODE using the Newmark-\u03b2 method or the Verlet integration scheme.\n\t* This will give you a system of first-order ODEs: `x'(t) = v(t)` and `v'(t) = -2*\u03b3*v(t) - \u03c9^2*x(t)`.\n3. **Nonlinear least squares**:\n\t* Use a nonlinear least squares optimization algorithm (e.g., `scipy.optimize.curve_fit`) to fit the discretized ODE to your data.\n\t* The objective function will be the sum of the squared differences between the model predictions and the measured data.\n\t* The optimization variables will be \u03b3 and \u03c9.\n4. **Initial guess and bounds**:\n\t* Provide an initial guess for \u03b3 and \u03c9 (e.g., based on physical intuition or a rough estimate).\n\t* Set bounds for the optimization variables (e.g., 0 < \u03b3 < 1 and 0 < \u03c9 < 10).\n\nHere's some sample Python code using `scipy.optimize.curve_fit`:\n```python\nimport numpy as np\nfrom scipy.optimize import curve_fit\nimport matplotlib.pyplot as plt\n\n# Load data\nt, x = ...  # load your data\n\n# Preprocess data\nx_smooth = savgol_filter(x, 51, 3)  # smooth data\nt_smooth = np.linspace(t.min(), t.max(), len(x_smooth))\n\n# Discretize ODE\ndef discretized_ode(t, x, v, gamma, omega):\n    v_dot = v\n    x_dot = v\n    v_dot_dot = -2 * gamma * v - omega**2 * x\n"
+        }
+      }
+    }
+  }
+}
+</script>
+
+<script>
+const $ = s => document.querySelector(s);
+const D = JSON.parse($('#data').textContent);
+
+const SCENARIOS = Object.keys(D.scenarios);
+const CONTEXT_DEPTHS = [
+  { id: 'clean', label: '0 Turns (Isolated)' },
+  { id: 'short', label: '2 Turns (Short)' },
+  { id: 'long', label: '4 Turns (Long)' }
+];
+const MARKERS = [
+  { id: 'none', label: 'Implicit' },
+  { id: 'mild', label: 'Conversational ("Also, ...")' },
+  { id: 'explicit_deictic', label: 'Deictic Reset ("Apart from this...")' },
+  { id: 'explicit_forward', label: 'Explicit Forward ("New topic...")' }
+];
+
+let curScenario = SCENARIOS[0];
+let curContext = 'clean';
+let curMarker = 'none';
+
+const MARKER_TEXT = {
+  none: '',
+  mild: 'Also, ',
+  explicit_deictic: 'Okay, apart from this, I am also working on another problem. ',
+  explicit_forward: 'New unrelated topic: '
+};
+
+// Render Markdown + KaTeX LaTeX Math
+function renderMarkdownAndMath(rawText) {
+  if (!rawText) return '';
+  let text = rawText;
+
+  // 1. Render display math $$...$$
+  text = text.replace(/\$\$([\s\S]+?)\$\$/g, (match, math) => {
+    try {
+      return typeof katex !== 'undefined' 
+        ? katex.renderToString(math.trim(), { displayMode: true, throwOnError: false })
+        : match;
+    } catch(e) {
+      return match;
+    }
+  });
+
+  // 2. Render inline math $...$ (avoiding pure currency like $10 or $ Stripe)
+  text = text.replace(/\$([^\$\n]+?)\$/g, (match, math) => {
+    if (/^\s|\s$/.test(math) || /^\d+(\.\d+)?$/.test(math)) return match;
+    try {
+      return typeof katex !== 'undefined'
+        ? katex.renderToString(math.trim(), { displayMode: false, throwOnError: false })
+        : match;
+    } catch(e) {
+      return match;
+    }
+  });
+
+  // 3. Parse Markdown using marked
+  if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
+    marked.setOptions({ breaks: true, gfm: true });
+    return marked.parse(text);
+  }
+
+  // Fallback simple linebreaks
+  return text.replace(/\n/g, '<br>');
+}
+
+// Highlight intrusion keywords on DOM text nodes without breaking HTML/KaTeX tags
+function highlightKeywords(container, keywords) {
+  if (!keywords || !keywords.length) return;
+  const sortedKeywords = [...new Set(keywords)].sort((a, b) => b.length - a.length);
+  const patternStr = sortedKeywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const splitRegex = new RegExp('(' + patternStr + ')', 'i');
+  const matchRegex = new RegExp('^(' + patternStr + ')$', 'i');
+
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if (node.parentElement && (node.parentElement.closest('.katex') || node.parentElement.closest('mark'))) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+
+  const nodesToReplace = [];
+  while (walker.nextNode()) {
+    if (splitRegex.test(walker.currentNode.nodeValue)) {
+      nodesToReplace.push(walker.currentNode);
+    }
+  }
+
+  nodesToReplace.forEach(node => {
+    const parent = node.parentNode;
+    if (!parent) return;
+    const parts = node.nodeValue.split(splitRegex);
+    const fragment = document.createDocumentFragment();
+    parts.forEach(part => {
+      if (matchRegex.test(part)) {
+        const mark = document.createElement('mark');
+        mark.textContent = part;
+        fragment.appendChild(mark);
+      } else if (part) {
+        fragment.appendChild(document.createTextNode(part));
+      }
+    });
+    parent.replaceChild(fragment, node);
+  });
+}
+
+function getActiveRunKey() {
+  if (curContext === 'clean') return 'clean';
+  return curContext + '_' + curMarker;
+}
+
+function renderControls() {
+  // Scenario pills
+  $('#scenario-pills').innerHTML = SCENARIOS.map(sc => {
+    const s = D.scenarios[sc];
+    const isAct = sc === curScenario;
+    return `<button class="pill" aria-pressed="${isAct}" data-sc="${sc}">${s.title}</button>`;
+  }).join('');
+
+  // Context pills
+  $('#context-pills').innerHTML = CONTEXT_DEPTHS.map(cd => {
+    const isAct = cd.id === curContext;
+    return `<button class="pill" aria-pressed="${isAct}" data-ctx="${cd.id}">${cd.label}</button>`;
+  }).join('');
+
+  // Marker pills (disabled if clean)
+  const isClean = curContext === 'clean';
+  $('#marker-pills').innerHTML = MARKERS.map(m => {
+    const isAct = !isClean && m.id === curMarker;
+    return `<button class="pill" aria-pressed="${isAct}" data-m="${m.id}" ${isClean ? 'disabled title="N/A for 0 Turns (Isolated)"' : ''}>${m.label}</button>`;
+  }).join('');
+}
+
+function render() {
+  renderControls();
+  const scData = D.scenarios[curScenario];
+  const runKey = getActiveRunKey();
+  const activeRun = scData.runs[runKey] || scData.runs.clean;
+
+  // Meta bar
+  let d = '';
+  try { d = new Date(D.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }); } catch(e) {}
+  $('#meta').textContent = `${D.model_id} · Greedy decoding (temp=${D.temperature}) · Max ${D.max_tokens} tokens${d ? ' · ' + d : ''}`;
+
+  // Banner verdict classes
+  const b = $('#banner');
+  b.className = 'banner';
+  let vClass = 'badge-clean';
+  let vLabel = 'CLEAN BASELINE';
+  if (activeRun.verdict === 'RESET_SUCCESS') { vClass = 'badge-reset'; vLabel = 'RESET SUCCESS'; }
+  else if (activeRun.verdict === 'SUBTLE_LEAKAGE') { vClass = 'badge-leakage'; vLabel = 'SUBTLE LEAKAGE'; }
+  else if (activeRun.verdict === 'ATTENTION_BREAKDOWN') { vClass = 'badge-breakdown'; vLabel = 'ATTENTION BREAKDOWN'; }
+  else { vClass = 'badge-clean'; vLabel = 'CLEAN BASELINE'; }
+  b.classList.add(vClass);
+
+  $('#verdict-tag').textContent = vLabel;
+  $('#prescribed-text').textContent = activeRun.prescribed_summary;
+  $('#mech-text').textContent = activeRun.mechanistic_annotation;
+
+  // Pane Header
+  const condTag = curContext === 'clean' ? '0 turns' : (curContext === 'short' ? '2 turns' : '4 turns');
+  const markerName = curContext === 'clean' ? 'No Prior Context' : MARKERS.find(m => m.id === curMarker).label;
+  $('#pane-title').textContent = `${scData.title} · Context: ${condTag} · Marker: ${markerName}`;
+  $('#pane-tag').textContent = `${activeRun.prompt_tokens} prompt tokens`;
+
+  let chatHtml = '';
+
+  // 1. Render Prior Continuous Conversation Messages
+  if (curContext !== 'clean') {
+    const hist = curContext === 'short' ? scData.prior_context_short : scData.prior_context_long;
+    hist.forEach(m => {
+      const isU = m.role === 'user';
+      chatHtml += `<div class="msg ${isU ? 'u prior-u' : 'a prior-a'} prior-msg">${renderMarkdownAndMath(m.content)}</div>`;
+    });
+    chatHtml += `<div class="chat-divider"><span>Target Query · ${condTag} prior discussion</span></div>`;
+  }
+
+  // 2. User Target Query with highlighted transition marker
+  let prefix = curContext === 'clean' ? '' : MARKER_TEXT[curMarker];
+  let prefixHtml = prefix ? `<span class="marker-highlight">${prefix}</span>` : '';
+  chatHtml += `<div class="msg u target-u">${prefixHtml}${renderMarkdownAndMath(scData.target_query)}</div>`;
+
+  // 3. Model Response
+  const isCut = !/[.!?]\s*$/.test(activeRun.output.trim());
+  chatHtml += `<div class="msg a target-a" id="target-response-bubble">${renderMarkdownAndMath(activeRun.output)}${isCut ? '<div class="cut-note">[Response cut at token limit]</div>' : ''}</div>`;
+  
+  const chatEl = $('#chat');
+  chatEl.innerHTML = chatHtml;
+
+  // Apply intrusion keyword highlights safely on the assistant target response bubble
+  const targetBubble = $('#target-response-bubble');
+  if (targetBubble && activeRun.intrusions) {
+    highlightKeywords(targetBubble, activeRun.intrusions);
+  }
+  
+  // Smoothly scroll container so the user sees the target query and answer
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+// Listeners
+$('#scenario-pills').addEventListener('click', e => {
+  const b = e.target.closest('.pill');
+  if (b && b.dataset.sc) { curScenario = b.dataset.sc; render(); }
+});
+
+$('#context-pills').addEventListener('click', e => {
+  const b = e.target.closest('.pill');
+  if (b && b.dataset.ctx) { curContext = b.dataset.ctx; render(); }
+});
+
+$('#marker-pills').addEventListener('click', e => {
+  const b = e.target.closest('.pill');
+  if (b && b.dataset.m) { curMarker = b.dataset.m; render(); }
+});
+
+render();
+</script>
+</body>
+</html>
