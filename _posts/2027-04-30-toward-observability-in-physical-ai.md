@@ -69,7 +69,7 @@ Our contributions are summarized as follows:
 - Three of the metrics we have not found reported for ACT: the share of an answer that comes from each input, as an exact Shapley value; the coverage of new demonstrations by the training demonstrations, computed before any training; and the first action of a chunk, compared with holding still.
 - On real data we find that the joint readings account for 0 to 2% of a policy's answer and the cameras for the rest; that coverage anticipates the error after training; that on new demonstrations a chunk starts 5 to 17 units away from where the arm is; and that a policy trained to an error of 1.8 on two demonstrations has an error of 45.8 on a third.
 
-This post is not meant to show awesome new ways of training. Rather, it builds on what three types of model have already achieved: ACT at the first hackathon, then a VLA and SmolVLA <d-cite key="shukor2025smolvla"></d-cite> at the second. Nothing is better than understanding something at its core, to control how to build on those foundations.
+This post is not meant to show awesome new ways of training. Rather, it builds on what three types of model have already achieved: ACT and then a VLA and SmolVLA <d-cite key="shukor2025smolvla"></d-cite>. Nothing is better than understanding something at its core, to control how to build on those foundations.
 
 ## Related Work
 
