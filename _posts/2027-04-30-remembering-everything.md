@@ -1,7 +1,7 @@
 ---
 layout: distill
 title: "Why LLMs Can’t Let Go"
-description: "Large Language Models now have access to more context than ever before. A natural concern in this setting has been their ability to retrieve information from that context. We bring light to other problems that arise with larger context windows, not because the model cannot locate the relevant context, but because it cannot ignore the irrelevant context. Through this blog, we aim to motivate the community to think beyond scaling the context window and retrieving the right context, toward the model's ability to ignore what it does not need."
+description: "Large Language Models now have access to more context than ever before. A natural concern in this setting has been their ability to retrieve information from that context. We shed light on other problems that arise with larger context windows, not because the model cannot locate the relevant context, but because it cannot ignore the irrelevant context. Through this blog, we aim to motivate the community to think beyond scaling the context window and retrieving the right context, toward the model's ability to ignore what it does not need."
 date: 2027-04-30
 future: true
 htmlwidgets: true
@@ -63,8 +63,7 @@ toc:
       - name: "Fixes that work around attention"
       - name: "Architectures that change attention"
       - name: "What has been tested"
-      - name: "A pattern worth noting"
-  - name: "Counterarguments and Open Questions"
+  - name: "Summary"
 
 # Below is an example of injecting additional post-specific styles.
 # This is used in the 'Layouts' section of this post.
@@ -263,7 +262,7 @@ One of the main concerns with LLMs has always been memory. Achieving a complicat
 
 But this work mostly focuses on one kind of failure in long context. Imagine you have been talking to an AI agent for a month. A week ago, you switched your working days from Monday–Friday to Tuesday–Saturday. The agent acknowledged it at the time, but today it books your meeting on a Monday. Later you ask it to list the attendees of last week's project meeting. The list is correct, except for one person you haven't worked with in three years, who happened to be mentioned constantly in your 2023 history.
 
-In neither case did the model fail to *read* the relevant information. It failed to *let go* of the irrelevant information. A bigger window gives a model more room to *store* information. It does nothing to help the model decide what to *ignore*. The human brain stores decades of information and still copes, in part, it seems, by actively suppressing what is no longer relevant.
+In neither case did the model fail to *read* the relevant information. It failed to *let go* of the irrelevant information. A bigger window gives a model more room to *store* information. It does nothing to help the model decide what to *ignore*. The human brain stores decades of information and still copes, it seems in part by actively suppressing what is no longer relevant.
 
 ### Three ways long context fails
 
@@ -302,13 +301,13 @@ The most visible way long context fails is retrieval: the answer is in the promp
 
 Liu et al. <d-cite key="liu2024lost"></d-cite> showed that accuracy is highest when the relevant passage sits at the start or end of the prompt and drops when it is in the middle. Part of the advantage at the start may relate to attention sinks <d-cite key="xiao2024efficient"></d-cite>, the first few tokens that absorb a disproportionate share of attention. Later work found deeper problems. NoLiMa <d-cite key="modarressi2025nolima"></d-cite> removes word overlap between the question and the needle, and finds that 11 of 13 models claiming a 128K context window fall below half of their short-context accuracy by only 32K tokens. Its proposed explanation is that without a literal match, the target's attention score no longer stands out from the rest. RULER <d-cite key="hsieh2024ruler"></d-cite> and Michelangelo <d-cite key="vodrahalli2024michelangelo"></d-cite> reach similar conclusions with harder tasks, and Chroma's Context Rot report <d-cite key="hong2025context"></d-cite> finds the same on semantic tasks and in the presence of distractors. NoLiMa also tests what happens when the context contains a single irrelevant sentence that shares a word with the question. For GPT-4o, the effective context length falls from 8K to 1K. The distractor says nothing about the answer; the damage comes from word overlap alone.
 
-Placing the query at both ends of the prompt helps <d-cite key="liu2024lost"></d-cite>, and reordering retrieved documents so the likely target lands near the end helps further <d-cite key="peysakhovich2023attention"></d-cite>. Both work by changing *where* the target sits, not how the model processes content. The widget below is a qualitative illustration, not a quantitative claim. It shows how sensitive retrieval is to word overlap and context length, using the probability the model gives to the correct answer token.
+Placing the query at both ends of the prompt helps <d-cite key="liu2024lost"></d-cite>, and reordering retrieved documents so the likely target lands near the end helps further <d-cite key="peysakhovich2023attention"></d-cite>. Both work by changing *where* the target sits, not how the model processes content. The widget below is a qualitative illustration of how sensitive retrieval is to word overlap and context length. It uses the probability the model gives to the correct answer token.
 
 <div class="l-body-outset">
   <iframe src="{{ 'assets/html/2027-04-30-remembering-everything/retrieval_failure.html' | relative_url }}" frameborder='0' scrolling='no' height="680px" width="100%" style="border-radius: 14px; overflow: hidden; border: 1px solid #e1e4e8; display: block;"></iframe>
 </div>
 <div class="caption">
-  <strong>Interactive Explorer: Lost in the Middle.</strong> This widget shows real predictions from LLaMA-3-8B on a single example. The model is asked to retrieve a specific update (about the Engineering sync) from the exact middle of $N$ distracting updates about other teams. With the <strong>Literal Match</strong> toggle, the question uses the exact word "Engineering", and the model keeps putting high probability on the correct answer. With the <strong>Semantic Match</strong> toggle, the question asks about the "Tech team" instead, removing the word overlap, and the probability of the correct answer drops quickly as the target gets buried.
+  <strong>Interactive Explorer: Lost in the Middle.</strong> This widget shows real predictions from Llama-3-8B on a single example. The model is asked to retrieve a specific update (about the Engineering sync) from the exact middle of $N$ distracting updates about other teams. With the <strong>Literal Match</strong> toggle, the question uses the exact word "Engineering", and the model keeps putting high probability on the correct answer. With the <strong>Semantic Match</strong> toggle, the question asks about the "Tech team" instead, removing the word overlap, and the probability of the correct answer drops quickly as the target gets buried.
 </div>
 
 ## Proactive Interference: When Old Information Wins
@@ -330,7 +329,7 @@ In simple terms: suppose the context first says A maps to B, and later updates i
 
 Wang and Sun's test is a long stream of key–value updates in which the same keys keep getting new values, and the model is asked for a key's *current* value. Accuracy falls log-linearly as the number of earlier, competing updates grows, across a wide range of models. The authors read this as a sign that an LLM's working-memory-like capacity is set by how well it resists interference, not by its advertised context window. Other findings:
 
-- **Scale helps only modestly.** Larger models resist interference better in Wang and Sun, but a dual-process study of 39 models <d-cite key="chattaraj2026transformers"></d-cite> finds only a weak link between model size and PI resistance.
+- **Scale helps only modestly.** Larger models resist interference better in Wang and Sun's experiments, but a dual-process study of 39 models <d-cite key="chattaraj2026transformers"></d-cite> finds only a weak link between model size and PI resistance.
 - **Instructions help little.** Telling the model to disregard older information gives minimal improvement, and chain-of-thought reasoning does not rescue retrieval under interference <d-cite key="wang2025unable"></d-cite>.
 - **It is fragile.** In one study, 4-bit quantization sharply worsened PI performance, but only for *semantically* confusable distractors, while 8-bit barely changed it <d-cite key="shahrabi2026compress"></d-cite>. Standard accuracy benchmarks did not show this damage.
 
@@ -338,13 +337,13 @@ Wang and Sun's test is a long stream of key–value updates in which the same ke
 
 The dual-process study <d-cite key="chattaraj2026transformers"></d-cite> compared the two directly. Across the models tested, PI was much more damaging than RI. RI accuracy stays near ceiling up to N=50 before falling to 24.6% at N=300, while PI collapses from 94% to 3%, a near-total failure. The study contrasts this with what it describes as the typical human pattern, although the human literature is itself mixed: classic work argued that PI is a major cause of everyday forgetting <d-cite key="underwood1957interference"></d-cite>. In the same study, resistance to RI improves with model size, so it may roughly reflect a model's capacity. RI also varies across architectures, while PI appears in all of them. That uniformity suggests a shared mechanism in how attention chooses among competing candidates.
 
-The widget below is a single example chosen to illustrate proactive interference in LLaMA-3-8B. We do not draw any quantitative claim from it.
+The widget below is a single example chosen to illustrate proactive interference in Llama-3-8B-Instruct. We do not draw any quantitative claim from it.
 
 <div class="l-body-outset">
   <iframe src="{{ 'assets/html/2027-04-30-remembering-everything/proactive_interference.html' | relative_url }}" frameborder='0' scrolling='no' height="680px" width="100%" style="border-radius: 14px; overflow: hidden; border: 1px solid #e1e4e8; display: block;"></iframe>
 </div>
 <div class="caption">
-  <strong>Interactive Explorer: Proactive Interference.</strong> This widget shows real predictions from LLaMA-3-8B, illustrating how the model fails to retrieve the correct answer when faced with conflicting older information.
+  <strong>Interactive Explorer: Proactive Interference.</strong> This widget shows real predictions from Llama-3-8B-Instruct, illustrating how the model fails to retrieve the correct answer when faced with conflicting older information.
 </div>
 
 ## How Brains Resolve Interference
@@ -468,37 +467,37 @@ Infini-attention <d-cite key="munkhdalai2024leave"></d-cite> keeps normal attent
 
 The table below summarizes what each method changes, what it was built for, and whether it has been evaluated on the failures in this blog. It is based on our reading of the original papers, not on new experiments, and we welcome corrections.
 
-<div class="comparison-table" markdown="block">
+<div class="comparison-table l-page" markdown="block">
 
-| Method | What it changes | Built for | Tested on PI? | Tested on overcontextualization? | Can ignored information come back? |
+| Method | What it changes | Built for | Tested on PI | Tested on overcontext. | Ignored info can return |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **RoPE extensions** | Stretches token positions | Longer inputs | No | No | Nothing is ignored |
-| **StreamingLLM** | Keeps first and recent tokens, drops the rest | Very long streams, efficiency | No | No | No, dropped tokens are gone |
-| **Attention Sorting** | Reorders documents by attention | Retrieval in long prompts | No | No | Yes, nothing is dropped |
-| **LLMLingua** | Drops easy-to-predict tokens | Shorter, cheaper prompts | No | No | No, dropped tokens are gone |
-| **RUMS** | Picks memories that help the answer | Memory personalization | No | Memory setting only | Yes, chosen per question |
-| **Prompting, Structured Memory, MemCalib** | Instructions, domain partitions, RL training | Memory over-use | Prompting only, helped little | Memory setting only | Yes |
-| **α-entmax / ASEntmax** | Lets attention give exact zeros | Longer inputs | No | No | Yes, zeros are per query |
+| **RoPE extensions** | Stretches token positions | Longer inputs | No | No | n/a |
+| **StreamingLLM** | Keeps first and recent tokens, drops the rest | Very long streams, efficiency | No | No | No (dropped) |
+| **Attention Sorting** | Reorders documents by attention | Retrieval in long prompts | No | No | Yes |
+| **LLMLingua** | Drops easy-to-predict tokens | Shorter, cheaper prompts | No | No | No (dropped) |
+| **RUMS** | Picks memories that help the answer | Memory personalization | No | Memory only | Yes (per question) |
+| **Prompting, Structured Memory, MemCalib** | Instructions, domain partitions, RL training | Memory over-use | Prompting only, helped little | Memory only | Yes |
+| **α-entmax / ASEntmax** | Lets attention give exact zeros | Longer inputs | No | No | Yes (per query) |
 | **Differential Transformer** | Subtracts two attention maps | Attention noise | No | No | Yes |
-| **Selective Attention / FoX** | Forget gates on softmax attention | Language modeling, efficiency | No | No | Hard to, fading builds up |
-| **GLA** | Gated fixed-size memory | Efficient language modeling | No | No | No, memory is overwritten |
+| **Selective Attention / FoX** | Forget gates on softmax attention | Language modeling, efficiency | No | No | Hard (fading builds up) |
+| **GLA** | Gated fixed-size memory | Efficient language modeling | No | No | No (overwritten) |
 | **Infini-attention / HMT** | Compressed long-term memory | Very long inputs | No | No | Partly |
 
 </div>
 
-### A pattern worth noting
 
-Looking across these methods, a pattern appears. Methods that fade or overwrite old information as they read (Selective Attention, FoX, GLA) are aimed at the stale-update problem, but whatever they fade is hard to get back. Methods that filter at the moment of answering (exact-zero attention, Differential Transformer, RUMS) keep everything available, but they decide what matters mostly by similarity, which is exactly what stale updates and off-topic context share with the question. We did not find a method that does both: keep old information, and also stop it from steering the answer unless the question needs it. We do not know whether that combination can be built, or whether it would be enough.
 
-Before building anything new, though, there is simpler work to do:
+## Summary
 
-* **Test existing methods on these failures.** Most of the methods above could be run on Wang and Sun's PI test, PersistBench, or OP-Bench without changing anything. That alone would tell us far more than our reasoning above.
-* **Report more than retrieval.** New long-context methods could report interference and overcontextualization alongside needle-in-a-haystack scores.
-* **Check that ignored information can come back.** A benchmark for ignoring should also check that the model still uses an ignored fact when a later question needs it, as in the allergy example.
+We looked at three ways a long context can hurt a model:
 
-## Counterarguments and Open Questions
+* **Retrieval failure.** The relevant information is in the prompt, but the model does not find it, often because of where it sits or because the question shares no words with it.
+* **Proactive interference (PI).** Older information conflicts with newer information, and the old value wins even when the question asks only for the latest one. Larger models and instructions to forget help only a little.
+* **Overcontextualization.** True but irrelevant earlier context leaks into an answer it should not influence, like microservices showing up in the design for a small bakery's checkout.
 
-Even if we build models that can ignore context on a per-question basis, several counterarguments and open problems remain:
+Most existing fixes were built for length and retrieval, and few have been tested on the other two. Methods that fade or overwrite old information as they read (Selective Attention, FoX, GLA) are aimed at the stale-update problem, but whatever they fade is hard to get back. Methods that filter at the moment of answering (exact-zero attention, Differential Transformer, RUMS) keep everything available, but they decide what matters mostly by similarity, which is exactly what stale updates and off-topic context share with the question. We did not find a method that does both: keep old information, and also stop it from steering the answer unless the question needs it. We do not know whether that combination can be built, or whether it would be enough. We encourage future work to examine how these methods behave under PI, and we suggest that new methods report PI and RI results alongside retrieval performance.
+
+Even if we can build models that ignore context on a per-question basis, several counterarguments and open problems remain:
 
 1. **When "irrelevant" context is secretly crucial.** As we noted in the introduction, the two kinds of mistake have very different costs. Over-engineering a bakery checkout with microservices is annoying. Suppressing a rarely mentioned note that a user is allergic to penicillin, or that a production database table is read-only, can be catastrophic. How do we tell unneeded baggage apart from a hidden safety constraint when neither is mentioned in the user's current prompt?
 
