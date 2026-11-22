@@ -6,6 +6,7 @@ date: 2027-04-30
 future: true
 htmlwidgets: true
 hidden: true
+related_posts: false
 
 # Anonymize when submitting
 authors:
