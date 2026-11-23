@@ -19,13 +19,13 @@
       }
       function apply() {
         var t = pick();
-        document.documentElement.setAttribute('data-theme', t);
+        if (document.documentElement.getAttribute('data-theme') !== t) document.documentElement.setAttribute('data-theme', t);
         window.__theme = t;
         if (window.onWidgetTheme) window.onWidgetTheme(t);
       }
       apply();
       try {
-        new MutationObserver(apply).observe(window.parent.document.documentElement,
+        if (window.parent !== window) new MutationObserver(apply).observe(window.parent.document.documentElement,
           { attributes: true, attributeFilter: ['data-theme', 'data-theme-setting'] });
       } catch (e) {}
       if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', apply);
@@ -377,27 +377,26 @@
 
 
     // Theme-aware chart colours
-    function applyChartTheme() {
+    function setChartDefaults() {
         const dark = window.__theme === 'dark';
-        const text = dark ? '#aab3c2' : '#4b5563';
-        const grid = dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)';
-        Chart.defaults.color = text;
-        Chart.defaults.borderColor = grid;
-        [barChart, lineChart].forEach(ch => {
-            if (!ch) return;
-            Object.values(ch.options.scales).forEach(sc => {
-                sc.ticks = sc.ticks || {}; sc.ticks.color = text;
-                sc.grid = sc.grid || {}; sc.grid.color = grid;
-                sc.title = sc.title || {}; sc.title.color = text;
-            });
-            ch.update('none');
-        });
+        Chart.defaults.color = dark ? '#aab3c2' : '#4b5563';
+        Chart.defaults.borderColor = dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)';
+    }
+    // Chart.js reads its defaults when a chart is created, so rebuild the charts on a theme change.
+    function applyChartTheme() {
+        setChartDefaults();
+        if (barChart && lineChart) {
+            barChart.destroy();
+            lineChart.destroy();
+            initCharts();
+            updateView(false);
+        }
     }
     window.onWidgetTheme = applyChartTheme;
 
     // Init
+    setChartDefaults();
     initCharts();
-    applyChartTheme();
     updateView(false);
 </script>
 

@@ -391,13 +391,13 @@ pre code {
   }
   function apply() {
     var t = pick();
-    document.documentElement.setAttribute('data-theme', t);
+    if (document.documentElement.getAttribute('data-theme') !== t) document.documentElement.setAttribute('data-theme', t);
     window.__theme = t;
     if (window.onWidgetTheme) window.onWidgetTheme(t);
   }
   apply();
   try {
-    new MutationObserver(apply).observe(window.parent.document.documentElement,
+    if (window.parent !== window) new MutationObserver(apply).observe(window.parent.document.documentElement,
       { attributes: true, attributeFilter: ['data-theme', 'data-theme-setting'] });
   } catch (e) {}
   if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', apply);
