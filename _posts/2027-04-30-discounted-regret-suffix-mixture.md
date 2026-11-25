@@ -1,6 +1,6 @@
 ---
 layout: distill
-title: Discounted Regret Is a Mixture of Suffix Regrets
+title: From Strongly Adaptive to Discounted Regret
 description: Discounted regret against a fixed comparator equals a convex combination of regrets over suffixes of the horizon. This post derives the identity, uses it to transfer strongly adaptive regret bounds to all nonincreasing discount sequences at once, and collects the resulting uniform bounds for convex, strongly convex, and exp-concave losses.
 date: 2027-04-30
 future: true
@@ -220,6 +220,7 @@ _styles: >
     .post.distill d-article mjx-container[display='true'] { font-size: 100% !important; }
     .post.distill .fig .caption, .post.distill .tab-caption { font-size: 14.5px; }
   }
+
 ---
 
 <div class="mathjax-macros" aria-hidden="true">\(\newcommand{\w}{\mathbf{w}}\newcommand{\cW}{\mathcal{W}}\newcommand{\Reg}{\operatorname{Regret}}\newcommand{\SAReg}{\mathop{\text{SA-Regret}}\nolimits}\newcommand{\DReg}{\mathop{\text{D-Regret}}\nolimits}\)</div>
@@ -292,6 +293,7 @@ The paper writes this difference in full, and the shorthand $$p_\tau$$ serves re
 <div class="thm" markdown="1">
 <span class="thm-label">Lemma 1.</span> For any discount sequence $$\beta$$ satisfying $$\eqref{eq:beta}$$ and any fixed comparator $$\w\in\cW,$$
 
+
 $$
 \DReg^{\beta}_T(\w)=\sum_{\tau=1}^{T}p_\tau\Reg_{[T-\tau+1,T]}(\w). \tag{3}\label{eq:decomp}
 $$
@@ -310,8 +312,10 @@ $$
   <div class="caption"><span class="fig-num">Figure 1.</span> Lemma 1 for \(T=8\) and \(\beta_k=(3/4)^k.\) Each slab is a suffix \([T-\tau+1,T]\) of thickness \(p_\tau,\) stacked from the longest suffix at the bottom to the shortest at the top. Column \(t\) collects exactly the suffixes that contain round \(t,\) and its height \(\beta_{T-t}\) is identity \(\eqref{eq:decomp}\) read one round at a time. The area counted slab by slab is \(\sum_\tau\tau p_\tau\) and counted column by column is \(\sum_k\beta_k,\) which is identity \(\eqref{eq:mean}.\) The dashed rectangle of width \(\tau_\beta\) and height one encloses the same area.</div>
 </div>
 
+
 <div class="proof" markdown="1">
 <span class="proof-label">Proof.</span> Round $$t$$ belongs to the suffix of length $$\tau$$ exactly when $$\tau\ge T-t+1.$$ The total weight that the mixture assigns to round $$t$$ is therefore
+
 
 $$
 \sum_{\tau=T-t+1}^{T}p_\tau=\beta_{T-t}-\beta_T=\beta_{T-t}.
@@ -344,6 +348,7 @@ Lemma 1 fixes one comparator for all suffixes, while $$\DReg(T,\beta)$$ maximize
 <div class="thm main" markdown="1">
 <span class="thm-label">Theorem 2.</span> Suppose the learner satisfies $$\eqref{eq:sa}.$$ For any discount sequence $$\beta$$ satisfying $$\eqref{eq:beta},$$
 
+
 $$
 \DReg(T,\beta)\le\sum_{\tau=1}^{T}p_\tau\,\psi_T(\tau). \tag{5}\label{eq:general}
 $$
@@ -360,10 +365,10 @@ Both bounds hold simultaneously for all discount sequences satisfying $$\eqref{e
 <div class="proof" markdown="1">
 <span class="proof-label">Proof.</span> For every $$\w\in\cW$$ and $$\tau\in[T],$$ the definitions and $$\eqref{eq:sa}$$ imply
 
+
 $$
 \begin{aligned}
-\Reg_{[T-\tau+1,T]}(\w)&\le\Reg([T-\tau+1,T])\\
-&\le\SAReg(T,\tau)\le\psi_T(\tau).
+\Reg_{[T-\tau+1,T]}(\w)&\le\Reg([T-\tau+1,T])\le\SAReg(T,\tau)\le\psi_T(\tau).
 \end{aligned}
 $$
 
@@ -386,6 +391,7 @@ which is $$\eqref{eq:general}.$$ If $$\psi_T$$ has a concave extension, Jensen's
 <span class="thm-label">Remark 3.</span> Identity $$\eqref{eq:decomp}$$ holds for a fixed comparator, and the inequality in $$\eqref{eq:general}$$ arises only from the maximization over comparators, which may select a different best decision on each suffix. No step uses convexity or any other property of the losses. Curvature assumptions enter only through the envelope $$\psi_T$$ of a specific algorithm.
 </div>
 
+
 The uniformity in Theorem 2 is pathwise. The decisions $$\w_1,\dots,\w_T$$ are fixed before any discount sequence enters the argument, and $$\eqref{eq:general}$$ and $$\eqref{eq:jensen}$$ hold for every admissible $$\beta$$ on the same run. The analysis involves neither a grid of discount factors nor an aggregation across them, and the discount sequence may be chosen after the run has been observed.
 
 Concavity is needed only in the last step of the proof, where the distribution of suffix lengths is replaced by its mean. Bound $$\eqref{eq:general}$$ holds for any envelope, and an envelope with ceilings or other integer effects can first be dominated by a concave function, which is how the logarithmic bounds in Section 5 are handled.
@@ -403,10 +409,10 @@ The last weight collects the entire tail mass beyond the horizon. The suffix len
 <div class="thm" markdown="1">
 <span class="thm-label">Corollary 4.</span> Suppose the learner satisfies $$\eqref{eq:sa}.$$ Then, simultaneously for all $$\lambda\in(0,1),$$
 
+
 $$
 \begin{aligned}
-\DReg(T,\lambda)\le{}&(1-\lambda)\sum_{\tau=1}^{T-1}\lambda^{\tau-1}\psi_T(\tau)\\
-&+\lambda^{T-1}\psi_T(T).
+\DReg(T,\lambda)\le{}&(1-\lambda)\sum_{\tau=1}^{T-1}\lambda^{\tau-1}\psi_T(\tau)+\lambda^{T-1}\psi_T(T).
 \end{aligned}
 $$
 
@@ -418,6 +424,7 @@ If $$\psi_T$$ admits a concave extension to $$[1,T],$$ then $$\DReg(T,\lambda)\l
   <div class="fig-dark">{% include figure.liquid path="assets/img/2027-04-30-discounted-regret-suffix-mixture/fig2-geometric-window-dark.svg" class="img-fluid" alt="Two bar charts of the suffix-length weights for T equal to 30. For lambda 0.8 the weights decay quickly and the effective window is about 4.99. For lambda 0.97 the weights decay slowly, the last weight at tau equal to T is about 0.41, and the effective window is about 19.97, while one over one minus lambda is about 33.3 and lies beyond the horizon." zoomable=true %}</div>
   <div class="caption"><span class="fig-num">Figure 2.</span> Suffix-length distributions behind Corollary 4 for \(T=30.\) For \(\lambda=0.8,\) almost all mass lies on short suffixes and \(\tau_\lambda\) is indistinguishable from \(1/(1-\lambda)=5.\) For \(\lambda=0.97,\) the tail weight \(p_T=\lambda^{T-1}\) carries about 41% of the mass, and \(\tau_\lambda\approx19.97\) stays below \(T\) while \(1/(1-\lambda)\) exceeds the horizon.</div>
 </div>
+
 
 The bounds in Section 5 follow the paper and use $$\tau_\lambda\le1/(1-\lambda)$$ in the last step. Every envelope involved there is nondecreasing, and hence each bound also holds with $$\tau_\lambda$$ in place of $$1/(1-\lambda),$$ which keeps the cap $$\tau_\lambda\le T$$ visible in Figure 2 when $$\lambda$$ is close to one.
 
@@ -441,6 +448,7 @@ The reduction acts on the decisions of a strongly adaptive method without modify
 </table>
 </div>
 
+
 ### Convex losses
 
 Under convexity, CBCE <d-cite key="jun2017improved"></d-cite> runs OGD base learners on geometric covering intervals, combines them by coin betting, and maintains $$O(\log t)$$ active experts at round $$t.$$ With $$c_T=\frac{6}{\sqrt{2}-1}+8\sqrt{7\log T+5},$$ its interval guarantee holds for every $$[r,s]\subseteq[T],$$
@@ -463,8 +471,7 @@ For $$\mu$$-strongly convex losses, IFLH <d-cite key="zhang2018dynamic"></d-cite
 
 $$
 \begin{aligned}
-\SAReg(T,\tau)\le\frac{G^2}{2\mu}\Bigl[&(1+3\log T)\bigl(\lceil\log_K\tau\rceil+1\bigr)\\
-&+4\log T\Bigr].
+\SAReg(T,\tau)\le\frac{G^2}{2\mu}\Bigl[&(1+3\log T)\bigl(\lceil\log_K\tau\rceil+1\bigr)+4\log T\Bigr].
 \end{aligned}
 $$
 
@@ -506,10 +513,9 @@ AFLH, the efficient variant of FLH <d-cite key="hazan2007adaptive"></d-cite>, ma
 
 IFLH with ONS base learners admits the same base-$$K$$ trade-off as in the strongly convex case <d-cite key="zhang2018dynamic"></d-cite>. It matches the AFLH bound at $$K=2,$$ and the choice $$K=\lceil T^{1/q}\rceil$$ achieves the $$\lambda$$-independent bound $$O\bigl(qd(\frac{1}{\alpha}+GD)\log T\bigr)$$ with $$O(qT^{1/q})$$ active experts. The exp-concave rows of Table 1 simplify these rates with a valid exp-concavity parameter satisfying $$\alpha GD\le1,$$ which can always be arranged by decreasing $$\alpha.$$
 
-## Scope of the reduction
+## Limitations
 
-The comparator in Lemma 1 is fixed across all suffixes, and the resulting bounds concern the best fixed decision under the discounted weights. Guarantees against comparator sequences, as in dynamic regret, are not addressed by the reduction.
+The reduction is deliberately simple, and two natural boundaries follow directly from the proof:
 
-The weights must be nonincreasing in the age of a loss. For a profile that increases somewhere, some decrement $$p_\tau$$ is negative, and the termwise bound in the proof of Theorem 2 is no longer valid. This is a limitation of the argument rather than a proven impossibility for such profiles.
-
-Only suffixes of the horizon enter the proof. A strongly adaptive bound controls every interval, which is more than the reduction consumes, and any bound on the regret over the intervals $$[T-\tau+1,T]$$ can serve as the input to Theorem 2.
+- **Monotone weights.** Theorem 2 relies on $p_\tau = \beta_{\tau-1} - \beta_\tau \ge 0$ to bound the maximum termwise. If a weight profile is not nonincreasing in the age of a loss, some decrements $p_\tau$ turn negative and the inequality breaks down. This is a limitation of the proof technique rather than an impossibility result for non-monotone discounting.
+- **Suffix regret is enough.** Although we state the consequences for strongly adaptive algorithms, the proof never uses intervals that end before round $T$. Any guarantee over the suffixes $[T-\tau+1, T]$ alone suffices as input to Theorem 2, which raises a natural question: whether algorithms tailored specifically to suffix regret can achieve tighter constants or lower overhead than general strongly adaptive methods.
