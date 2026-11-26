@@ -48,7 +48,7 @@ $$\mathbf{S}_t = \mathbf{S}_{t-1} \mathbf{A}_t + \beta_t \mathbf{v}_t \mathbf{k}
 
 *(Note: Depending on whether the transition matrix acts on the left $$\mathbf{A}_t \mathbf{S}_{t-1}$$ or right $$\mathbf{S}_{t-1} \mathbf{A}_t$$, it modulates either value channels $$d_v$$ or key channels $$d_k$$. Right-multiplication $$\mathbf{S}_{t-1}\mathbf{A}_t$$ acts directly in key space $$\mathbb{R}^{d_k \times d_k}$$, which is where key-collision erasure happens.)*
 
-| Architecture | Key-Space Transition $$\mathbf{A}_t \in \mathbb{R}^{d_k \times d_k}$$ | Write coefficient $\beta_t$ | Chunkwise Tensor-Core Form? |
+| Architecture | Key-Space Transition $$\mathbf{A}_t \in \mathbb{R}^{d_k \times d_k}$$ | Write coefficient $$\beta_t$$ | Chunkwise Tensor-Core Form? |
 | :--- | :--- | :--- | :--- |
 | **Unnormalized linear attention** <d-cite key="katharopoulos2020"></d-cite> | $$\mathbf{I}_{d_k}$$ (No forgetting) | $$1$$ | Yes ($$\mathbf{Q}\mathbf{K}^\top$$ causal mask) |
 | **Scalar retention (illustrative)** | $$\gamma \mathbf{I}_{d_k}$$ (Static scalar decay) | $$1$$ | Yes (Static Toeplitz mask) |
@@ -74,7 +74,7 @@ For normalized positive-feature kernel attention, an additional state $$z_t=\sum
 
 ## Structured state-space duality
 
-Why does restricting $$\mathbf{A}_t$$ to a scalar multiple of the identity $\alpha_t I$, with $\alpha_t \in (0, 1]$ permit a structured dual formulation? Unroll the recurrence $$\mathbf{S}_t = \alpha_t \mathbf{S}_{t-1} + \beta_t \mathbf{v}_t \mathbf{k}_t^\top$$ from $$s = 1$$ to $$t$$ with zero initial state:
+Why does restricting $$\mathbf{A}_t$$ to a scalar multiple of the identity $$\alpha_t I$$, with $$\alpha_t \in (0, 1]$$ permit a structured dual formulation? Unroll the recurrence $$\mathbf{S}_t = \alpha_t \mathbf{S}_{t-1} + \beta_t \mathbf{v}_t \mathbf{k}_t^\top$$ from $$s = 1$$ to $$t$$ with zero initial state:
 
 $$\mathbf{S}_t = \sum_{s=1}^{t} \left( \prod_{r=s+1}^{t} \alpha_r \right) \beta_s \mathbf{v}_s \mathbf{k}_s^\top$$
 
