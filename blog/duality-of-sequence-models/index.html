@@ -1,0 +1,613 @@
+<!DOCTYPE html> <html> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> The Linear Algebra of Long Context: What Recurrent Sequence Models Remember, Forget, and Overwrite | ICLR Blogposts 2027 </title> <meta name="author" content="ICLR Blog"> <meta name="description" content="This post examines scalar forgetting, directional memory updates, and simplified linear test-time training through a common matrix-state framework. Controlled associative-recall experiments illustrate why an exact local overwrite does not guarantee better aggregate retrieval."> <meta name="keywords" content="machine-learning, ml, deep-learning, reinforcement-learning, icl# add your own keywords or leave empty"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/2027/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="apple-touch-icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="stylesheet" href="/2027/assets/css/main.css?v=3116ba77db9ee1581d05bb3e86fbf7f1"> <link rel="canonical" href="https://iclr-blogposts.github.io/2027/blog/duality-of-sequence-models/"> <script src="/2027/assets/js/theme.js?v=5286c3e4c334d0ecb8fc0c40ff4fa7ec"></script> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-native.css?v=5847e5ed4a4568527aa6cfab446049ca" media="none" id="highlight_theme_dark"> <script>
+    initTheme();
+  </script> <link rel="stylesheet" href="/2027/assets/css/al-folio-distill.css?v=fb7196ec07cb5299d51b2cbdc69c23d7"> <script>
+  window.alFolioDistill = window.alFolioDistill || {};
+  window.alFolioDistill.templateLoader = {"url":"/2027/assets/js/distillpub/template.v2.js","integrity":"sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo=","remote":false};
+</script> <script src="/2027/assets/js/distillpub/template.v2.js" integrity="sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo="></script> <script src="/2027/assets/js/distillpub/transforms.v2.js" integrity="sha256-XYVZD1ZSuRCrJBEBl0nIPvWlo/u5tzmtyStFV7a/PTk="></script> </head> <body> <d-front-matter> <script async type="text/json">
+      {
+            "title": "The Linear Algebra of Long Context: What Recurrent Sequence Models Remember, Forget, and Overwrite",
+            "description": "This post examines scalar forgetting, directional memory updates, and simplified linear test-time training through a common matrix-state framework. Controlled associative-recall experiments illustrate why an exact local overwrite does not guarantee better aggregate retrieval.",
+            "published": "April 30, 2027",
+            "authors": [
+              
+              {
+                "author": "Anonymous",
+                "authorURL": "",
+                "affiliations": [
+                  {
+                    "name": "",
+                    "url": ""
+                  }
+                ]
+              }
+              
+            ],
+            "katex": {
+              "delimiters": [
+                {
+                  "left": "$",
+                  "right": "$",
+                  "display": false
+                },
+                {
+                  "left": "$$",
+                  "right": "$$",
+                  "display": true
+                }
+              ]
+            }
+          }
+    </script> </d-front-matter> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/2027/"> ICLR Blogposts 2027 </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/2027/about/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/call/">call for blogposts </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/submitting/">submitting </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/reviewing/">reviewing </a> </li> <li class="nav-item dropdown "> <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-nav-dropdown-toggle="true" aria-haspopup="true" aria-expanded="false">past iterations </a> <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown"> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2027/"><strong>2027</strong></a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2026/">2026</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2025/">2025</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2024/">2024</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2023/">2023</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blog-track.github.io/home/" rel="external nofollow noopener" target="_blank">2022</a> </div> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> <li class="toggle-container"> <button id="light-toggle" type="button" title="Change theme" aria-label="Change color theme"> <i class="fa-half-sun-moon" id="light-toggle-system"></i> <i class="fa-solid fa-moon" id="light-toggle-dark"></i> <i class="fa-solid fa-sun" id="light-toggle-light"></i> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="post distill"> <d-title> <h1>The Linear Algebra of Long Context: What Recurrent Sequence Models Remember, Forget, and Overwrite</h1> <p>This post examines scalar forgetting, directional memory updates, and simplified linear test-time training through a common matrix-state framework. Controlled associative-recall experiments illustrate why an exact local overwrite does not guarantee better aggregate retrieval.</p> </d-title> <d-byline></d-byline> <d-article> <d-contents> <nav class="l-text figcaption"> <h3>Contents</h3> <div> <a href="#the-quadratic-wall-and-separate-paradigms">The quadratic wall and separate paradigms</a> </div> <div> <a href="#rank-one-associative-memory">Rank-one associative memory</a> </div> <div> <a href="#structured-state-space-duality">Structured state-space duality</a> </div> <div> <a href="#scalar-retention-and-capacity">Scalar retention and capacity</a> </div> <div> <a href="#delta-rule-directional-edits">Delta-rule directional edits</a> </div> <div> <a href="#chunkwise-parallelization">Chunkwise parallelization</a> </div> <div> <a href="#stability-and-state-dynamics">Stability and state dynamics</a> </div> <div> <a href="#test-time-training-beyond-linear-memory">Test-time training beyond linear memory</a> </div> <div> <a href="#controlled-associative-recall-experiments">Controlled associative recall experiments</a> </div> <div> <a href="#reference-implementation">Reference implementation</a> </div> <div> <a href="#limitations-and-next-steps">Limitations and next steps</a> </div> </nav> </d-contents> <h2 id="the-quadratic-wall-and-separate-paradigms">The quadratic wall and separate paradigms</h2> <p>For nearly a decade, causal Softmax Attention <d-cite key="vaswani2017"></d-cite> has been a widely used backbone of frontier sequence modeling. Its retrieval mechanism retains explicit token-level keys and values: at every token \(t\), the model retains the complete history of past keys \(\{\mathbf{k}_s\}_{s=1}^t\) and values \(\{\mathbf{v}_s\}_{s=1}^t\) in a growing key-value (KV) cache in standard full-cache inference, computing an exact, data-dependent convex combination over all prior tokens. Yet this exactness comes at an \(\mathcal{O}(T^2)\) prefill compute cost and an \(\mathcal{O}(T)\) per-token key-value read cost for a fixed head dimension during autoregressive decoding.</p> <p>Reading the literature on recurrent sequence mixing in isolation can obscure connections between its different mathematical traditions. Practitioners frequently ask: <em>Are state-space models fundamentally different from linear attention? Why did Mamba-2 suddenly look like a masked Transformer? And why can some \(\mathcal{O}(T)\) recurrent models struggle with associative retrieval?</em></p> <d-cite key="katharopoulos2020,schlag2021,dao2024,yang2025gated,sun2025"></d-cite> <h2 id="rank-one-associative-memory">Rank-one associative memory</h2> <p>Consider an input sequence of length \(T\). At each token step \(t \in \{1, \dots, T\}\), linear projections produce a query \(\mathbf{q}_t \in \mathbb{R}^{d_k}\), a key \(\mathbf{k}_t \in \mathbb{R}^{d_k}\), and a value \(\mathbf{v}_t \in \mathbb{R}^{d_v}\).</p> <p>In standard <strong>Causal Softmax Attention</strong>, the output \(\mathbf{o}_t \in \mathbb{R}^{d_v}\) is a normalized exponential similarity lookup over all past pairs \(\{(\mathbf{k}_s, \mathbf{v}_s)\}_{s=1}^t\):</p> \[\mathbf{o}_t = \sum_{s=1}^{t} \frac{\exp(\mathbf{q}_t^\top \mathbf{k}_s / \sqrt{d_k})}{\sum_{j=1}^{t} \exp(\mathbf{q}_t^\top \mathbf{k}_j / \sqrt{d_k})} \, \mathbf{v}_s\] <p>To compress this growing \(\mathcal{O}(T \cdot d)\) KV-cache into a <strong>constant-size matrix state</strong> \(\mathbf{S}_t \in \mathbb{R}^{d_v \times d_k}\), the simplified linear-memory architectures considered here maintain a linear associative memory updated via a <strong>rank-1 outer product</strong> \(\mathbf{v}_t \mathbf{k}_t^\top\):</p> \[\mathbf{S}_t = \mathbf{S}_{t-1} \mathbf{A}_t + \beta_t \mathbf{v}_t \mathbf{k}_t^\top, \qquad \mathbf{o}_t = \mathbf{S}_t \mathbf{q}_t\] <p><em>(Note: Depending on whether the transition matrix acts on the left \(\mathbf{A}_t \mathbf{S}_{t-1}\) or right \(\mathbf{S}_{t-1} \mathbf{A}_t\), it modulates either value channels \(d_v\) or key channels \(d_k\). Right-multiplication \(\mathbf{S}_{t-1}\mathbf{A}_t\) acts directly in key space \(\mathbb{R}^{d_k \times d_k}\), which is where key-collision erasure happens.)</em></p> <table> <thead> <tr> <th style="text-align: left">Architecture</th> <th style="text-align: left">Key-Space Transition \(\mathbf{A}_t \in \mathbb{R}^{d_k \times d_k}\)</th> <th style="text-align: left">Write coefficient \(\beta_t\)</th> <th style="text-align: left">Chunkwise Tensor-Core Form?</th> </tr> </thead> <tbody> <tr> <td style="text-align: left"> <strong>Unnormalized linear attention</strong> <d-cite key="katharopoulos2020"></d-cite> </td> <td style="text-align: left">\(\mathbf{I}_{d_k}\) (No forgetting)</td> <td style="text-align: left">\(1\)</td> <td style="text-align: left">Yes (\(\mathbf{Q}\mathbf{K}^\top\) causal mask)</td> </tr> <tr> <td style="text-align: left"><strong>Scalar retention (illustrative)</strong></td> <td style="text-align: left">\(\gamma \mathbf{I}_{d_k}\) (Static scalar decay)</td> <td style="text-align: left">\(1\)</td> <td style="text-align: left">Yes (Static Toeplitz mask)</td> </tr> <tr> <td style="text-align: left"> <strong>Mamba-2 / SSD core</strong> <d-cite key="dao2024"></d-cite> </td> <td style="text-align: left">\(\alpha_t \mathbf{I}_{d_k}\) (Data-dependent scalar)</td> <td style="text-align: left">\(\Delta_t\)</td> <td style="text-align: left">Yes (1-Semiseparable mask)</td> </tr> <tr> <td style="text-align: left"> <strong>GLA</strong> <d-cite key="yang2024gla"></d-cite> </td> <td style="text-align: left">\(\mathrm{Diag}(\boldsymbol{\alpha}_t)\) (Vector forget gate)</td> <td style="text-align: left">\(1\)</td> <td style="text-align: left">Yes (Channel-wise cumsum)</td> </tr> <tr> <td style="text-align: left"> <strong>DeltaNet</strong> <d-cite key="schlag2021,yang2024delta"></d-cite> </td> <td style="text-align: left">\(\mathbf{I}_{d_k} - \beta_t \mathbf{k}_t \mathbf{k}_t^\top\) (Rank-1 erasure)</td> <td style="text-align: left">\(\beta_t \text{ (unit keys)}\)</td> <td style="text-align: left">Yes (Ordered WY form)</td> </tr> <tr> <td style="text-align: left"> <strong>Gated DeltaNet</strong> <d-cite key="yang2025gated"></d-cite> </td> <td style="text-align: left">\(\alpha_t (\mathbf{I}_{d_k} - \beta_t \mathbf{k}_t \mathbf{k}_t^\top)\)</td> <td style="text-align: left">\(\beta_t \text{ (unit keys)}\)</td> <td style="text-align: left">Yes (Gated WY factorization)</td> </tr> <tr> <td style="text-align: left"> <strong>Simplified linear TTT (single-token SGD)</strong> <d-cite key="sun2025"></d-cite> </td> <td style="text-align: left">\(\mathbf{I}_{d_k} - \eta_t \mathbf{k}_t \mathbf{k}_t^\top\) (Online SGD)</td> <td style="text-align: left">\(\eta_t\) (Learning rate)</td> <td style="text-align: left">Depends on update semantics</td> </tr> </tbody> </table> <h3 id="the-algebraic-equivalence-of-deltanet-and-ttt-linear">The Algebraic Equivalence of DeltaNet and TTT-Linear</h3> <p>Compare the non-decaying delta rule with the simplified linear TTT row. Suppose we view the matrix \(\mathbf{S}_{t-1} \in \mathbb{R}^{d_v \times d_k}\) as the weights of a linear associative network \(f(\mathbf{k}; \mathbf{S}) = \mathbf{S}\mathbf{k}\) trained online to map incoming key \(\mathbf{k}_t\) to target value \(\mathbf{v}_t\) under the self-supervised reconstruction loss:</p> \[\mathcal{L}_t(\mathbf{S}) = \frac{1}{2} \big\Vert{} \mathbf{S} \mathbf{k}_t - \mathbf{v}_t \big\Vert{}_2^2\] <p>Taking the gradient with respect to \(\mathbf{S}\) gives \(\nabla_{\mathbf{S}} \mathcal{L}_t(\mathbf{S}_{t-1}) = (\mathbf{S}_{t-1}\mathbf{k}_t - \mathbf{v}_t)\mathbf{k}_t^\top\). Applying one step of stochastic gradient descent with step size \(\eta_t\) yields:</p> \[\begin{aligned} \mathbf{S}_t &amp;= \mathbf{S}_{t-1} - \eta_t \nabla_{\mathbf{S}} \mathcal{L}_t(\mathbf{S}_{t-1}) \\ &amp;= \mathbf{S}_{t-1} - \eta_t \big(\mathbf{S}_{t-1}\mathbf{k}_t - \mathbf{v}_t\big)\mathbf{k}_t^\top \\ &amp;= \mathbf{S}_{t-1}\big(\mathbf{I}_{d_k} - \eta_t \mathbf{k}_t \mathbf{k}_t^\top\big) + \eta_t \mathbf{v}_t \mathbf{k}_t^\top \end{aligned}\] <p>For normalized positive-feature kernel attention, an additional state \(z_t=\sum_{s\leq t}\phi(k_s)\) is needed, with output \(o_t=S_t\phi(q_t)/(z_t^\top\phi(q_t))\) when the denominator is nonzero. Here the memory-state keys are the feature-mapped vectors, not necessarily raw keys.</p> <h2 id="structured-state-space-duality">Structured state-space duality</h2> <p>Why does restricting \(\mathbf{A}_t\) to a scalar multiple of the identity \(\alpha_t I\), with \(\alpha_t \in (0, 1]\) permit a structured dual formulation? Unroll the recurrence \(\mathbf{S}_t = \alpha_t \mathbf{S}_{t-1} + \beta_t \mathbf{v}_t \mathbf{k}_t^\top\) from \(s = 1\) to \(t\) with zero initial state:</p> \[\mathbf{S}_t = \sum_{s=1}^{t} \left( \prod_{r=s+1}^{t} \alpha_r \right) \beta_s \mathbf{v}_s \mathbf{k}_s^\top\] <p>Multiplying on the right by the query vector \(\mathbf{q}_t\) and absorbing \(\beta_s\) into \(\tilde{\mathbf{k}}_s = \beta_s \mathbf{k}_s\) yields the output at step \(t\):</p> \[\mathbf{o}_t = \mathbf{S}_t \mathbf{q}_t = \sum_{s=1}^{t} \left( \prod_{r=s+1}^{t} \alpha_r \right) (\mathbf{q}_t^\top \tilde{\mathbf{k}}_s) \, \mathbf{v}_s\] <p>Stacking all \(T\) queries, keys, and values into matrices \(\mathbf{Q}, \tilde{\mathbf{K}} \in \mathbb{R}^{T \times d_k}\) and \(\mathbf{V}, \mathbf{O} \in \mathbb{R}^{T \times d_v}\), this entire SSM recurrence can be expressed as a single masked matrix multiplication:</p> \[\mathbf{O} = \Big( \mathbf{L} \circ \big(\mathbf{Q} \tilde{\mathbf{K}}^\top\big) \Big) \mathbf{V}\] <p>where \(\mathbf{L} \in \mathbb{R}^{T \times T}\) is a lower-triangular <strong>1-semiseparable matrix</strong> whose entries are defined by cumulative sums in log-space (\(a_r = \ln \alpha_r \le 0\)):</p> \[L_{t,s} = \begin{cases} \exp\!\left(\sum_{r=s+1}^t a_r\right) &amp; \text{if } t \ge s \\ 0 &amp; \text{if } t &lt; s \end{cases}\] <h3 id="why-semiseparable-matrices-enable-chunkwise-tensor-core-execution">Why Semiseparable Matrices Enable Chunkwise Tensor-Core Execution</h3> <p>A matrix \(\mathbf{L}\) is called <strong>1-semiseparable</strong> if every off-diagonal block below a time cut has rank at most \(1\). Specifically, for any block boundary \(m\) with \(s \le m &lt; t\), the product splits cleanly:</p> \[L_{t,s} = \left(\prod_{r=m+1}^t \alpha_r\right) \cdot \left(\prod_{r=s+1}^m \alpha_r\right) = L_{t,m} \cdot L_{m,s}\] <d-cite key="dao2024"></d-cite> <p>For nonzero initial state, add \(c_t S_0q_t\) to the readout, where \(c_t=\prod_{r=1}^{t}\alpha_r\). Materializing the full \(T\times T\) matrix would still be quadratic in sequence length; the semiseparable structure is useful because the off-diagonal blocks can be handled using boundary states.</p> <h2 id="scalar-retention-and-capacity">Scalar retention and capacity</h2> <p>Suppose a model stores \(M\) key-value pairs \(\{(\mathbf{k}_s, \mathbf{v}_s)\}_{s=1}^M\) into \(\mathbf{S}_T = \sum_{s=1}^M \gamma_{T,s} \mathbf{v}_s \mathbf{k}_s^\top\) using purely additive outer products (\(\mathbf{A}_t = \alpha_t \mathbf{I}\)). When we query the state at step \(T\) with \(\mathbf{q}_T = \mathbf{k}_{s^*}\):</p> \[\mathbf{o}_T = \mathbf{S}_T \mathbf{k}_{s^*} = \underbrace{\gamma_{T, s^*} \|\mathbf{k}_{s^*}\|_2^2 \, \mathbf{v}_{s^*}}_{\text{Desired Needle Signal}} + \underbrace{\sum_{s \neq s^*} \gamma_{T, s} (\mathbf{k}_s^\top \mathbf{k}_{s^*}) \, \mathbf{v}_s}_{\text{Additive Cross-Talk Noise}}\] <p>This separates the desired signal from interference.</p> <p>For independent random unit keys, the off-target dot products have mean zero and variance exactly \(1/d_k\) under the uniform spherical distribution. If the values and keys are independent and the values have unit norm, the expected squared cross-talk norm for the unweighted additive rule (unit write and retention gates) is \((M-1)/d_k\). This is a mean-square statement under the stated random-key assumptions, not a universal accuracy bound.</p> <p>Exact representability of a set of key-value bindings requires \(SK=V\), where the columns of \(K\) and \(V\) are keys and target values. A linear solution exists if and only if \(\ker K\subseteq\ker V\).</p> <div class="l-page"> <iframe title="Exact scalar retention and semiseparable mask" src="/2027/assets/html/2027-04-30-duality-of-sequence-models/decay-explorer.html" frameborder="0" height="650px" width="100%" loading="lazy"></iframe> </div> <h2 id="delta-rule-directional-edits">Delta-rule directional edits</h2> \[\mathbf{S}_t = \alpha_t \mathbf{S}_{t-1} \left( \mathbf{I}_{d_k} - \beta_t \frac{\mathbf{k}_t \mathbf{k}_t^\top}{\|\mathbf{k}_t\|_2^2} \right) + \beta_t \mathbf{v}_t \frac{\mathbf{k}_t^\top}{\|\mathbf{k}_t\|_2^2}\] <p>Assuming \(L_2\)-normalized keys (\(\Vert{}\mathbf{k}_t\Vert{}_2 = 1\)) and \(\alpha_t = 1\), consider how \(\mathbf{S}_t\) responds to two test queries:</p> <ul> <li> <strong>Orthogonal Query (\(\mathbf{q} = \mathbf{k}_{\text{other}} \perp \mathbf{k}_t\)):</strong> Because \((\mathbf{I} - \beta_t \mathbf{k}_t \mathbf{k}_t^\top)\mathbf{k}_{\text{other}} = \mathbf{k}_{\text{other}}\), <strong>orthogonal queries receive no directional correction</strong>.</li> <li> <strong>Overwrite Query (\(\mathbf{q} = \mathbf{k}_t\) with \(\beta_t = 1\)):</strong> Because \((\mathbf{I} - \mathbf{k}_t \mathbf{k}_t^\top)\mathbf{k}_t = \mathbf{0}\), the stale association \(\mathbf{S}_{t-1}\mathbf{k}_t\) is <strong>annihilated</strong> and replaced cleanly by \(\mathbf{v}_t\)!</li> <li> <strong>Combined Gated DeltaNet (\(\alpha_t \in (0,1], \beta_t \in (0,2)\)):</strong> Combining global forget gate \(\alpha_t\) with directional erasure \(\beta_t\) allows the model to both <em>flush</em> stale context globally (when \(\alpha_t \to 0\) at document boundaries) and <em>selectively edit</em> individual key-value slots in-place (when \(\alpha_t \approx 1, \beta_t \approx 1\)).</li> </ul> \[S_t=\alpha_t S_{t-1}+\beta_t(v_t-\alpha_t S_{t-1}k_t)k_t^\top\] \[S_tq=\alpha_t S_{t-1}q+\beta_t(v_t-\alpha_t S_{t-1}k_t)(k_t^\top q).\] <d-cite key="yang2025gated"></d-cite> <div class="l-page"> <iframe title="Exact two-key directional interference counterexample" src="/2027/assets/html/2027-04-30-duality-of-sequence-models/two-key-geometry.html" frameborder="0" height="610px" width="100%" loading="lazy"></iframe> </div> <h2 id="chunkwise-parallelization">Chunkwise parallelization</h2> <p>At first glance, DeltaNet’s non-diagonal transition matrix \(\mathbf{A}_t = \alpha_t(\mathbf{I} - \beta_t \mathbf{k}_t \mathbf{k}_t^\top)\) requires care in parallel training: unlike Mamba-2’s scalar \(\alpha_t\), rank-one transition factors <strong>generally do not commute</strong> (\(\mathbf{A}_2 \mathbf{A}_1 \neq \mathbf{A}_1 \mathbf{A}_2\)).</p> <p>A useful factorization is the WY representation. Over a chunk of \(B\) tokens with keys \(\mathbf{K}_{[b]} \in \mathbb{R}^{B \times d_k}\) and write gates \(\boldsymbol{\beta}_{[b]} \in \mathbb{R}^B\), the product of \(B\) sequential rank-one transition factors can be factored into a single update of rank at most \(B\):</p> \[\prod_{r=1}^{B} \big(\mathbf{I}_{d_k} - \beta_r \mathbf{k}_r \mathbf{k}_r^\top\big) = \mathbf{I}_{d_k} - \mathbf{K}_{[b]}^\top \mathbf{T}_{[b]} \mathbf{K}_{[b]}\] <p>For the chronological right-acting product \(A_1 A_2\cdots A_B\) without scalar gates, let \(D=\operatorname{Diag}(\beta)\). The ordered factorization uses</p> \[T=(I+D\,\operatorname{StrictUpper}(KK^\top))^{-1}D.\] <p>The matrix \(T\) is upper triangular, including the diagonal. The corresponding reverse product uses the transposed ordering.</p> <d-cite key="yang2024delta,dao2024"></d-cite> <h2 id="stability-and-state-dynamics">Stability and state dynamics</h2> <p>For unit keys, consider the mathematical range of step sizes and the eigenvalues of the transition matrix \(\mathbf{A}_t = \alpha_t(\mathbf{I}_{d_k} - \beta_t \mathbf{k}_t \mathbf{k}_t^\top)\) for unit-norm \(\mathbf{k}_t\):</p> <ul> <li>Along the \(d_k - 1\) directions orthogonal to \(\mathbf{k}_t\), the eigenvalue is \(\lambda_{\perp} = \alpha_t\).</li> <li>Along the key direction \(\mathbf{k}_t\), the eigenvalue is \(\lambda_{\parallel} = \alpha_t (1 - \beta_t)\).</li> </ul> <table> <tbody> <tr> <td>For a fixed key and gate, the homogeneous response in the key direction is \([\alpha(1-\beta)]^t\). The case \(\beta=1\) erases the old component, \(1&lt;\beta&lt;2\) gives alternating contraction for \(0&lt;\alpha\leq1\), and $$</td> <td>\alpha(1-\beta)</td> <td>&gt;1$$ produces expansion in this fixed-key homogeneous example. A one-step spectral condition is not by itself a guarantee of bounded forced dynamics.</td> </tr> </tbody> </table> <div class="l-page"> <iframe title="Fixed-key homogeneous stability" src="/2027/assets/html/2027-04-30-duality-of-sequence-models/stability-explorer.html" frameborder="0" height="650px" width="100%" loading="lazy"></iframe> </div> <h2 id="test-time-training-beyond-linear-memory">Test-time training beyond linear memory</h2> \[\mathbf{W}_t = \mathbf{W}_{t-1} - \eta_t \nabla_{\mathbf{W}} \ell_{\text{SSL}}\big(f(\tilde{\mathbf{k}}_t; \mathbf{W}_{t-1}), \, \mathbf{v}_t\big), \qquad \mathbf{o}_t = f(\mathbf{q}_t; \mathbf{W}_t)\] <d-cite key="sun2025"></d-cite> <h2 id="controlled-associative-recall-experiments">Controlled associative recall experiments</h2> <h3 id="protocol-recorded-experimental-configuration">Protocol (recorded experimental configuration)</h3> <table> <thead> <tr> <th>Setting</th> <th>Value</th> </tr> </thead> <tbody> <tr> <td>Key dimensions</td> <td>16, 32, 64</td> </tr> <tr> <td>Distinct-key load ratios</td> <td>0.5, 1, 2, 4</td> </tr> <tr> <td>Overwrite fractions</td> <td>0, 0.25, 0.75</td> </tr> <tr> <td>Independent episodes per condition</td> <td>32</td> </tr> <tr> <td>Target classes</td> <td>8</td> </tr> <tr> <td>Key distribution</td> <td>Independent normalized Gaussian vectors</td> </tr> <tr> <td>Values</td> <td>Uniform random one-hot labels</td> </tr> <tr> <td>Overwrites</td> <td>Distinct existing keys assigned a different label</td> </tr> <tr> <td>Evaluation</td> <td>Latest-label argmax at every original key</td> </tr> <tr> <td>Gates</td> <td>Scalar decay 0.98; non-decaying 1; write step 1</td> </tr> <tr> <td>Uncertainty</td> <td>Standard error across independent episode means</td> </tr> </tbody> </table> <p>Total: 36 conditions, 1,152 independent episodes and 4,608 episode-rule evaluations. The figure shows the dimension-32 subset of the recorded experiment.</p> <div class="l-page"> <iframe title="Measured associative recall" src="/2027/assets/html/2027-04-30-duality-of-sequence-models/associative-recall.html" frameborder="0" height="620px" width="100%" loading="lazy"></iframe> </div> <h3 id="gate-sensitivity-and-correlated-keys">Gate sensitivity and correlated keys</h3> <table> <thead> <tr> <th>Setting</th> <th>Value</th> </tr> </thead> <tbody> <tr> <td>Key dimension / distinct keys</td> <td>32 / 64</td> </tr> <tr> <td>Shared Gaussian component weights</td> <td>0, 0.25, 0.65</td> </tr> <tr> <td>Overwrite fractions</td> <td>0, 0.25, 0.75</td> </tr> <tr> <td>Episodes per condition</td> <td>64</td> </tr> <tr> <td>Retention gates</td> <td>0.90, 0.98, 1.00</td> </tr> <tr> <td>Delta step sizes</td> <td>0.25, 0.50, 1.00, 1.50</td> </tr> <tr> <td>Additive write step</td> <td>1.00</td> </tr> </tbody> </table> <p>Each key is sampled by normalizing \(\sqrt{1-\rho}\epsilon_i+\sqrt{\rho}u\), where \(u\) is shared within an episode and \(\epsilon_i\) is independent standard Gaussian noise. There are nine paired conditions, 576 independent episodes and 8,640 episode-configuration evaluations. The observed average pairwise cosine in the nine conditions is displayed in the figure.</p> <div class="l-page"> <iframe title="Measured gate sensitivity and key correlation" src="/2027/assets/html/2027-04-30-duality-of-sequence-models/gate-sensitivity.html" frameborder="0" height="650px" width="100%" loading="lazy"></iframe> </div> <h2 id="reference-implementation">Reference implementation</h2> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="n">torch</span>
+<span class="kn">import</span> <span class="n">torch.nn.functional</span> <span class="k">as</span> <span class="n">F</span>
+
+<span class="k">def</span> <span class="nf">unified_rank1_recurrence</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="sh">"</span><span class="s">gated_deltanet</span><span class="sh">"</span><span class="p">):</span>
+    <span class="sh">"""</span><span class="s">
+    Unified Rank-1 Associative Memory Recurrence:
+      q, k:  [B, T, H, d_k]
+      v:     [B, T, H, d_v]
+      alpha: [B, T, H, 1]     (scalar retention gate in (0, 1])
+      beta:  [B, T, H, 1]     (write / Householder step in (0, 2))
+    </span><span class="sh">"""</span>
+    <span class="n">B</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">d_k</span> <span class="o">=</span> <span class="n">q</span><span class="p">.</span><span class="n">shape</span>
+    <span class="n">d_v</span> <span class="o">=</span> <span class="n">v</span><span class="p">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">S</span> <span class="o">=</span> <span class="n">torch</span><span class="p">.</span><span class="nf">zeros</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">d_v</span><span class="p">,</span> <span class="n">d_k</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">q</span><span class="p">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">q</span><span class="p">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="sh">"</span><span class="s">linear_attn</span><span class="sh">"</span><span class="p">,</span> <span class="sh">"</span><span class="s">mamba2_ssd</span><span class="sh">"</span><span class="p">,</span> <span class="sh">"</span><span class="s">gated_deltanet</span><span class="sh">"</span><span class="p">}:</span>
+        <span class="k">raise</span> <span class="nc">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Unknown memory rule: </span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">T</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">v</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+        <span class="n">qt</span> <span class="o">=</span> <span class="n">q</span><span class="p">[:,</span> <span class="n">t</span><span class="p">]</span>                                     <span class="c1"># [B, H, d_k]
+</span>        <span class="n">kt</span> <span class="o">=</span> <span class="n">F</span><span class="p">.</span><span class="nf">normalize</span><span class="p">(</span><span class="n">k</span><span class="p">[:,</span> <span class="n">t</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>                <span class="c1"># [B, H, d_k]
+</span>        <span class="n">vt</span> <span class="o">=</span> <span class="n">v</span><span class="p">[:,</span> <span class="n">t</span><span class="p">]</span>                                     <span class="c1"># [B, H, d_v]
+</span>        <span class="n">at</span> <span class="o">=</span> <span class="n">alpha</span><span class="p">[:,</span> <span class="n">t</span><span class="p">].</span><span class="nf">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>                   <span class="c1"># [B, H, 1, 1]
+</span>        <span class="n">bt</span> <span class="o">=</span> <span class="n">beta</span><span class="p">[:,</span> <span class="n">t</span><span class="p">].</span><span class="nf">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>                    <span class="c1"># [B, H, 1, 1]
+</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="sh">"</span><span class="s">linear_attn</span><span class="sh">"</span><span class="p">:</span>
+            <span class="n">S</span> <span class="o">=</span> <span class="n">S</span> <span class="o">+</span> <span class="n">torch</span><span class="p">.</span><span class="nf">einsum</span><span class="p">(</span><span class="sh">"</span><span class="s">bhv,bhk-&gt;bhvk</span><span class="sh">"</span><span class="p">,</span> <span class="n">vt</span><span class="p">,</span> <span class="n">kt</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="sh">"</span><span class="s">mamba2_ssd</span><span class="sh">"</span><span class="p">:</span>
+            <span class="n">S</span> <span class="o">=</span> <span class="n">at</span> <span class="o">*</span> <span class="n">S</span> <span class="o">+</span> <span class="n">bt</span> <span class="o">*</span> <span class="n">torch</span><span class="p">.</span><span class="nf">einsum</span><span class="p">(</span><span class="sh">"</span><span class="s">bhv,bhk-&gt;bhvk</span><span class="sh">"</span><span class="p">,</span> <span class="n">vt</span><span class="p">,</span> <span class="n">kt</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="sh">"</span><span class="s">gated_deltanet</span><span class="sh">"</span><span class="p">:</span>
+            <span class="c1"># S_t = alpha_t * (S_{t-1} - beta_t * (S_{t-1} k_t) k_t^T) + beta_t * v_t k_t^T
+</span>            <span class="n">prior</span> <span class="o">=</span> <span class="n">at</span> <span class="o">*</span> <span class="n">S</span>
+            <span class="n">sk</span> <span class="o">=</span> <span class="n">torch</span><span class="p">.</span><span class="nf">einsum</span><span class="p">(</span><span class="sh">"</span><span class="s">bhvk,bhk-&gt;bhv</span><span class="sh">"</span><span class="p">,</span> <span class="n">prior</span><span class="p">,</span> <span class="n">kt</span><span class="p">)</span>
+            <span class="n">delta</span> <span class="o">=</span> <span class="n">bt</span><span class="p">.</span><span class="nf">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">vt</span> <span class="o">-</span> <span class="n">sk</span><span class="p">)</span>           <span class="c1"># Prediction error from decayed state
+</span>            <span class="n">S</span> <span class="o">=</span> <span class="n">prior</span> <span class="o">+</span> <span class="n">torch</span><span class="p">.</span><span class="nf">einsum</span><span class="p">(</span><span class="sh">"</span><span class="s">bhv,bhk-&gt;bhvk</span><span class="sh">"</span><span class="p">,</span> <span class="n">delta</span><span class="p">,</span> <span class="n">kt</span><span class="p">)</span>
+
+        <span class="n">ot</span> <span class="o">=</span> <span class="n">torch</span><span class="p">.</span><span class="nf">einsum</span><span class="p">(</span><span class="sh">"</span><span class="s">bhvk,bhk-&gt;bhv</span><span class="sh">"</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">qt</span><span class="p">)</span>
+        <span class="n">outputs</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="n">ot</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">torch</span><span class="p">.</span><span class="nf">stack</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>                   <span class="c1"># [B, T, H, d_v]
+</span></code></pre></div></div> <h3 id="reproducing-both-synthetic-experiments">Reproducing both synthetic experiments</h3> <p>The following executable NumPy function returns episode means using shared draws across the compared gates. Set rho to None for the original 32-episode study; otherwise use the shared-component construction in the sensitivity study.</p> <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="n">numpy</span> <span class="k">as</span> <span class="n">np</span>
+
+<span class="k">def</span> <span class="nf">episode_scores</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">fraction</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">delta</span><span class="p">,</span> <span class="n">rho</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="mi">32</span> <span class="k">if</span> <span class="n">rho</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="mi">64</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="mi">8</span>
+    <span class="k">if</span> <span class="n">rho</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">seed</span> <span class="o">=</span> <span class="mi">27001</span> <span class="o">+</span> <span class="n">d</span> <span class="o">*</span> <span class="mi">10000</span> <span class="o">+</span> <span class="n">m</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">+</span> <span class="nf">round</span><span class="p">(</span><span class="n">fraction</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">seed</span> <span class="o">=</span> <span class="mi">27077</span> <span class="o">+</span> <span class="nf">int</span><span class="p">(</span><span class="n">rho</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">+</span> <span class="nf">int</span><span class="p">(</span><span class="n">fraction</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="n">random</span><span class="p">.</span><span class="nf">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">rng</span><span class="p">.</span><span class="nf">normal</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">rho</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">common</span> <span class="o">=</span> <span class="n">rng</span><span class="p">.</span><span class="nf">normal</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">sqrt</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">rho</span><span class="p">)</span><span class="o">*</span><span class="n">k</span> <span class="o">+</span> <span class="n">np</span><span class="p">.</span><span class="nf">sqrt</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span><span class="o">*</span><span class="n">common</span>
+    <span class="n">k</span> <span class="o">/=</span> <span class="n">np</span><span class="p">.</span><span class="n">linalg</span><span class="p">.</span><span class="nf">norm</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">rng</span><span class="p">.</span><span class="nf">integers</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">m</span><span class="p">))</span>
+    <span class="n">latest</span> <span class="o">=</span> <span class="n">y</span><span class="p">.</span><span class="nf">copy</span><span class="p">()</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nf">int</span><span class="p">(</span><span class="n">m</span> <span class="o">*</span> <span class="n">fraction</span><span class="p">)</span>
+    <span class="n">rr</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">arange</span><span class="p">(</span><span class="n">N</span><span class="p">)[:,</span> <span class="bp">None</span><span class="p">]</span>
+    <span class="n">ix</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">argsort</span><span class="p">(</span><span class="n">rng</span><span class="p">.</span><span class="nf">random</span><span class="p">((</span><span class="n">N</span><span class="p">,</span><span class="n">m</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="p">:</span><span class="n">n</span><span class="p">]</span>
+    <span class="n">changed</span> <span class="o">=</span> <span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">rr</span><span class="p">,</span><span class="n">ix</span><span class="p">]</span> <span class="o">+</span> <span class="n">rng</span><span class="p">.</span><span class="nf">integers</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">C</span><span class="p">,</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="n">n</span><span class="p">)))</span> <span class="o">%</span> <span class="n">C</span>
+    <span class="n">latest</span><span class="p">[</span><span class="n">rr</span><span class="p">,</span><span class="n">ix</span><span class="p">]</span> <span class="o">=</span> <span class="n">changed</span>
+    <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">,</span><span class="n">C</span><span class="p">,</span><span class="n">d</span><span class="p">))</span>
+    <span class="n">I</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">eye</span><span class="p">(</span><span class="n">C</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">prior</span> <span class="o">=</span> <span class="n">alpha</span><span class="o">*</span><span class="n">S</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">value</span> <span class="o">-</span> <span class="n">np</span><span class="p">.</span><span class="nf">einsum</span><span class="p">(</span><span class="sh">'</span><span class="s">ncd,nd-&gt;nc</span><span class="sh">'</span><span class="p">,</span><span class="n">prior</span><span class="p">,</span><span class="n">key</span><span class="p">)</span> <span class="k">if</span> <span class="n">delta</span> <span class="k">else</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="n">prior</span> <span class="o">+</span> <span class="n">beta</span><span class="o">*</span><span class="n">r</span><span class="p">[:,:,</span><span class="bp">None</span><span class="p">]</span><span class="o">*</span><span class="n">key</span><span class="p">[:,</span><span class="bp">None</span><span class="p">,:]</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+        <span class="n">S</span> <span class="o">=</span> <span class="nf">step</span><span class="p">(</span><span class="n">S</span><span class="p">,</span><span class="n">k</span><span class="p">[:,</span><span class="n">t</span><span class="p">],</span><span class="n">I</span><span class="p">[</span><span class="n">y</span><span class="p">[:,</span><span class="n">t</span><span class="p">]])</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">S</span> <span class="o">=</span> <span class="nf">step</span><span class="p">(</span><span class="n">S</span><span class="p">,</span><span class="n">k</span><span class="p">[</span><span class="n">np</span><span class="p">.</span><span class="nf">arange</span><span class="p">(</span><span class="n">N</span><span class="p">),</span><span class="n">ix</span><span class="p">[:,</span><span class="n">t</span><span class="p">]],</span><span class="n">I</span><span class="p">[</span><span class="n">changed</span><span class="p">[:,</span><span class="n">t</span><span class="p">]])</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="nf">einsum</span><span class="p">(</span><span class="sh">'</span><span class="s">ncd,nmd-&gt;nmc</span><span class="sh">'</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+    <span class="n">ep</span> <span class="o">=</span> <span class="p">(</span><span class="n">out</span><span class="p">.</span><span class="nf">argmax</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">==</span><span class="n">latest</span><span class="p">).</span><span class="nf">mean</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ep</span><span class="p">.</span><span class="nf">mean</span><span class="p">(),</span> <span class="n">ep</span><span class="p">.</span><span class="nf">std</span><span class="p">(</span><span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="p">.</span><span class="nf">sqrt</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+
+<span class="c1"># Initial study: d in (16,32,64), m in (d//2,d,2*d,4*d),
+# fraction in (0,.25,.75), alpha in (1,.98), beta=1,
+# delta in (False,True).
+# Sensitivity: d=32, m=64, rho in (0,.25,.65),
+# fraction in (0,.25,.75), alpha in (.9,.98,1),
+# additive beta=1 or delta beta in (.25,.5,1,1.5).
+</span><span class="n">mean</span><span class="p">,</span> <span class="n">se</span> <span class="o">=</span> <span class="nf">episode_scores</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span><span class="mi">64</span><span class="p">,.</span><span class="mi">75</span><span class="p">,</span><span class="mi">1</span><span class="p">,.</span><span class="mi">25</span><span class="p">,</span><span class="bp">True</span><span class="p">,</span><span class="n">rho</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">np</span><span class="p">.</span><span class="n">testing</span><span class="p">.</span><span class="nf">assert_allclose</span><span class="p">(</span><span class="n">mean</span><span class="p">,</span> <span class="mf">0.63330078125</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">)</span>
+<span class="nf">print</span><span class="p">(</span><span class="n">mean</span><span class="p">,</span> <span class="n">se</span><span class="p">)</span>
+</code></pre></div></div> <p>Recorded reference output for this configuration: mean accuracy = 0.63330078125 (63.33%).</p> <h2 id="limitations-and-next-steps">Limitations and next steps</h2> </d-article> <d-appendix> <d-footnote-list></d-footnote-list> <d-citation-list></d-citation-list> </d-appendix> <d-bibliography src="/2027/assets/bibliography/2027-04-30-duality-of-sequence-models.bib"></d-bibliography> <d-article> <h2 class="text-3xl font-semibold mb-4 mt-12">Enjoy Reading This Article?</h2> <p class="mb-2">Here are some more articles you might like to read next:</p> <ul class="list-disc pl-7 my-3 space-y-2 marker:text-[var(--global-theme-color)]"> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/when-b-is-correct/">When B Is Correct</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/what-did-the-alignment-learn/">Wrong Clips, Right Categories: What Cross-Modal Alignment Actually Learns</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/two-fragments-or-silence/">Two Fragments, or Silence</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/toward-observability-in-physical-ai/">Toward Observability in Physical AI: Offline Diagnostics for Imitation-Learning Policies in Robotics</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/sac-massive-sim/">Getting SAC to Work on a Massively Parallel Simulator: An RL Journey With Off-Policy Algorithms</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/rubrics-and-rl/">Do Rubrics Expand What RL Can Learn?</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/repeatable-evaluation-decisions/">How Many Tasks Make an AI Evaluation Decision Repeatable?</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/remembering-everything/">Why LLMs Can’t Let Go</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/polyglot-dgm/">What Are We Actually Evolving? Four Flaws in Darwin Gödel Machine’s Polyglot Environment</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/mirror-test/">Does a Verlet-Like Orbit Transformer Respect the Mirror?</a> </li> </ul> <br> <br> </d-article> </div> <footer class="sticky-bottom mt-5" role="contentinfo"> <div class="container"> © Copyright 2026 ICLR Blog. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. Photos from <a href="https://unsplash.com" target="_blank" rel="external nofollow noopener">Unsplash</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/2027/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script src="/2027/assets/js/distillpub/overrides.js"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/2027/assets/al_math/js/mathjax-setup.js"></script> <script src="/2027/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/2027/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/2027/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/2027/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/2027/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/2027/assets/al_img_tools/js/zoom.js"></script> <script defer src="/2027/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/2027/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/2027/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-home",
+    title: "home",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/2027/";
+    },
+  },{id: "nav-about",
+          title: "about",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/about/";
+          },
+        },{id: "nav-call-for-blogposts",
+          title: "call for blogposts",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/call/";
+          },
+        },{id: "nav-submitting",
+          title: "submitting",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/submitting/";
+          },
+        },{id: "nav-reviewing",
+          title: "reviewing",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/reviewing/";
+          },
+        },{id: "dropdown-lt-strong-gt-2027-lt-strong-gt",
+              title: "<strong>2027</strong>",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2027/";
+              },
+            },{id: "dropdown-2026",
+              title: "2026",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2026/";
+              },
+            },{id: "dropdown-2025",
+              title: "2025",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2025/";
+              },
+            },{id: "dropdown-2024",
+              title: "2024",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2024/";
+              },
+            },{id: "dropdown-2023",
+              title: "2023",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2023/";
+              },
+            },{id: "dropdown-2022",
+              title: "2022",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blog-track.github.io/home/";
+              },
+            },{id: "post-when-b-is-correct",
+        
+          title: "When B Is Correct",
+        
+        description: "On 72 multiple-choice questions, simply reversing the order of two answer lines changed whether activation steering helped either of two small language models. With the correct letters held fixed and 144 responses per layout, steering gave Qwen 11 more correct answers when A appeared first and 19 fewer when B appeared first. SmolLM2 showed the same reversal, yet all 16 of its changed answers went to the first printed line, compared with 13 of 34 for Qwen.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/when-b-is-correct/";
+          
+        },
+      },{id: "post-wrong-clips-right-categories-what-cross-modal-alignment-actually-learns",
+        
+          title: "Wrong Clips, Right Categories: What Cross-Modal Alignment Actually Learns",
+        
+        description: "Rotating audio and video embeddings into alignment boosts cross-modal event recognition from 36.7% to 90.5%. Yet shuffling almost every audio-video pair within its category gives nearly the same score (90.1%), while holding out categories breaks transfer completely.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/what-did-the-alignment-learn/";
+          
+        },
+      },{id: "post-two-fragments-or-silence",
+        
+          title: "Two Fragments, or Silence",
+        
+        description: "A personal agent that already holds memories a person chose to share should default to silence. The only other action returns two original fragments and one gap or causal constraint already written in those texts. Semantic nearness is not a trigger, a feeling of insight is not evidence, and whether an interruption is worth making is left open.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/two-fragments-or-silence/";
+          
+        },
+      },{id: "post-toward-observability-in-physical-ai-offline-diagnostics-for-imitation-learning-policies-in-robotics",
+        
+          title: "Toward Observability in Physical AI: Offline Diagnostics for Imitation-Learning Policies in Robotics",
+        
+        description: "When an imitation-learning policy fails on a robot, the failure looks the same whatever its cause. We turn the terms of the objective behind the Action Chunking Transformer into ten metrics that are computed from recorded demonstrations and saved policies, without a robot, each with a reference value and a place in a fixed order of checks. On two datasets from a low-cost arm they expose a policy that had been trained for 2 steps instead of 20,000, policies that take 98 to 100% of their output from the cameras and almost none from the joint readings, and a measure of the demonstrations alone that anticipates the error after training.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/toward-observability-in-physical-ai/";
+          
+        },
+      },{id: "post-getting-sac-to-work-on-a-massively-parallel-simulator-an-rl-journey-with-off-policy-algorithms",
+        
+          title: "Getting SAC to Work on a Massively Parallel Simulator: An RL Journey With...",
+        
+        description: "This post details how to get the Soft Actor-Critic (SAC) and other off-policy reinforcement learning algorithms to work on massively parallel simulators (e.g., Isaac Sim with thousands of robots simulated in parallel) for locomotion tasks. In addition to tuning SAC for speed, the post also explores why SAC fails where PPO succeeds, highlighting a common problem in task design that many codebases share.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/sac-massive-sim/";
+          
+        },
+      },{id: "post-do-rubrics-expand-what-rl-can-learn",
+        
+          title: "Do Rubrics Expand What RL Can Learn?",
+        
+        description: "We compare rubric-based reinforcement learning with supervised and on-policy distillation on four mathematical reasoning benchmarks. Across sampling budgets, the results depend on the benchmark, the model that generates and judges the rubrics, and the form of supervision.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/rubrics-and-rl/";
+          
+        },
+      },{id: "post-how-many-tasks-make-an-ai-evaluation-decision-repeatable",
+        
+          title: "How Many Tasks Make an AI Evaluation Decision Repeatable?",
+        
+        description: "An item count chosen for global score dependability need not achieve a specified level of repeat agreement at a pass/fail threshold. We compare the standard projected dependability coefficient Phi with exact finite-pool classification probabilities on matched response matrices from seven historical AI benchmark populations and three fixed synthetic cuts. On SWE-bench Verified, the projected count is 43 items, while 66 items are required for 90% mean agreement.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/repeatable-evaluation-decisions/";
+          
+        },
+      },{id: "post-why-llms-can-t-let-go",
+        
+          title: "Why LLMs Can’t Let Go",
+        
+        description: "Large Language Models now have access to more context than ever before. A natural concern in this setting has been their ability to retrieve information from that context. We shed light on other problems that arise with larger context windows, not because the model cannot locate the relevant context, but because it cannot ignore the irrelevant context. Through this blog, we aim to motivate the community to think beyond scaling the context window and retrieving the right context, toward the model's ability to ignore what it does not need.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/remembering-everything/";
+          
+        },
+      },{id: "post-what-are-we-actually-evolving-four-flaws-in-darwin-gödel-machine-s-polyglot-environment",
+        
+          title: "What Are We Actually Evolving? Four Flaws in Darwin Gödel Machine’s Polyglot Environment...",
+        
+        description: "Self-evolving coding agents such as Darwin Gödel Machine (DGM) use their scores on a coding benchmark to guide changes to their own harnesses, such as their tools and workflows. We find four flaws in DGM’s adaptation of Aider’s Polyglot benchmark that make these scores an unreliable signal of which harness changes improve a coding agent. Later systems such as Huxley-Gödel Machine reuse the same evaluation setup and inherit these flaws. In this misconfigured Polyglot environment, agents can access hidden tests and solutions, task contracts and supporting files are missing, and most Java tests are skipped. Repairing the environment shifts the score of the same gpt-5.4-mini agent by up to 12 percentage points. This sensitivity to the evaluation setup warrants revisiting DGM’s reported gains on Polyglot, and it shows that a correct environment is a precondition for reliable self-evolving systems.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/polyglot-dgm/";
+          
+        },
+      },{id: "post-does-a-verlet-like-orbit-transformer-respect-the-mirror",
+        
+          title: "Does a Verlet-Like Orbit Transformer Respect the Mirror?",
+        
+        description: "Small transformers trained only on counter-clockwise planetary orbits have been described as close to Verlet, a textbook integration rule. Reflecting held-out orbits about their major axes leaves the physics intact, yet all five noise-free baseline models, trained on counter-clockwise orbits only, fail the mirror test while their rotation-equivariance error stays small. Adding mirrored orbits at the same training budget narrows the gap in steps, and for the recipe with input noise the outcome at 50% mirrored data is undetermined by the criterion set in advance.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/mirror-test/";
+          
+        },
+      },{id: "post-one-kernel-two-transformers-what-a-text-llm-megakernel-teaches-us-about-streaming-tts",
+        
+          title: "One Kernel, Two Transformers - What a Text-LLM Megakernel Teaches Us About Streaming...",
+        
+        description: "Persistent megakernels have made batch-one LLM decoding fast by removing launch overhead. I take one written for a 0.6B text model and reuse it, almost unchanged, for both transformer stages of a streaming codec-language-model TTS system. The speedups are real. So are two quality problems: the model inserts extra words, and it does not stop on its own.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/megakernel-reuse-streaming-tts/";
+          
+        },
+      },{id: "post-halpern-iteration-accelerates-solving-high-order-monotone-variational-inequalities",
+        
+          title: "Halpern Iteration Accelerates Solving High-Order Monotone Variational Inequalities",
+        
+        description: "In this blog post, we revisit the classical Halpern iteration in 1967 and show its new applications in designing second- and higher-order methods for solving smooth monotone variational inequalities (MVI).  By using a large-step inexact Halpern iteration, we propose a novel pth-order method Halpern-ATM, that achieves a fast convergence rate of Õ(T⁻ᵖ). This improves the best-known results for p ≥ 2 since 2012 and matches the classical extragradient method for p = 1.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/halpern-npe/";
+          
+        },
+      },{id: "post-telling-a-small-misaligned-model-it-39-s-being-evaluated-barely-moves-its-misalignment",
+        
+          title: "Telling a small misaligned model it's being evaluated barely moves its misalignment",
+        
+        description: "We trained a small open model on bad medical advice, then told it that it was being evaluated. Its answers stayed about as misaligned as before. The AI judge that scores those answers made a far bigger difference, which affects anyone measuring emergent misalignment or comparing results across papers.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/emergent-misalignment-evaluation-cue/";
+          
+        },
+      },{id: "post-the-linear-algebra-of-long-context-what-recurrent-sequence-models-remember-forget-and-overwrite",
+        
+          title: "The Linear Algebra of Long Context: What Recurrent Sequence Models Remember, Forget, and...",
+        
+        description: "This post examines scalar forgetting, directional memory updates, and simplified linear test-time training through a common matrix-state framework. Controlled associative-recall experiments illustrate why an exact local overwrite does not guarantee better aggregate retrieval.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/duality-of-sequence-models/";
+          
+        },
+      },{id: "post-does-recursion-depth-mean-difficulty-a-token-level-test-of-mixture-of-recursions",
+        
+          title: "Does Recursion Depth Mean Difficulty? A Token-Level Test of Mixture-of-Recursions",
+        
+        description: "Mixture-of-Recursions gives each token a recursion depth, and the original paper reads depth as a sign of how easily the next token can be predicted. We test that reading on the released 360M checkpoints. Depth is low for easy tokens and stops rising near the median token, the hardest tokens gain least from depth, and token-choice depth is almost a fixed function of the token.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/does-recursion-depth-mean-difficulty/";
+          
+        },
+      },{id: "post-sample-blog-post",
+        
+          title: "Sample Blog Post",
+        
+        description: "Your blog post's abstract. Please add your abstract or summary here and not in the main body of your text. Do not include math/latex or hyperlinks.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/distill-example/";
+          
+        },
+      },{id: "post-from-strongly-adaptive-regret-to-discounted-regret",
+        
+          title: "From Strongly Adaptive Regret to Discounted Regret",
+        
+        description: "Discounted regret against a fixed comparator equals a convex combination of regrets over suffixes of the horizon. This post derives the identity, uses it to transfer strongly adaptive regret bounds to all nonincreasing discount sequences at once, and collects the resulting uniform bounds for convex, strongly convex, and exp-concave losses.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/discounted-regret-suffix-mixture/";
+          
+        },
+      },{id: "post-what-makes-a-good-toy-example-for-diffusion-models",
+        
+          title: "What Makes a Good Toy Example for Diffusion Models?",
+        
+        description: "Toys help us see diffusion algorithms at the level of distributions—but the moment we design a toy, we may also (without noticing) choose a side by baking in preferences. Using guidance in diffusion models, we examine how class separation and within-class branching shape what we conclude from a toy.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/diffusion-toy-design/";
+          
+        },
+      },{id: "post-consequence-persistence-admission-control-for-open-agent-meshes",
+        
+          title: "Consequence Persistence: Admission Control for Open Agent Meshes",
+        
+        description: "Open agent meshes can fail while every request stays valid. A consequence persistence layer checks a signed header before the payload, keeps a subjective viability score by identity and task, and makes viability fall much faster than it recovers. The price of a fresh identity, false isolation of long tasks, and the receiver's cost of holding a delay are left open.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/consequence-persistence/";
+          
+        },
+      },{id: "post-beyond-surface-alignment-belief-as-the-gateway-to-deep-alignment-in-llms",
+        
+          title: "Beyond Surface Alignment: Belief as the Gateway to Deep Alignment in LLMs",
+        
+        description: "Surface alignment changes what a model says, but whether the internal beliefs of a model are aligned with the real world still lacks effective, unified means of observation and intervention. On this basis, we argue that alignment research needs to attend more closely to the belief layer.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/beyond-surface-alignment/";
+          
+        },
+      },{id: "post-a-pass-is-not-a-guard",
+        
+          title: "A Pass Is Not a Guard",
+        
+        description: "A truncated tool call wrote a 16-line file while the agent reported success. Building a conformance suite around that case exposed a harder problem: nine ways our own measurement produced a confident wrong answer, and the rules we added to stop it.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/a-pass-is-not-a-guard/";
+          
+        },
+      },{id: "post-a-post-with-marimo-snippets",
+        
+          title: "a post with marimo snippets",
+        
+        description: "running Python in the browser with marimo",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/marimo/";
+          
+        },
+      },{id: "post-یک-نوشتهٔ-راست-چین",
+        
+          title: "یک نوشتهٔ راست‌چین",
+        
+        description: "نمونه‌ای از پشتیبانی زبان‌های راست‌چین",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/rtl/";
+          
+        },
+      },{id: "books-the-godfather",
+          title: 'The Godfather',
+          description: "",
+          section: "Books",handler: () => {
+              window.location.href = "/2027/books/the_godfather/";
+            },},{id: "news-a-simple-inline-announcement",
+          title: 'A simple inline announcement.',
+          description: "",
+          section: "News",},{id: "news-a-long-announcement-with-details",
+          title: 'A long announcement with details',
+          description: "",
+          section: "News",handler: () => {
+              window.location.href = "/2027/news/announcement_2/";
+            },},{id: "news-a-simple-inline-announcement-with-markdown-emoji-sparkles-smile",
+          title: 'A simple inline announcement with Markdown emoji! <img class="emoji" title=":sparkles:" alt=":sparkles:" src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png" height="20" width="20"> <img class="emoji" title=":smile:" alt=":smile:" src="https://github.githubassets.com/images/icons/emoji/unicode/1f604.png" height="20" width="20">',
+          description: "",
+          section: "News",},{id: "projects-project-1",
+          title: 'project 1',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/1_project/";
+            },},{id: "projects-project-2",
+          title: 'project 2',
+          description: "a project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/2_project/";
+            },},{id: "projects-project-3-with-very-long-name",
+          title: 'project 3 with very long name',
+          description: "a project that redirects to another website",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/3_project/";
+            },},{id: "projects-project-4",
+          title: 'project 4',
+          description: "another without an image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/4_project/";
+            },},{id: "projects-project-5",
+          title: 'project 5',
+          description: "a project with a background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/5_project/";
+            },},{id: "projects-project-6",
+          title: 'project 6',
+          description: "a project with no image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/6_project/";
+            },},{id: "projects-project-7",
+          title: 'project 7',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/7_project/";
+            },},{id: "projects-project-8",
+          title: 'project 8',
+          description: "an other project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/8_project/";
+            },},{id: "projects-project-9",
+          title: 'project 9',
+          description: "another project with an image 🎉",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/9_project/";
+            },},{id: "teachings-data-science-fundamentals",
+          title: 'Data Science Fundamentals',
+          description: "This course covers the foundational aspects of data science, including data collection, cleaning, analysis, and visualization. Students will learn practical skills for working with real-world datasets.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/data-science-fundamentals/";
+            },},{id: "teachings-introduction-to-machine-learning",
+          title: 'Introduction to Machine Learning',
+          description: "This course provides an introduction to machine learning concepts, algorithms, and applications. Students will learn about supervised and unsupervised learning, model evaluation, and practical implementations.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/introduction-to-machine-learning/";
+            },},{
+        id: 'social-cv',
+        title: 'CV',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/assets/pdf/example_pdf.pdf", "_blank");
+        },
+      },{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%79%6F%75@%65%78%61%6D%70%6C%65.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-inspire',
+        title: 'Inspire HEP',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://inspirehep.net/authors/1010907", "_blank");
+        },
+      },{
+        id: 'social-rss',
+        title: 'RSS Feed',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/feed.xml", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=qc6CJjYAAAAJ", "_blank");
+        },
+      },{
+        id: 'social-custom_social',
+        title: 'Custom_social',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.alberteinstein.com/", "_blank");
+        },
+      },{
+      id: 'light-theme',
+      title: 'Change theme to light',
+      description: 'Change the theme of the site to Light',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("light");
+      },
+    },
+    {
+      id: 'dark-theme',
+      title: 'Change theme to dark',
+      description: 'Change the theme of the site to Dark',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("dark");
+      },
+    },
+    {
+      id: 'system-theme',
+      title: 'Use system default theme',
+      description: 'Change the theme of the site to System Default',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("system");
+      },
+    },];
+
+</script> <script src="/2027/assets/al_search/js/shortcut-key.js"></script> </body> </html>
