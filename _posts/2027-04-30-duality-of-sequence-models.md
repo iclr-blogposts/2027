@@ -27,9 +27,9 @@ toc:
 
 ## The quadratic wall and separate paradigms
 
-For nearly a decade, causal Softmax Attention <d-cite key="vaswani2017"></d-cite> has been a widely used backbone of frontier sequence modeling. Its strength comes from a simple, non-parametric design: at every token $$t$$, the model retains the complete history of past keys $$\{\mathbf{k}_s\}_{s=1}^t$$ and values $$\{\mathbf{v}_s\}_{s=1}^t$$ in a growing key-value (KV) cache in standard full-cache inference, computing an exact, data-dependent convex combination over all prior tokens. Yet this exactness comes at an $$\mathcal{O}(T^2)$$ prefill compute cost and an $$\mathcal{O}(T)$$ per-token key-value read cost for a fixed head dimension during autoregressive decoding.
+For nearly a decade, causal Softmax Attention <d-cite key="vaswani2017"></d-cite> has been a widely used backbone of frontier sequence modeling. Its retrieval mechanism retains explicit token-level keys and values: at every token $$t$$, the model retains the complete history of past keys $$\{\mathbf{k}_s\}_{s=1}^t$$ and values $$\{\mathbf{v}_s\}_{s=1}^t$$ in a growing key-value (KV) cache in standard full-cache inference, computing an exact, data-dependent convex combination over all prior tokens. Yet this exactness comes at an $$\mathcal{O}(T^2)$$ prefill compute cost and an $$\mathcal{O}(T)$$ per-token key-value read cost for a fixed head dimension during autoregressive decoding.
 
-Reading these papers in isolation creates a false dichotomy. Practitioners frequently ask: *Are state-space models fundamentally different from linear attention? Why did Mamba-2 suddenly look like a masked Transformer? And why can some $$\mathcal{O}(T)$$ recurrent models struggle with associative retrieval?*
+Reading the literature on recurrent sequence mixing in isolation can obscure connections between its different mathematical traditions. Practitioners frequently ask: *Are state-space models fundamentally different from linear attention? Why did Mamba-2 suddenly look like a masked Transformer? And why can some $$\mathcal{O}(T)$$ recurrent models struggle with associative retrieval?*
 
 <!-- Author: articulate the three traditions and the specific original contribution using your own words. Cite prior equivalences explicitly. -->
 <d-cite key="katharopoulos2020,schlag2021,dao2024,yang2025gated,sun2025"></d-cite>
@@ -60,7 +60,7 @@ $$\mathbf{S}_t = \mathbf{S}_{t-1} \mathbf{A}_t + \beta_t \mathbf{v}_t \mathbf{k}
 
 ### The Algebraic Equivalence of DeltaNet and TTT-Linear
 
-Notice the bottom three rows of the table. Suppose we view the matrix $$\mathbf{S}_{t-1} \in \mathbb{R}^{d_v \times d_k}$$ as the weights of a linear associative network $$f(\mathbf{k}; \mathbf{S}) = \mathbf{S}\mathbf{k}$$ trained online to map incoming key $$\mathbf{k}_t$$ to target value $$\mathbf{v}_t$$ under the self-supervised reconstruction loss:
+Compare the non-decaying delta rule with the simplified linear TTT row. Suppose we view the matrix $$\mathbf{S}_{t-1} \in \mathbb{R}^{d_v \times d_k}$$ as the weights of a linear associative network $$f(\mathbf{k}; \mathbf{S}) = \mathbf{S}\mathbf{k}$$ trained online to map incoming key $$\mathbf{k}_t$$ to target value $$\mathbf{v}_t$$ under the self-supervised reconstruction loss:
 
 $$\mathcal{L}_t(\mathbf{S}) = \frac{1}{2} \big\Vert{} \mathbf{S} \mathbf{k}_t - \mathbf{v}_t \big\Vert{}_2^2$$
 
@@ -68,7 +68,9 @@ Taking the gradient with respect to $$\mathbf{S}$$ gives $$\nabla_{\mathbf{S}} \
 
 $$\begin{aligned} \mathbf{S}_t &= \mathbf{S}_{t-1} - \eta_t \nabla_{\mathbf{S}} \mathcal{L}_t(\mathbf{S}_{t-1}) \\ &= \mathbf{S}_{t-1} - \eta_t \big(\mathbf{S}_{t-1}\mathbf{k}_t - \mathbf{v}_t\big)\mathbf{k}_t^\top \\ &= \mathbf{S}_{t-1}\big(\mathbf{I}_{d_k} - \eta_t \mathbf{k}_t \mathbf{k}_t^\top\big) + \eta_t \mathbf{v}_t \mathbf{k}_t^\top \end{aligned}$$
 
-<!-- Author: distinguish normalized kernel attention, the full Mamba-2 and TTT layers, and a simplified online squared-loss recurrence. The exact SGD identity is not an equivalence of full architectures. -->
+For normalized positive-feature kernel attention, an additional state $z_t=\sum_{s\leq t}\phi(k_s)$ is needed, with output $o_t=S_t\phi(q_t)/(z_t^\top\phi(q_t))$ when the denominator is nonzero. Here the memory-state keys are the feature-mapped vectors, not necessarily raw keys.
+
+<!-- Author: distinguish full Mamba-2 and TTT layers from the simplified recurrences, and explain the relationship in your own words. -->
 
 ## Structured state-space duality
 
@@ -96,7 +98,9 @@ $$L_{t,s} = \left(\prod_{r=m+1}^t \alpha_r\right) \cdot \left(\prod_{r=s+1}^m \a
 
 <d-cite key="dao2024"></d-cite>
 
-<!-- Author: explain nonzero initial state and why materializing the whole mask would be quadratic. -->
+For nonzero initial state, add $c_t S_0q_t$ to the readout, where $c_t=\prod_{r=1}^{t}\alpha_r$. Materializing the full $T\times T$ matrix would still be quadratic in sequence length; the semiseparable structure is useful because the off-diagonal blocks can be handled using boundary states.
+
+<!-- Author: provide your own discussion of chunk size, memory traffic and dense matrix multiplication. -->
 
 
 ## Scalar retention and capacity
@@ -105,9 +109,9 @@ Suppose a model stores $$M$$ key-value pairs $$\{(\mathbf{k}_s, \mathbf{v}_s)\}_
 
 $$\mathbf{o}_T = \mathbf{S}_T \mathbf{k}_{s^*} = \underbrace{\gamma_{T, s^*} \|\mathbf{k}_{s^*}\|_2^2 \, \mathbf{v}_{s^*}}_{\text{Desired Needle Signal}} + \underbrace{\sum_{s \neq s^*} \gamma_{T, s} (\mathbf{k}_s^\top \mathbf{k}_{s^*}) \, \mathbf{v}_s}_{\text{Additive Cross-Talk Noise}}$$
 
-This exposes a fundamental **Capacity-Forgetting Dilemma**:
+This separates the desired signal from interference.
 
-For independent random unit keys, the off-target dot products have mean zero and variance approximately $$1/d_k$$. If the values and keys are independent and the values have unit norm, the expected squared cross-talk norm for the additive rule is $$(M-1)/d_k$$. This is a mean-square statement under the stated random-key assumptions, not a universal accuracy bound.
+For independent random unit keys, the off-target dot products have mean zero and variance exactly $1/d_k$ under the uniform spherical distribution. If the values and keys are independent and the values have unit norm, the expected squared cross-talk norm for the unweighted additive rule (unit write and retention gates) is $$(M-1)/d_k$$. This is a mean-square statement under the stated random-key assumptions, not a universal accuracy bound.
 
 Exact representability of a set of key-value bindings requires $$SK=V$$, where the columns of $$K$$ and $$V$$ are keys and target values. A linear solution exists if and only if $$\ker K\subseteq\ker V$$. 
 
@@ -140,9 +144,9 @@ $$
 
 ## Chunkwise parallelization
 
-At first glance, DeltaNet's non-diagonal transition matrix $$\mathbf{A}_t = \alpha_t(\mathbf{I} - \beta_t \mathbf{k}_t \mathbf{k}_t^\top)$$ requires care in parallel training: unlike Mamba-2's scalar $$\alpha_t$$, rank-one transition factors **do not commute** ($$\mathbf{A}_2 \mathbf{A}_1 \neq \mathbf{A}_1 \mathbf{A}_2$$).
+At first glance, DeltaNet's non-diagonal transition matrix $$\mathbf{A}_t = \alpha_t(\mathbf{I} - \beta_t \mathbf{k}_t \mathbf{k}_t^\top)$$ requires care in parallel training: unlike Mamba-2's scalar $$\alpha_t$$, rank-one transition factors **generally do not commute** ($$\mathbf{A}_2 \mathbf{A}_1 \neq \mathbf{A}_1 \mathbf{A}_2$$).
 
-A useful factorization is the WY representation. Over a chunk of $$B$$ tokens with keys $$\mathbf{K}_{[b]} \in \mathbb{R}^{B \times d_k}$$ and write gates $$\boldsymbol{\beta}_{[b]} \in \mathbb{R}^B$$, the product of $$B$$ sequential Householder updates can be factored into a single rank-$$B$$ update:
+A useful factorization is the WY representation. Over a chunk of $$B$$ tokens with keys $$\mathbf{K}_{[b]} \in \mathbb{R}^{B \times d_k}$$ and write gates $$\boldsymbol{\beta}_{[b]} \in \mathbb{R}^B$$, the product of $$B$$ sequential rank-one transition factors can be factored into a single update of rank at most $B$:
 
 $$\prod_{r=1}^{B} \big(\mathbf{I}_{d_k} - \beta_r \mathbf{k}_r \mathbf{k}_r^\top\big) = \mathbf{I}_{d_k} - \mathbf{K}_{[b]}^\top \mathbf{T}_{[b]} \mathbf{K}_{[b]}$$
 
@@ -202,6 +206,26 @@ Total: 36 conditions, 1,152 independent episodes and 4,608 episode-rule evaluati
 
 <!-- Author: interpret the measured crossover and report uncertainty, acknowledge fixed hyperparameters and random untrained features. Do not represent the data as trained-model benchmarks. -->
 
+### Gate sensitivity and correlated keys
+
+| Setting | Value |
+|---|---|
+| Key dimension / distinct keys | 32 / 64 |
+| Shared Gaussian component weights | 0, 0.25, 0.65 |
+| Overwrite fractions | 0, 0.25, 0.75 |
+| Episodes per condition | 64 |
+| Retention gates | 0.90, 0.98, 1.00 |
+| Delta step sizes | 0.25, 0.50, 1.00, 1.50 |
+| Additive write step | 1.00 |
+
+Each key is sampled by normalizing $\sqrt{1-\rho}\epsilon_i+\sqrt{\rho}u$, where $u$ is shared within an episode and $\epsilon_i$ is independent standard Gaussian noise. There are nine paired conditions, 576 independent episodes and 8,640 episode-configuration evaluations. The observed average pairwise cosine in the nine conditions is displayed in the figure.
+
+<div class="l-page">
+  <iframe title="Measured gate sensitivity and key correlation" src="{{ 'assets/html/2027-04-30-duality-of-sequence-models/gate-sensitivity.html' | relative_url }}" frameborder="0" height="650px" width="100%" loading="lazy"></iframe>
+</div>
+
+<!-- Author: compare beta=1 against smaller steps, discuss the effect of correlated keys, and distinguish exploratory selection on the same episodes from held-out hyperparameter validation. -->
+
 ## Reference implementation
 
 ```python
@@ -245,6 +269,56 @@ def unified_rank1_recurrence(q, k, v, alpha, beta, mode="gated_deltanet"):
         outputs.append(ot)
 
     return torch.stack(outputs, dim=1)                   # [B, T, H, d_v]
+```
+
+### Reproducing both synthetic experiments
+
+The following executable NumPy function returns episode means using shared draws across the compared gates. Set rho to None for the original 32-episode study; otherwise use the shared-component construction in the sensitivity study.
+
+```python
+import numpy as np
+
+def episode_scores(d, m, fraction, alpha, beta, delta, rho=None):
+    N = 32 if rho is None else 64
+    C = 8
+    if rho is None:
+        seed = 27001 + d * 10000 + m * 100 + round(fraction * 100)
+    else:
+        seed = 27077 + int(rho * 100) * 100 + int(fraction * 100)
+    rng = np.random.default_rng(seed)
+    k = rng.normal(size=(N, m, d))
+    if rho is not None:
+        common = rng.normal(size=(N, 1, d))
+        k = np.sqrt(1-rho)*k + np.sqrt(rho)*common
+    k /= np.linalg.norm(k, axis=-1, keepdims=True)
+    y = rng.integers(C, size=(N, m))
+    latest = y.copy()
+    n = int(m * fraction)
+    rr = np.arange(N)[:, None]
+    ix = np.argsort(rng.random((N,m)), axis=1)[:, :n]
+    changed = (y[rr,ix] + rng.integers(1,C,size=(N,n))) % C
+    latest[rr,ix] = changed
+    S = np.zeros((N,C,d))
+    I = np.eye(C)
+    def step(S, key, value):
+        prior = alpha*S
+        r = value - np.einsum('ncd,nd->nc',prior,key) if delta else value
+        return prior + beta*r[:,:,None]*key[:,None,:]
+    for t in range(m):
+        S = step(S,k[:,t],I[y[:,t]])
+    for t in range(n):
+        S = step(S,k[np.arange(N),ix[:,t]],I[changed[:,t]])
+    out = np.einsum('ncd,nmd->nmc',S,k)
+    ep = (out.argmax(-1)==latest).mean(1)
+    return ep.mean(), ep.std(ddof=1)/np.sqrt(N)
+
+# Initial study: d in (16,32,64), m in (d//2,d,2*d,4*d),
+# fraction in (0,.25,.75), alpha in (1,.98), beta=1,
+# delta in (False,True).
+# Sensitivity: d=32, m=64, rho in (0,.25,.65),
+# fraction in (0,.25,.75), alpha in (.9,.98,1),
+# additive beta=1 or delta beta in (.25,.5,1,1.5).
+print(episode_scores(32,64,.75,1,.25,True,rho=0))
 ```
 
 ## Limitations and next steps
