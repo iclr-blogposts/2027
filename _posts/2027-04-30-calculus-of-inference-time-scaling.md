@@ -18,6 +18,11 @@ toc:
   - name: "Verifier tail risk and over-optimization"
   - name: "Reference implementation and reproducibility"
   - name: "Limitations and open questions"
+  - name: "Rollout dependence and length normalization"
+  - name: "Verifier calibration and distribution shift"
+  - name: "Adaptive stopping and shared verifier failures"
+  - name: "Global inference budget allocation"
+  - name: "Connections to recent literature and research agenda"
 ---
 
 <!-- AUTHOR-REVIEW SCAFFOLD ONLY. The supplied draft contains unsupported claims and illustrative curves; it is preserved separately. Write the main scientific narrative yourself, review the AI-assisted research exhibits and disclose assistance accurately before any formal submission. Do not submit this scaffold as a finished article. -->
@@ -168,3 +173,81 @@ def process_scores(p, mask):
 ## Limitations and open questions
 
 <!-- Author narrative required: no pretrained LLM or real hardware benchmark, artificial step-success and revision model, simplified proxy scores, cost omits verifier calls, no claim about actual proprietary models. Propose a real model experiment with fixed prompt split, shared sampling budget, calibrated verifier, blinded gold labels, length-stratified metrics, and uncertainty across problems. Verify conflicts of interest and AI-use disclosure personally. -->
+
+
+## Rollout dependence and length normalization
+
+<d-cite key="shao2024,liu2025,yu2025,chen2021"></d-cite>
+
+$$
+P(\text{mixed})=(1-c)[1-p^G-(1-p)^G],\qquad
+G_{\rm eff}=\frac{G}{1+(G-1)c}.
+$$
+
+<!-- Author: derive the mixture model; separate within-prompt correlation from heterogeneous prompt difficulty. Explain the independence assumptions and why an ESS for the sample mean cannot be substituted into pass@N. Interpret the scalar gradient coefficients, not full gradient vectors. -->
+
+<div class="l-page">
+  <iframe title="Exact correlated rollout model and length-weighting comparison" src="{{ 'assets/html/2027-04-30-calculus-of-inference-time-scaling/correlated-rollouts.html' | relative_url }}" frameborder="0" height="800px" width="100%" loading="lazy"></iframe>
+</div>
+
+<div class="caption">Supplementary AI-assisted research exhibit: Exact correlated rollout model and length-weighting comparison. The assumptions and reproduction instructions are included in the figure.</div>
+
+
+## Verifier calibration and distribution shift
+
+<d-cite key="guo2017,zhou2026,li2026"></d-cite>
+
+$$
+\mathrm{Brier}=\frac1n\sum_i(\widehat p_i-y_i)^2,\qquad
+\widehat p_i(T)=\sigma(z_i/T).
+$$
+
+<!-- Author: distinguish ranking, calibration, thresholding and selected-answer accuracy. Interpret unchanged AUROC, reduced IID ECE and persistent shifted ECE. The temperature is selected on an independent validation split; monotonic calibration cannot improve argmax ranking by itself. -->
+
+<div class="l-page">
+  <iframe title="Held-out reliability diagrams and calibration metrics" src="{{ 'assets/html/2027-04-30-calculus-of-inference-time-scaling/calibration-lab.html' | relative_url }}" frameborder="0" height="800px" width="100%" loading="lazy"></iframe>
+</div>
+
+<div class="caption">Supplementary AI-assisted research exhibit: Held-out reliability diagrams and calibration metrics. The assumptions and reproduction instructions are included in the figure.</div>
+
+
+## Adaptive stopping and shared verifier failures
+
+<d-cite key="gao2023,snell2025,li2026,zhou2026"></d-cite>
+
+$$
+h_{\rm joint}=ch+(1-ch)\left(\frac{(1-c)h}{1-ch}\right)^2.
+$$
+
+<!-- Author: explain independent and shared tail events. Compare the fixed-64 and adaptive policies, uncertainty, and cost. The synthetic utility price and condition-specific validation thresholds are assumptions, not measured hardware costs or a deployable difficulty oracle. Discuss safety of abstention and the limits of correlated verifier ensembles. -->
+
+<div class="l-page">
+  <iframe title="Held-out compute-aware selection and correlated error ablation" src="{{ 'assets/html/2027-04-30-calculus-of-inference-time-scaling/adaptive-budget.html' | relative_url }}" frameborder="0" height="800px" width="100%" loading="lazy"></iframe>
+</div>
+
+<div class="caption">Supplementary AI-assisted research exhibit: Held-out compute-aware selection and correlated error ablation. The assumptions and reproduction instructions are included in the figure.</div>
+
+
+## Global inference budget allocation
+
+<d-cite key="snell2025,setlur2026"></d-cite>
+
+$$
+\max_{\substack{n_i\geq1\\\sum_i n_i\leq B}}
+\sum_i\left[(1-(1-p_i)h_i)^{n_i}-((1-p_i)(1-h_i))^{n_i}\right].
+$$
+
+<!-- Author: derive the exact objective only under the ideal ranking and rare-tail assumptions in the exhibit. Discuss marginal returns, unused compute, the distinction between a known-success oracle and learned routing, latency/SLO constraints and verifier cost. -->
+
+<div class="l-page">
+  <iframe title="Exact heterogeneous-workload compute allocation explorer" src="{{ 'assets/html/2027-04-30-calculus-of-inference-time-scaling/compute-allocation.html' | relative_url }}" frameborder="0" height="800px" width="100%" loading="lazy"></iframe>
+</div>
+
+<div class="caption">Supplementary AI-assisted research exhibit: Exact heterogeneous-workload compute allocation explorer. The assumptions and reproduction instructions are included in the figure.</div>
+
+
+## Connections to recent literature and research agenda
+
+<d-cite key="uesato2022,wang2024shepherd,setlur2025,zhou2026,li2026,setlur2026,hariri2026"></d-cite>
+
+<!-- Author literature synthesis: Uesato et al. and Math-Shepherd compare outcome/process supervision; Setlur et al. (2025) distinguish process progress under a prover policy from absolute step correctness; Zhou et al. (2026) study generator/verifier capability and task difficulty; Li et al. (2026) diagnose reward-model degradation during search; Setlur et al. (2026) study compute extrapolation through learned exploration. Discuss how each relates to the corresponding exhibits and where their real-model evidence differs from our synthetic evidence. Do not imply these studies were reproduced. Potential applications: code generation with hidden tests, formal theorem proving, tool-using agents, grounded QA, and scientific hypothesis generation. For each, identify an independent gold label, a verifier failure mode, a cost constraint, and a measurable outcome. -->
