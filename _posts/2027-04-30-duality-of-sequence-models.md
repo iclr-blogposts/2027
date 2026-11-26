@@ -248,6 +248,10 @@ def unified_rank1_recurrence(q, k, v, alpha, beta, mode="gated_deltanet"):
     d_v = v.shape[-1]
     S = torch.zeros(B, H, d_v, d_k, device=q.device, dtype=q.dtype)
     outputs = []
+    if mode not in {"linear_attn", "mamba2_ssd", "gated_deltanet"}:
+        raise ValueError(f"Unknown memory rule: {mode}")
+    if T == 0:
+        return v[:, :0]
 
     for t in range(T):
         qt = q[:, t]                                     # [B, H, d_k]
@@ -266,8 +270,6 @@ def unified_rank1_recurrence(q, k, v, alpha, beta, mode="gated_deltanet"):
             sk = torch.einsum("bhvk,bhk->bhv", prior, kt)
             delta = bt.squeeze(-1) * (vt - sk)           # Prediction error from decayed state
             S = prior + torch.einsum("bhv,bhk->bhvk", delta, kt)
-        else:
-            raise ValueError(f"Unknown memory rule: {mode}")
 
         ot = torch.einsum("bhvk,bhk->bhv", S, qt)
         outputs.append(ot)
@@ -323,9 +325,11 @@ def episode_scores(d, m, fraction, alpha, beta, delta, rho=None):
 # fraction in (0,.25,.75), alpha in (.9,.98,1),
 # additive beta=1 or delta beta in (.25,.5,1,1.5).
 mean, se = episode_scores(32,64,.75,1,.25,True,rho=0)
-np.testing.assert_allclose(mean, 0.63330078125, atol=1e-12)
+np.testing.assert_allclose(mean, 0.63330078125, rtol=0, atol=1e-12)
 print(mean, se)
 ```
+
+Recorded reference output for this configuration: mean accuracy = 0.63330078125 (63.33%).
 
 ## Limitations and next steps
 
