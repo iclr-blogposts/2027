@@ -21,6 +21,7 @@ toc:
   - name: Controlled associative recall experiments
   - name: Reference implementation
   - name: Limitations and next steps
+  - name: Additional interactive ablations and analytical comparisons
 ---
 
 <!-- WORKING DRAFT FOR AUTHOR REVIEW. Original supplied manuscript retained where possible; AI-assisted fact corrections, reference formatting, code and scientific figures. Author must confirm the prose satisfies the track's predominantly-human-written requirement, review all derivations and interpretations, replace any AI-authored text as needed, and remove this comment before formal submission. -->
@@ -334,3 +335,18 @@ Recorded reference output for this configuration: mean accuracy = 0.63330078125 
 ## Limitations and next steps
 
 <!-- Author: write this section in your own words. Discuss fixed gates, no training or GPU timing, random keys and values, absence of a pretrained architecture comparison, and sensitivity to key correlation and model state budget. Verify your actual AI-use disclosure and conflict-of-interest declaration. -->
+
+
+## Additional interactive ablations and analytical comparisons
+
+<div class="l-page">
+  <iframe title="Held-out gate selection, noisy queries, and reference retrieval baselines" src="{{ 'assets/html/2027-04-30-duality-of-sequence-models/heldout-ablation.html' | relative_url }}" frameborder="0" height="780px" width="100%" loading="lazy"></iframe>
+</div>
+<div class="caption">Supplementary AI-assisted experimental exhibit: held-out validation and testing, correlated keys, noisy queries, paired uncertainty, overwritten/untouched retrieval, and offline reference baselines. The executable generator is included within the figure.</div>
+
+<div class="l-page">
+  <iframe title="Analytical storage, conditioning, and scalar-retention trade-offs" src="{{ 'assets/html/2027-04-30-duality-of-sequence-models/analytical-tradeoffs.html' | relative_url }}" frameborder="0" height="780px" width="100%" loading="lazy"></iframe>
+</div>
+<div class="caption">Supplementary AI-assisted analytical exhibit: state-storage scaling, two-key Gram conditioning, and forgetting half-life. These are algebraic calculations, not measured GPU or model benchmarks.</div>
+
+<!-- Author: interpret the new independent test results in your own words. Contrast the moderate-correlation 75%-overwrite result with the high-correlation result whose paired interval crosses zero; distinguish offline ridge and explicit retrieval from matched-budget online methods. Explain the storage-only assumptions and verify all results before submission. -->
