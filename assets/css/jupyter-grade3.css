@@ -588,6 +588,18 @@ hr {
   z-index: 10;
 }
 
+#clusters > a {
+  color: #ef5c00;
+  text-decoration: underline;
+  cursor: auto;
+}
+
+#clusters > a:hover {
+  color: #126dce;
+  text-decoration: underline;
+  cursor: auto;
+}
+
 mark,
 .mark {
   background-color: #ffffff;
@@ -624,6 +636,14 @@ input.raw_input {
   margin: 0em 0.25em;
   -webkit-box-shadow: none;
   box-shadow: none;
+}
+
+audio,
+video {
+  display: inline;
+  vertical-align: middle;
+  align-content: center;
+  margin-left: 20%;
 }
 
 

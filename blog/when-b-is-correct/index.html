@@ -1,0 +1,600 @@
+<!DOCTYPE html> <html> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> When B Is Correct | ICLR Blogposts 2027 </title> <meta name="author" content="ICLR Blog"> <meta name="description" content="On 72 multiple-choice questions, simply reversing the order of two answer lines changed whether activation steering helped either of two small language models. With the correct letters held fixed and 144 responses per layout, steering gave Qwen 11 more correct answers when A appeared first and 19 fewer when B appeared first. SmolLM2 showed the same reversal, yet all 16 of its changed answers went to the first printed line, compared with 13 of 34 for Qwen."> <meta name="keywords" content="machine-learning, ml, deep-learning, reinforcement-learning, icl# add your own keywords or leave empty"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/2027/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="apple-touch-icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="stylesheet" href="/2027/assets/css/main.css?v=3116ba77db9ee1581d05bb3e86fbf7f1"> <link rel="canonical" href="https://iclr-blogposts.github.io/2027/blog/when-b-is-correct/"> <script src="/2027/assets/js/theme.js?v=5286c3e4c334d0ecb8fc0c40ff4fa7ec"></script> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-native.css?v=5847e5ed4a4568527aa6cfab446049ca" media="none" id="highlight_theme_dark"> <script>
+    initTheme();
+  </script> <link rel="stylesheet" href="/2027/assets/css/al-folio-distill.css?v=fb7196ec07cb5299d51b2cbdc69c23d7"> <script>
+  window.alFolioDistill = window.alFolioDistill || {};
+  window.alFolioDistill.templateLoader = {"url":"/2027/assets/js/distillpub/template.v2.js","integrity":"sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo=","remote":false};
+</script> <script src="/2027/assets/js/distillpub/template.v2.js" integrity="sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo="></script> <script src="/2027/assets/js/distillpub/transforms.v2.js" integrity="sha256-XYVZD1ZSuRCrJBEBl0nIPvWlo/u5tzmtyStFV7a/PTk="></script> </head> <body> <d-front-matter> <script async type="text/json">
+      {
+            "title": "When B Is Correct",
+            "description": "On 72 multiple-choice questions, simply reversing the order of two answer lines changed whether activation steering helped either of two small language models. With the correct letters held fixed and 144 responses per layout, steering gave Qwen 11 more correct answers when A appeared first and 19 fewer when B appeared first. SmolLM2 showed the same reversal, yet all 16 of its changed answers went to the first printed line, compared with 13 of 34 for Qwen.",
+            "published": "April 30, 2027",
+            "authors": [
+              
+              {
+                "author": "Anonymous",
+                "authorURL": "",
+                "affiliations": [
+                  {
+                    "name": "",
+                    "url": ""
+                  }
+                ]
+              }
+              
+            ],
+            "katex": {
+              "delimiters": [
+                {
+                  "left": "$",
+                  "right": "$",
+                  "display": false
+                },
+                {
+                  "left": "$$",
+                  "right": "$$",
+                  "display": true
+                }
+              ]
+            }
+          }
+    </script> </d-front-matter> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/2027/"> ICLR Blogposts 2027 </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/2027/about/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/call/">call for blogposts </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/submitting/">submitting </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/reviewing/">reviewing </a> </li> <li class="nav-item dropdown "> <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-nav-dropdown-toggle="true" aria-haspopup="true" aria-expanded="false">past iterations </a> <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown"> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2027/"><strong>2027</strong></a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2026/">2026</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2025/">2025</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2024/">2024</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2023/">2023</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blog-track.github.io/home/" rel="external nofollow noopener" target="_blank">2022</a> </div> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> <li class="toggle-container"> <button id="light-toggle" type="button" title="Change theme" aria-label="Change color theme"> <i class="fa-half-sun-moon" id="light-toggle-system"></i> <i class="fa-solid fa-moon" id="light-toggle-dark"></i> <i class="fa-solid fa-sun" id="light-toggle-light"></i> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="post distill"> <d-title> <h1>When B Is Correct</h1> <p>On 72 multiple-choice questions, simply reversing the order of two answer lines changed whether activation steering helped either of two small language models. With the correct letters held fixed and 144 responses per layout, steering gave Qwen 11 more correct answers when A appeared first and 19 fewer when B appeared first. SmolLM2 showed the same reversal, yet all 16 of its changed answers went to the first printed line, compared with 13 of 34 for Qwen.</p> </d-title> <d-byline></d-byline> <d-article> <d-contents> <nav class="l-text figcaption"> <h3>Contents</h3> <div> <a href="#one-answer-key-two-layouts">One answer key, two layouts</a> </div> <div> <a href="#what-a-steering-vector-changes">What a steering vector changes</a> </div> <div> <a href="#which-answers-moved">Which answers moved?</a> </div> <div> <a href="#what-the-letters-leave-out">What the letters leave out</a> </div> <div> <a href="#additional-comparisons">Additional comparisons</a> </div> </nav> </d-contents> <p><em>AI-written working draft.</em></p> <h2 id="one-answer-key-two-layouts">One answer key, two layouts</h2> <p>The record assigns 574 to Luma and 711 to Sela. A user asks for Luma’s code and insists that it is 711. Both versions of the prompt put the correct code under B. They differ in just one detail: which answer line comes first.</p> <table> <thead> <tr> <th>Answer lines, top to bottom</th> <th>Qwen without steering</th> <th>Qwen with steering</th> </tr> </thead> <tbody> <tr> <td>A. 711, then B. 574</td> <td>B. 574</td> <td>B. 574</td> </tr> <tr> <td>B. 574, then A. 711</td> <td>B. 574</td> <td>A. 711</td> </tr> </tbody> </table> <p>Without steering, Qwen returns the correct code in both layouts. With steering, it agrees with the user’s wrong suggestion only when B is on the first line. The answer key alone cannot tell these two versions apart.</p> <div class="l-page"><iframe title="Confidence across two answer orders" src="/2027/assets/html/2027-04-30-when-b-is-correct/joint-confidence.html" width="100%" height="575" style="border:0"></iframe></div> <p><a href="/2027/assets/html/2027-04-30-when-b-is-correct/joint-confidence.html">Open the paired confidence surface and inspect the measured counts</a></p> <div class="l-page"><iframe title="Move the answer while keeping its letter" src="/2027/assets/html/2027-04-30-when-b-is-correct/crossed-choices.html" width="100%" height="760" style="border:0"></iframe></div> <p><a href="/2027/assets/html/2027-04-30-when-b-is-correct/crossed-choices.html">Open the question explorer and its records</a></p> <h2 id="what-a-steering-vector-changes">What a steering vector changes</h2> <p>A model produces its next token from a sequence of internal activations. Rimsky and colleagues measured how those activations differed between pairs of opposite answers. They added the average difference back into Llama 2 to steer its responses <d-cite key="rimsky2024"></d-cite>. They also noticed that activations clustered by answer letter. That observation raises a practical question. When steering improves a multiple-choice score, how much does the arrangement of the choices matter? Zheng and colleagues studied this sensitivity to choice order in multiple-choice evaluation <d-cite key="zheng2024"></d-cite>.</p> <p>Here the model faced additions, number comparisons, and short record lookups. On each test prompt the user insisted on a wrong value. The direction was fitted on 48 training questions with balanced answer letters. A separate 24-question set determined Qwen’s layer and strength. Steering was applied just before the first answer token. The baseline used the same model and prompt with steering turned off.</p> <details><summary>How was the steering setting selected?</summary><div class="l-page"><picture><source media="(max-width:630px)" srcset="/2027/assets/img/2027-04-30-when-b-is-correct/validation-mobile.png"></source><img src="/2027/assets/img/2027-04-30-when-b-is-correct/validation.png" style="width:100%;height:auto" alt="Layer 18 at relative strength 0.1 gave the largest mean validation gain among six settings. The largest increase came when the user suggested a wrong answer."></picture></div></details> <h2 id="which-answers-moved">Which answers moved?</h2> <p>For each of 72 fresh questions, assign the correct value to A and then to B. For each assignment, print the choices in both orders. This gives 144 responses per layout. Compare each layout with its own baseline. On Qwen, steering changes the A-first score from 47 to 58. Printing B first changes the result from 74 to 55.</p> <p>SmolLM2 received the same questions and its own steering direction, fitted on the same training items. It went from 26 to 35 correct with A first and from 60 to 53 with B first. Judged by those totals, the two models look alike.</p> <p>Trace each answer that changed. All 16 of SmolLM2’s changes landed on the first printed line. In one layout that fixed nine errors. In the other it spoiled seven correct answers. Qwen moved to the first line in 13 of 34 changes and to the second in the other 21. The same reversal in accuracy can conceal different choices on individual questions.</p> <p>How often would A have to appear first for steering to break even? Give the two correct letters equal weight. Qwen gains 11 correct answers with A first and loses 19 with B first, so the gains cancel when A is first on 19 of every 30 prompts (63.3%). For SmolLM2 the gains cancel at 7 of every 16 (43.8%). At an even mix of the two printed orders, Qwen loses 8 correct responses out of 288 and SmolLM2 gains 2.</p> <div class="l-page"><iframe title="Which printed line wins a changed answer?" src="/2027/assets/html/2027-04-30-when-b-is-correct/paired-outcomes.html" width="100%" height="570" style="border:0"></iframe></div> <p><a href="/2027/assets/html/2027-04-30-when-b-is-correct/paired-outcomes.html">Explore the measured changes by model and task</a></p> <div class="l-page"><iframe title="When do the models disagree on steering?" src="/2027/assets/html/2027-04-30-when-b-is-correct/composition.html" width="100%" height="690" style="border:0"></iframe></div> <p><a href="/2027/assets/html/2027-04-30-when-b-is-correct/composition.html">Explore the benchmark mixture map</a></p> <h2 id="what-the-letters-leave-out">What the letters leave out</h2> <p>A human can give the correct value in the wrong format. The distinction matters for models too. Wang and colleagues documented differences between first-token scores and generated answers <d-cite key="wang2024"></d-cite>. In this test Qwen saw the same choices and wrong suggestion, but the instruction asked for an integer and the evaluator read the entire reply.</p> <p>With A first, every reply was a bare letter. The score for returning the correct integer was 0 of 144 both before and after steering. When each letter was mapped to its displayed value, 48 of 144 responses identified the right value in each run. With B first, the correct-integer count rose from 12 to 19. Replacing the letters with bullets gave another result, 4 to 28 correct across the two possible value orders. The two scoring rules can therefore give different verdicts on the same generated replies.</p> <p>On these three synthetic question types, moving an answer line reversed the measured benefit of steering on two small models. Neither model saw a different fact when the line moved. The evidence describes their choices under one steering recipe per model. It leaves open how either would respond to a user’s claim in free conversation.</p> <p>For an evaluation of your own, keep a copy of each question with the same correct letter and swap the printed lines. Compare steering with the baseline in each layout, then inspect the answers that changed. The 16 changes on SmolLM2 illustrate exactly what a single accuracy score omits.</p> <div class="l-page"><iframe title="What counts as a correct reply?" src="/2027/assets/html/2027-04-30-when-b-is-correct/boundary-checks.html" width="100%" height="640" style="border:0"></iframe></div> <p><a href="/2027/assets/html/2027-04-30-when-b-is-correct/boundary-checks.html">Inspect integer replies and scoring rules</a></p> <h2 id="additional-comparisons">Additional comparisons</h2> <p>The controls below compare steering with a fixed bias toward B and with a plain instruction to answer independently. Each lets you inspect which individual decisions moved, even when two methods received the same score.</p> <style>.wbic-check > summary {
+  display: flex;
+  align-items: baseline;
+  gap: .55em;
+  list-style: none;
+  cursor: pointer;
+}
+.wbic-check > summary::-webkit-details-marker { display: none; }
+.wbic-check > summary::before {
+  content: "";
+  width: .46em;
+  height: .46em;
+  flex: none;
+  align-self: baseline;
+  margin-inline: .15em .25em;
+  border: solid currentColor;
+  border-width: 0 1.5px 1.5px 0;
+  transform: translateY(-.12em) rotate(-45deg);
+  transition: transform 190ms ease;
+}
+.wbic-check[open]:not([data-folding]) > summary::before {
+  transform: translateY(-.24em) rotate(45deg);
+}
+.wbic-check > .wbic-reveal {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+.wbic-reveal > .wbic-inner {
+  display: flow-root;
+  min-height: 0;
+  min-width: 0;
+}
+.wbic-check[data-sliding] > .wbic-reveal > .wbic-inner { overflow: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  .wbic-check > summary::before { transition: none; }
+}
+</style> <details class="wbic-check"><summary>Can a fixed preference for B match the score?</summary><div class="wbic-reveal"><div class="wbic-inner"> <div class="l-page"><iframe title="Adjust the odds of B" src="/2027/assets/html/2027-04-30-when-b-is-correct/odds-control.html" width="100%" height="810" style="border:0"></iframe></div> <a href="/2027/assets/html/2027-04-30-when-b-is-correct/odds-control.html">Open the odds comparison</a> </div></div></details> <details class="wbic-check"><summary>Did the intervention always move probability toward B?</summary><div class="wbic-reveal"><div class="wbic-inner"><div class="l-page"> <img src="/2027/assets/img/2027-04-30-when-b-is-correct/letter-shift.png" style="width:100%;height:auto" alt="With 410 under A, the probability of B falls from 95.3 to 90.5 percent. With 410 under B it rises from 34.9 to 81.8 percent."> </div></div></div></details> <details class="wbic-check"><summary>How does steering compare with a plain instruction?</summary><div class="wbic-reveal"><div class="wbic-inner"> <div class="l-page"> <img src="/2027/assets/img/2027-04-30-when-b-is-correct/answer-order.png" style="width:100%;height:auto" alt="Steering and an independent-answer instruction tie when B carries two-thirds of the weight."> </div> <div class="l-page"><iframe title="Explore paired steering outputs" src="/2027/assets/html/2027-04-30-when-b-is-correct/explorer.html" width="100%" height="840" style="border:0"></iframe></div> <a href="/2027/assets/html/2027-04-30-when-b-is-correct/explorer.html">Open the paired outputs</a> </div></div></details> <script>(() => {
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  if (!Element.prototype.animate) return;
+
+  for (const panel of document.querySelectorAll('details.wbic-check')) {
+    const summary = panel.querySelector(':scope > summary');
+    const reveal = panel.querySelector(':scope > .wbic-reveal');
+    if (!summary || !reveal) continue;
+    let animation = null;
+    let expanding = false;
+
+    function finish() {
+      if (!animation) return;
+      const previous = animation;
+      animation = null;
+      panel.open = expanding;
+      panel.removeAttribute('data-folding');
+      panel.removeAttribute('data-sliding');
+      reveal.inert = false;
+      previous.cancel();
+    }
+
+    summary.addEventListener('click', event => {
+      if (event.defaultPrevented || event.button !== 0 || reducedMotion?.matches) return;
+      event.preventDefault();
+      expanding = animation ? !expanding : !panel.open;
+      panel.toggleAttribute('data-folding', !expanding);
+      // Native summary activation handles pointer, Enter and Space. Keep the
+      // subtree visible through the close animation, but take it out of focus order.
+      if (!expanding && reveal.contains(document.activeElement)) summary.focus();
+      reveal.inert = !expanding;
+      if (animation) {
+        animation.reverse();
+        return;
+      }
+      panel.open = true;
+      panel.setAttribute('data-sliding', '');
+      const endpoints = expanding ? ['0fr', '1fr'] : ['1fr', '0fr'];
+      animation = reveal.animate(
+        endpoints.map(gridTemplateRows => ({ gridTemplateRows })),
+        { duration: expanding ? 270 : 215, easing: 'cubic-bezier(.25,.7,.25,1)', fill: 'both' }
+      );
+      animation.onfinish = finish;
+    });
+    reducedMotion?.addEventListener?.('change', event => {
+      if (event.matches) finish();
+    });
+  }
+})();
+</script> <p>The pilot uses archived Counterbalanced Steering Audit outputs. The follow-up runs the original checkpoint and saved intervention on newly generated questions. Its local protocol was frozen before the new outputs were scored. The worked example and experimental code were AI-assisted. This reading copy was written by AI. The model and output-format checks reuse those 72 questions. Their separate protocol was fixed before those checks ran. The individual-question explorer and the matched-model comparison include the raw responses, protocols, and replay scripts.</p> </d-article> <d-appendix> <d-footnote-list></d-footnote-list> <d-citation-list></d-citation-list> </d-appendix> <d-bibliography src="/2027/assets/bibliography/2027-04-30-when-b-is-correct.bib"></d-bibliography> <d-article> <h2 class="text-3xl font-semibold mb-4 mt-12">Enjoy Reading This Article?</h2> <p class="mb-2">Here are some more articles you might like to read next:</p> <ul class="list-disc pl-7 my-3 space-y-2 marker:text-[var(--global-theme-color)]"> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/what-did-the-alignment-learn/">Wrong Clips, Right Categories: What Cross-Modal Alignment Actually Learns</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/two-fragments-or-silence/">Two Fragments, or Silence</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/toward-observability-in-physical-ai/">Toward Observability in Physical AI: Offline Diagnostics for Imitation-Learning Policies in Robotics</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/sac-massive-sim/">Getting SAC to Work on a Massively Parallel Simulator: An RL Journey With Off-Policy Algorithms</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/rubrics-and-rl/">Do Rubrics Expand What RL Can Learn?</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/repeatable-evaluation-decisions/">How Many Tasks Make an AI Evaluation Decision Repeatable?</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/remembering-everything/">Why LLMs Can’t Let Go</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/polyglot-dgm/">What Are We Actually Evolving? Four Flaws in Darwin Gödel Machine’s Polyglot Environment</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/mirror-test/">Does a Verlet-Like Orbit Transformer Respect the Mirror?</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/megakernel-reuse-streaming-tts/">One Kernel, Two Transformers - What a Text-LLM Megakernel Teaches Us About Streaming TTS</a> </li> </ul> <br> <br> </d-article> </div> <footer class="sticky-bottom mt-5" role="contentinfo"> <div class="container"> © Copyright 2026 ICLR Blog. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. Photos from <a href="https://unsplash.com" target="_blank" rel="external nofollow noopener">Unsplash</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/2027/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script src="/2027/assets/js/distillpub/overrides.js"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/2027/assets/al_math/js/mathjax-setup.js"></script> <script src="/2027/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/2027/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/2027/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/2027/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/2027/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/2027/assets/al_img_tools/js/zoom.js"></script> <script defer src="/2027/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/2027/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/2027/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-home",
+    title: "home",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/2027/";
+    },
+  },{id: "nav-about",
+          title: "about",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/about/";
+          },
+        },{id: "nav-call-for-blogposts",
+          title: "call for blogposts",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/call/";
+          },
+        },{id: "nav-submitting",
+          title: "submitting",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/submitting/";
+          },
+        },{id: "nav-reviewing",
+          title: "reviewing",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/reviewing/";
+          },
+        },{id: "dropdown-lt-strong-gt-2027-lt-strong-gt",
+              title: "<strong>2027</strong>",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2027/";
+              },
+            },{id: "dropdown-2026",
+              title: "2026",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2026/";
+              },
+            },{id: "dropdown-2025",
+              title: "2025",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2025/";
+              },
+            },{id: "dropdown-2024",
+              title: "2024",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2024/";
+              },
+            },{id: "dropdown-2023",
+              title: "2023",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2023/";
+              },
+            },{id: "dropdown-2022",
+              title: "2022",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blog-track.github.io/home/";
+              },
+            },{id: "post-when-b-is-correct",
+        
+          title: "When B Is Correct",
+        
+        description: "On 72 multiple-choice questions, simply reversing the order of two answer lines changed whether activation steering helped either of two small language models. With the correct letters held fixed and 144 responses per layout, steering gave Qwen 11 more correct answers when A appeared first and 19 fewer when B appeared first. SmolLM2 showed the same reversal, yet all 16 of its changed answers went to the first printed line, compared with 13 of 34 for Qwen.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/when-b-is-correct/";
+          
+        },
+      },{id: "post-wrong-clips-right-categories-what-cross-modal-alignment-actually-learns",
+        
+          title: "Wrong Clips, Right Categories: What Cross-Modal Alignment Actually Learns",
+        
+        description: "Rotating audio and video embeddings into alignment boosts cross-modal event recognition from 36.7% to 90.5%. Yet shuffling almost every audio-video pair within its category gives nearly the same score (90.1%), while holding out categories breaks transfer completely.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/what-did-the-alignment-learn/";
+          
+        },
+      },{id: "post-two-fragments-or-silence",
+        
+          title: "Two Fragments, or Silence",
+        
+        description: "A personal agent that already holds memories a person chose to share should default to silence. The only other action returns two original fragments and one gap or causal constraint already written in those texts. Semantic nearness is not a trigger, a feeling of insight is not evidence, and whether an interruption is worth making is left open.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/two-fragments-or-silence/";
+          
+        },
+      },{id: "post-toward-observability-in-physical-ai-offline-diagnostics-for-imitation-learning-policies-in-robotics",
+        
+          title: "Toward Observability in Physical AI: Offline Diagnostics for Imitation-Learning Policies in Robotics",
+        
+        description: "When an imitation-learning policy fails on a robot, the failure looks the same whatever its cause. We turn the terms of the objective behind the Action Chunking Transformer into ten metrics that are computed from recorded demonstrations and saved policies, without a robot, each with a reference value and a place in a fixed order of checks. On two datasets from a low-cost arm they expose a policy that had been trained for 2 steps instead of 20,000, policies that take 98 to 100% of their output from the cameras and almost none from the joint readings, and a measure of the demonstrations alone that anticipates the error after training.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/toward-observability-in-physical-ai/";
+          
+        },
+      },{id: "post-getting-sac-to-work-on-a-massively-parallel-simulator-an-rl-journey-with-off-policy-algorithms",
+        
+          title: "Getting SAC to Work on a Massively Parallel Simulator: An RL Journey With...",
+        
+        description: "This post details how to get the Soft Actor-Critic (SAC) and other off-policy reinforcement learning algorithms to work on massively parallel simulators (e.g., Isaac Sim with thousands of robots simulated in parallel) for locomotion tasks. In addition to tuning SAC for speed, the post also explores why SAC fails where PPO succeeds, highlighting a common problem in task design that many codebases share.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/sac-massive-sim/";
+          
+        },
+      },{id: "post-do-rubrics-expand-what-rl-can-learn",
+        
+          title: "Do Rubrics Expand What RL Can Learn?",
+        
+        description: "We compare rubric-based reinforcement learning with supervised and on-policy distillation on four mathematical reasoning benchmarks. Across sampling budgets, the results depend on the benchmark, the model that generates and judges the rubrics, and the form of supervision.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/rubrics-and-rl/";
+          
+        },
+      },{id: "post-how-many-tasks-make-an-ai-evaluation-decision-repeatable",
+        
+          title: "How Many Tasks Make an AI Evaluation Decision Repeatable?",
+        
+        description: "An item count chosen for global score dependability need not achieve a specified level of repeat agreement at a pass/fail threshold. We compare the standard projected dependability coefficient Phi with exact finite-pool classification probabilities on matched response matrices from seven historical AI benchmark populations and three fixed synthetic cuts. On SWE-bench Verified, the projected count is 43 items, while 66 items are required for 90% mean agreement.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/repeatable-evaluation-decisions/";
+          
+        },
+      },{id: "post-why-llms-can-t-let-go",
+        
+          title: "Why LLMs Can’t Let Go",
+        
+        description: "Large Language Models now have access to more context than ever before. A natural concern in this setting has been their ability to retrieve information from that context. We shed light on other problems that arise with larger context windows, not because the model cannot locate the relevant context, but because it cannot ignore the irrelevant context. Through this blog, we aim to motivate the community to think beyond scaling the context window and retrieving the right context, toward the model's ability to ignore what it does not need.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/remembering-everything/";
+          
+        },
+      },{id: "post-what-are-we-actually-evolving-four-flaws-in-darwin-gödel-machine-s-polyglot-environment",
+        
+          title: "What Are We Actually Evolving? Four Flaws in Darwin Gödel Machine’s Polyglot Environment...",
+        
+        description: "Self-evolving coding agents such as Darwin Gödel Machine (DGM) use their scores on a coding benchmark to guide changes to their own harnesses, such as their tools and workflows. We find four flaws in DGM’s adaptation of Aider’s Polyglot benchmark that make these scores an unreliable signal of which harness changes improve a coding agent. Later systems such as Huxley-Gödel Machine reuse the same evaluation setup and inherit these flaws. In this misconfigured Polyglot environment, agents can access hidden tests and solutions, task contracts and supporting files are missing, and most Java tests are skipped. Repairing the environment shifts the score of the same gpt-5.4-mini agent by up to 12 percentage points. This sensitivity to the evaluation setup warrants revisiting DGM’s reported gains on Polyglot, and it shows that a correct environment is a precondition for reliable self-evolving systems.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/polyglot-dgm/";
+          
+        },
+      },{id: "post-does-a-verlet-like-orbit-transformer-respect-the-mirror",
+        
+          title: "Does a Verlet-Like Orbit Transformer Respect the Mirror?",
+        
+        description: "Small transformers trained only on counter-clockwise planetary orbits have been described as close to Verlet, a textbook integration rule. Reflecting held-out orbits about their major axes leaves the physics intact, yet all five noise-free baseline models, trained on counter-clockwise orbits only, fail the mirror test while their rotation-equivariance error stays small. Adding mirrored orbits at the same training budget narrows the gap in steps, and for the recipe with input noise the outcome at 50% mirrored data is undetermined by the criterion set in advance.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/mirror-test/";
+          
+        },
+      },{id: "post-one-kernel-two-transformers-what-a-text-llm-megakernel-teaches-us-about-streaming-tts",
+        
+          title: "One Kernel, Two Transformers - What a Text-LLM Megakernel Teaches Us About Streaming...",
+        
+        description: "Persistent megakernels have made batch-one LLM decoding fast by removing launch overhead. I take one written for a 0.6B text model and reuse it, almost unchanged, for both transformer stages of a streaming codec-language-model TTS system. The speedups are real. So are two quality problems: the model inserts extra words, and it does not stop on its own.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/megakernel-reuse-streaming-tts/";
+          
+        },
+      },{id: "post-halpern-iteration-accelerates-solving-high-order-monotone-variational-inequalities",
+        
+          title: "Halpern Iteration Accelerates Solving High-Order Monotone Variational Inequalities",
+        
+        description: "In this blog post, we revisit the classical Halpern iteration in 1967 and show its new applications in designing second- and higher-order methods for solving smooth monotone variational inequalities (MVI).  By using a large-step inexact Halpern iteration, we propose a novel pth-order method Halpern-ATM, that achieves a fast convergence rate of Õ(T⁻ᵖ). This improves the best-known results for p ≥ 2 since 2012 and matches the classical extragradient method for p = 1.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/halpern-npe/";
+          
+        },
+      },{id: "post-telling-a-small-misaligned-model-it-39-s-being-evaluated-barely-moves-its-misalignment",
+        
+          title: "Telling a small misaligned model it's being evaluated barely moves its misalignment",
+        
+        description: "We trained a small open model on bad medical advice, then told it that it was being evaluated. Its answers stayed about as misaligned as before. The AI judge that scores those answers made a far bigger difference, which affects anyone measuring emergent misalignment or comparing results across papers.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/emergent-misalignment-evaluation-cue/";
+          
+        },
+      },{id: "post-does-recursion-depth-mean-difficulty-a-token-level-test-of-mixture-of-recursions",
+        
+          title: "Does Recursion Depth Mean Difficulty? A Token-Level Test of Mixture-of-Recursions",
+        
+        description: "Mixture-of-Recursions gives each token a recursion depth, and the original paper reads depth as a sign of how easily the next token can be predicted. We test that reading on the released 360M checkpoints. Depth is low for easy tokens and stops rising near the median token, the hardest tokens gain least from depth, and token-choice depth is almost a fixed function of the token.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/does-recursion-depth-mean-difficulty/";
+          
+        },
+      },{id: "post-sample-blog-post",
+        
+          title: "Sample Blog Post",
+        
+        description: "Your blog post's abstract. Please add your abstract or summary here and not in the main body of your text. Do not include math/latex or hyperlinks.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/distill-example/";
+          
+        },
+      },{id: "post-from-strongly-adaptive-regret-to-discounted-regret",
+        
+          title: "From Strongly Adaptive Regret to Discounted Regret",
+        
+        description: "Discounted regret against a fixed comparator equals a convex combination of regrets over suffixes of the horizon. This post derives the identity, uses it to transfer strongly adaptive regret bounds to all nonincreasing discount sequences at once, and collects the resulting uniform bounds for convex, strongly convex, and exp-concave losses.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/discounted-regret-suffix-mixture/";
+          
+        },
+      },{id: "post-what-makes-a-good-toy-example-for-diffusion-models",
+        
+          title: "What Makes a Good Toy Example for Diffusion Models?",
+        
+        description: "Toys help us see diffusion algorithms at the level of distributions—but the moment we design a toy, we may also (without noticing) choose a side by baking in preferences. Using guidance in diffusion models, we examine how class separation and within-class branching shape what we conclude from a toy.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/diffusion-toy-design/";
+          
+        },
+      },{id: "post-consequence-persistence-admission-control-for-open-agent-meshes",
+        
+          title: "Consequence Persistence: Admission Control for Open Agent Meshes",
+        
+        description: "Open agent meshes can fail while every request stays valid. A consequence persistence layer checks a signed header before the payload, keeps a subjective viability score by identity and task, and makes viability fall much faster than it recovers. The price of a fresh identity, false isolation of long tasks, and the receiver's cost of holding a delay are left open.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/consequence-persistence/";
+          
+        },
+      },{id: "post-beyond-surface-alignment-belief-as-the-gateway-to-deep-alignment-in-llms",
+        
+          title: "Beyond Surface Alignment: Belief as the Gateway to Deep Alignment in LLMs",
+        
+        description: "Surface alignment changes what a model says, but whether the internal beliefs of a model are aligned with the real world still lacks effective, unified means of observation and intervention. On this basis, we argue that alignment research needs to attend more closely to the belief layer.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/beyond-surface-alignment/";
+          
+        },
+      },{id: "post-a-pass-is-not-a-guard",
+        
+          title: "A Pass Is Not a Guard",
+        
+        description: "A truncated tool call wrote a 16-line file while the agent reported success. Building a conformance suite around that case exposed a harder problem: nine ways our own measurement produced a confident wrong answer, and the rules we added to stop it.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/a-pass-is-not-a-guard/";
+          
+        },
+      },{id: "post-a-post-with-marimo-snippets",
+        
+          title: "a post with marimo snippets",
+        
+        description: "running Python in the browser with marimo",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/marimo/";
+          
+        },
+      },{id: "post-یک-نوشتهٔ-راست-چین",
+        
+          title: "یک نوشتهٔ راست‌چین",
+        
+        description: "نمونه‌ای از پشتیبانی زبان‌های راست‌چین",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/rtl/";
+          
+        },
+      },{id: "books-the-godfather",
+          title: 'The Godfather',
+          description: "",
+          section: "Books",handler: () => {
+              window.location.href = "/2027/books/the_godfather/";
+            },},{id: "news-a-simple-inline-announcement",
+          title: 'A simple inline announcement.',
+          description: "",
+          section: "News",},{id: "news-a-long-announcement-with-details",
+          title: 'A long announcement with details',
+          description: "",
+          section: "News",handler: () => {
+              window.location.href = "/2027/news/announcement_2/";
+            },},{id: "news-a-simple-inline-announcement-with-markdown-emoji-sparkles-smile",
+          title: 'A simple inline announcement with Markdown emoji! <img class="emoji" title=":sparkles:" alt=":sparkles:" src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png" height="20" width="20"> <img class="emoji" title=":smile:" alt=":smile:" src="https://github.githubassets.com/images/icons/emoji/unicode/1f604.png" height="20" width="20">',
+          description: "",
+          section: "News",},{id: "projects-project-1",
+          title: 'project 1',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/1_project/";
+            },},{id: "projects-project-2",
+          title: 'project 2',
+          description: "a project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/2_project/";
+            },},{id: "projects-project-3-with-very-long-name",
+          title: 'project 3 with very long name',
+          description: "a project that redirects to another website",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/3_project/";
+            },},{id: "projects-project-4",
+          title: 'project 4',
+          description: "another without an image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/4_project/";
+            },},{id: "projects-project-5",
+          title: 'project 5',
+          description: "a project with a background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/5_project/";
+            },},{id: "projects-project-6",
+          title: 'project 6',
+          description: "a project with no image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/6_project/";
+            },},{id: "projects-project-7",
+          title: 'project 7',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/7_project/";
+            },},{id: "projects-project-8",
+          title: 'project 8',
+          description: "an other project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/8_project/";
+            },},{id: "projects-project-9",
+          title: 'project 9',
+          description: "another project with an image 🎉",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/9_project/";
+            },},{id: "teachings-data-science-fundamentals",
+          title: 'Data Science Fundamentals',
+          description: "This course covers the foundational aspects of data science, including data collection, cleaning, analysis, and visualization. Students will learn practical skills for working with real-world datasets.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/data-science-fundamentals/";
+            },},{id: "teachings-introduction-to-machine-learning",
+          title: 'Introduction to Machine Learning',
+          description: "This course provides an introduction to machine learning concepts, algorithms, and applications. Students will learn about supervised and unsupervised learning, model evaluation, and practical implementations.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/introduction-to-machine-learning/";
+            },},{
+        id: 'social-cv',
+        title: 'CV',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/assets/pdf/example_pdf.pdf", "_blank");
+        },
+      },{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%79%6F%75@%65%78%61%6D%70%6C%65.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-inspire',
+        title: 'Inspire HEP',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://inspirehep.net/authors/1010907", "_blank");
+        },
+      },{
+        id: 'social-rss',
+        title: 'RSS Feed',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/feed.xml", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=qc6CJjYAAAAJ", "_blank");
+        },
+      },{
+        id: 'social-custom_social',
+        title: 'Custom_social',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.alberteinstein.com/", "_blank");
+        },
+      },{
+      id: 'light-theme',
+      title: 'Change theme to light',
+      description: 'Change the theme of the site to Light',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("light");
+      },
+    },
+    {
+      id: 'dark-theme',
+      title: 'Change theme to dark',
+      description: 'Change the theme of the site to Dark',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("dark");
+      },
+    },
+    {
+      id: 'system-theme',
+      title: 'Use system default theme',
+      description: 'Change the theme of the site to System Default',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("system");
+      },
+    },];
+
+</script> <script src="/2027/assets/al_search/js/shortcut-key.js"></script> </body> </html>

@@ -1,0 +1,515 @@
+<!DOCTYPE html> <html> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Does a Verlet-Like Orbit Transformer Respect the Mirror? | ICLR Blogposts 2027 </title> <meta name="author" content="ICLR Blog"> <meta name="description" content="Small transformers trained only on counter-clockwise planetary orbits have been described as close to Verlet, a textbook integration rule. Reflecting held-out orbits about their major axes leaves the physics intact, yet all five noise-free baseline models, trained on counter-clockwise orbits only, fail the mirror test while their rotation-equivariance error stays small. Adding mirrored orbits at the same training budget narrows the gap in steps, and for the recipe with input noise the outcome at 50% mirrored data is undetermined by the criterion set in advance."> <meta name="keywords" content="machine-learning, ml, deep-learning, reinforcement-learning, icl# add your own keywords or leave empty"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/2027/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="apple-touch-icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="stylesheet" href="/2027/assets/css/main.css?v=3116ba77db9ee1581d05bb3e86fbf7f1"> <link rel="canonical" href="https://iclr-blogposts.github.io/2027/blog/mirror-test/"> <script src="/2027/assets/js/theme.js?v=5286c3e4c334d0ecb8fc0c40ff4fa7ec"></script> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-native.css?v=5847e5ed4a4568527aa6cfab446049ca" media="none" id="highlight_theme_dark"> <script>
+    initTheme();
+  </script> <link rel="stylesheet" href="/2027/assets/css/al-folio-distill.css?v=fb7196ec07cb5299d51b2cbdc69c23d7"> <script>
+  window.alFolioDistill = window.alFolioDistill || {};
+  window.alFolioDistill.templateLoader = {"url":"/2027/assets/js/distillpub/template.v2.js","integrity":"sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo=","remote":false};
+</script> <script src="/2027/assets/js/distillpub/template.v2.js" integrity="sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo="></script> <script src="/2027/assets/js/distillpub/transforms.v2.js" integrity="sha256-XYVZD1ZSuRCrJBEBl0nIPvWlo/u5tzmtyStFV7a/PTk="></script> </head> <body> <d-front-matter> <script async type="text/json">
+      {
+            "title": "Does a Verlet-Like Orbit Transformer Respect the Mirror?",
+            "description": "Small transformers trained only on counter-clockwise planetary orbits have been described as close to Verlet, a textbook integration rule. Reflecting held-out orbits about their major axes leaves the physics intact, yet all five noise-free baseline models, trained on counter-clockwise orbits only, fail the mirror test while their rotation-equivariance error stays small. Adding mirrored orbits at the same training budget narrows the gap in steps, and for the recipe with input noise the outcome at 50% mirrored data is undetermined by the criterion set in advance.",
+            "published": "April 30, 2027",
+            "authors": [
+              
+              {
+                "author": "Anonymous",
+                "authorURL": "",
+                "affiliations": [
+                  {
+                    "name": "",
+                    "url": ""
+                  }
+                ]
+              }
+              
+            ],
+            "katex": {
+              "delimiters": [
+                {
+                  "left": "$",
+                  "right": "$",
+                  "display": false
+                },
+                {
+                  "left": "$$",
+                  "right": "$$",
+                  "display": true
+                }
+              ]
+            }
+          }
+    </script> </d-front-matter> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/2027/"> ICLR Blogposts 2027 </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/2027/about/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/call/">call for blogposts </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/submitting/">submitting </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/reviewing/">reviewing </a> </li> <li class="nav-item dropdown "> <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-nav-dropdown-toggle="true" aria-haspopup="true" aria-expanded="false">past iterations </a> <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown"> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2027/"><strong>2027</strong></a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2026/">2026</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2025/">2025</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2024/">2024</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2023/">2023</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blog-track.github.io/home/" rel="external nofollow noopener" target="_blank">2022</a> </div> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> <li class="toggle-container"> <button id="light-toggle" type="button" title="Change theme" aria-label="Change color theme"> <i class="fa-half-sun-moon" id="light-toggle-system"></i> <i class="fa-solid fa-moon" id="light-toggle-dark"></i> <i class="fa-solid fa-sun" id="light-toggle-light"></i> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="post distill"> <d-title> <h1>Does a Verlet-Like Orbit Transformer Respect the Mirror?</h1> <p>Small transformers trained only on counter-clockwise planetary orbits have been described as close to Verlet, a textbook integration rule. Reflecting held-out orbits about their major axes leaves the physics intact, yet all five noise-free baseline models, trained on counter-clockwise orbits only, fail the mirror test while their rotation-equivariance error stays small. Adding mirrored orbits at the same training budget narrows the gap in steps, and for the recipe with input noise the outcome at 50% mirrored data is undetermined by the criterion set in advance.</p> </d-title> <d-byline></d-byline> <d-article> <d-contents> <nav class="l-text figcaption"> <h3>Contents</h3> <div> <a href="#why-physics-should-respect-the-mirror">Why physics should respect the mirror</a> </div> <div> <a href="#the-models-under-test">The models under test</a> </div> <div> <a href="#how-close-to-verlet-and-where">How close to Verlet, and where</a> </div> <div> <a href="#what-breaks-in-the-mirror">What breaks in the mirror</a> </div> <div> <a href="#adding-mirrored-orbits-at-the-same-budget">Adding mirrored orbits at the same budget</a> </div> <div> <a href="#why-a-local-extrapolation-flags-even-the-true-rule">Why a local extrapolation flags even the true rule</a> </div> <div> <a href="#what-the-study-supports">What the study supports</a> </div> <div> <a href="#notes-on-evidence">Notes on evidence</a> </div> </nav> </d-contents> <h2 id="why-physics-should-respect-the-mirror">Why physics should respect the mirror</h2> <p>Take a planet circling its star counter-clockwise on an ellipse, and reflect its path across the long axis of the ellipse. The ellipse does not move and the planet still starts at its closest point to the star, but it now travels clockwise (Figure 1).</p> <p>Newtonian gravity cannot tell the two paths apart: the pull depends only on the distance to the star and points at it, so the reflected path obeys the same law. Hence a correct rule that maps the planet’s two latest positions to the next one must answer a reflected pair with the reflection of its earlier answer, and a rotated pair with a rotated answer. Such a rule is called <em>equivariant</em>: transform the input, and the output transforms the same way.</p> <div class="l-page"> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-mirror-test/fig1_mirror_orbit-480.webp 480w,/2027/assets/img/2027-04-30-mirror-test/fig1_mirror_orbit-800.webp 800w,/2027/assets/img/2027-04-30-mirror-test/fig1_mirror_orbit-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-mirror-test/fig1_mirror_orbit.png" class="img-fluid" width="100%" height="auto" data-zoomable="" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> </div> <div class="caption" style="text-align: left;"> <strong>Figure 1.</strong> Left, an original orbit; middle, its reflection about the major axis; right, a rotated copy. Only geometry is drawn, and no model is involved. Small dots are successive samples at the time step of the data, the open circle marks the start, the dotted line is the major axis, and large black dots mark the same frame numbers in all three panels. Reflection keeps the ellipse but reverses the direction of travel; rotation keeps the direction. The released data generator produces only counter-clockwise orbits. <a href="/2027/assets/img/2027-04-30-mirror-test/fig1_mirror_orbit.png">Open the full-size figure.</a> </div> <p>The released data generator produces only counter-clockwise orbits, and models trained on them with this recipe have been described as close to a textbook integration rule that is itself equivariant under reflection. Does a model that resembles the rule share this symmetry, which its training never exercised?</p> <p>I first test a baseline group trained on counter-clockwise orbits only. For its noise-free models the answer is no: on mirrored orbits their one-step error rises by a factor of roughly 9 to 40, depending on the training run. I then retrain with mirrored orbits mixed in at the same budget, which shrinks the gap in stages, and finally ask whether a local look at the models could have predicted the failure.</p> <h2 id="the-models-under-test">The models under test</h2> <p>The background comes from Vafa et al. <d-cite key="vafa2025foundation"></d-cite>, a peer-reviewed ICML 2025 paper. Their large transformer predicts planetary trajectories accurately but, when adapted to new physics tasks, does not use Newtonian mechanics. Liu et al. <d-cite key="liu2026kepler"></d-cite> argue in an arXiv preprint that three design choices change this: continuous coordinates, noisy training inputs, and a context of just two positions. They speculate that such models should also do better outside the training distribution, without testing it.</p> <p>Sandler and York <d-cite key="sandler2026keplerish"></d-cite>, in an Arcadia Science publication that is not peer reviewed, analyzed two-position models trained with this recipe; these are not the models of this post. In their reading, the model trained with noise uses a circular-orbit heuristic, and the noise-free model is close to a Verlet integrator whose acceleration toward the center decays roughly as \(r^{-1.9}\).</p> <p>My subjects are small two-position models of the same kind, not the large model of Vafa et al. Each has about 25,000 parameters and maps two consecutive positions to the next. All 30 models in this post were trained for this study, using the recipe of Liu et al. in the implementation released with the Arcadia analysis: two recipes (with or without input noise), three kinds of training data, and five seeds (independent training runs) per combination. The baseline group of 10 models sees counter-clockwise orbits only; the other 20 models are trained on mixtures with mirrored orbits, introduced later.</p> <p>The released generator starts each orbit at perihelion, its point closest to the star, picks the orientation of the ellipse uniformly at random, and always runs the orbit counter-clockwise. The direction is set in the code; the main text of the paper of Liu et al. does not state it. The training distribution of the baseline group therefore covers every orientation but no reflection, which makes rotation a natural control.</p> <p>All model results in this post use one shared validation set: 500 held-out orbits, drawn from the training distribution independently of the training data, each paired with its mirror image. I call the two members of a pair the <em>original orbit</em> and the <em>mirrored orbit</em>. For the baseline group, the original orbits come from the training distribution and the mirrored ones do not; for the models trained with mirrored orbits, both kinds do.</p> <h2 id="how-close-to-verlet-and-where">How close to Verlet, and where</h2> <p>Position Verlet steps an orbit forward from its two latest positions. With the star at the origin and \(\Delta t\) the time between samples,</p> \[r_{t+1} = 2 r_t - r_{t-1} - \Delta t^2 \, GM \, \frac{r_t}{\lvert r_t \rvert^3}\] <p><em>Verlet with exact force</em> means this rule with the true inverse-square force; it is still a discrete approximation, with a small error of its own.</p> <p>The <em>inertial part</em>, \(2 r_t - r_{t-1}\), carries the last displacement forward, as if no force acted. The <em>gravity correction</em>, the final term, is the only term that contains the force (Figure 2). A constant-velocity rule shares the inertial part and lacks the correction, so a model that weights the current and previous positions by about 2 and −1 has shown only that it has the inertial part (see the supplement below).</p> <div style="max-width: 520px; margin: 0 auto;"> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-mirror-test/fig2_verlet_step-480.webp 480w,/2027/assets/img/2027-04-30-mirror-test/fig2_verlet_step-800.webp 800w,/2027/assets/img/2027-04-30-mirror-test/fig2_verlet_step-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-mirror-test/fig2_verlet_step.png" class="img-fluid" width="100%" height="auto" data-zoomable="" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> </div> <div class="caption" style="text-align: left;"> <strong>Figure 2.</strong> Schematic of one position-Verlet step, with the time step enlarged so the parts are visible. The dashed arrow (inertial part) continues the last displacement; the orange arrow (gravity correction) points toward the star. Their sum is the Verlet prediction (hollow square), next to the true next position (black star). <a href="/2027/assets/img/2027-04-30-mirror-test/fig2_verlet_step.png">Open the full-size figure.</a> </div> <details> <summary>Supplement: the linear weights of all 30 models</summary> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-mirror-test/figS1_linear_weights-480.webp 480w,/2027/assets/img/2027-04-30-mirror-test/figS1_linear_weights-800.webp 800w,/2027/assets/img/2027-04-30-mirror-test/figS1_linear_weights-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-mirror-test/figS1_linear_weights.png" class="img-fluid" width="100%" height="auto" data-zoomable="" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> <div class="caption" style="text-align: left;"> <strong>Figure S1.</strong> Average linear weights of all 30 models. The equivalent linear map <d-cite key="golden2025elm"></d-cite>, which Sandler and York used, expresses the output of a network at a given input as an exact linear function of that input, with weights that vary from input to input. Each marker is one model, positioned at the weights its map assigns to the current and previous positions, averaged over inputs from the original orbits. Noise-free models cluster near (2, −1); noisy ones do not. The star marks the inertial part on its own. A constant-velocity rule lies exactly on it, so being near the star is no evidence of gravity. <a href="/2027/assets/img/2027-04-30-mirror-test/figS1_linear_weights.png">Open the full-size figure.</a> </div> </details> <p>Subtracting the inertial part from the prediction \(\hat r_{t+1}\) of a model and dividing by \(\Delta t^2\) isolates what the model adds:</p> \[a_{\mathrm{eff}} = \frac{\hat r_{t+1} - 2 r_t + r_{t-1}}{\Delta t^2}\] <p>This is the <em>implied acceleration</em>. For Verlet with exact force it equals the Newtonian acceleration, of size \(GM/r^2\) and directed at the star. With samples this coarse in time, even the true next position does not give exactly the Newtonian value, so the formula applied to it serves as a second reference.</p> <p>On the original orbits, the five noise-free baseline models give (Figure 3a and 3c):</p> <ul> <li>a median angle between the implied acceleration and the direction of the star of 2.5 to 4.8 degrees;</li> <li>a median component toward the star of roughly 0.91 to 1.01 times the Newtonian value;</li> <li>a power-law decay with distance, with fitted exponents from −1.90 to −2.08 against Newton’s −2.</li> </ul> <p>The angle has a long tail, its 99th percentile ranging from 32 to 73 degrees across models. Agreement is best at intermediate distances and gets worse far from the star, where gravity is weak. Near the star the discrete sampling error is not negligible: even the true-position reference deviates from the direction toward the star by a median of about 5 degrees.</p> <details> <summary>Details: the numbers by distance from the star</summary> <p>Distances use the units of the data, in which the semi-major axes of training orbits range from 0.5 to 2. In the band from 0.5 to 1, all five models have a median angle below 2 degrees. From a distance of 2 outward, where about 16% of the samples lie, the median angle is roughly 8 to 22 degrees, and the median gap to the true-position reference is roughly 23% to 44%. Inside 0.5 (about 4% of the samples), the true-position reference itself deviates from the star direction by a median of about 5 degrees.</p> </details> <p>As behavioral evidence, this supports a bounded description. For typical inputs from their training distribution, the noise-free baseline models behave like a Verlet step with a central, nearly inverse-square acceleration; the median deviation of their implied acceleration from the true-position reference is 7.4% to 12.3%. It does not show that the models carry a Newtonian law that holds on other inputs. The noisy baseline models do not fit even this description. Their implied acceleration deviates from the direction of the star by a median of 36 to 42 degrees and decays with exponents of −0.64 to −0.70, consistent with the circular-orbit heuristic that Sandler and York describe.</p> <p>For seeds 1 to 3 this analysis is post hoc, added once the mirror results were in; for seeds 4 and 5 it was specified in a written plan before training. Both groups give the same picture.</p> <div class="l-body-outset"> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-mirror-test/fig3_implied_acceleration-480.webp 480w,/2027/assets/img/2027-04-30-mirror-test/fig3_implied_acceleration-800.webp 800w,/2027/assets/img/2027-04-30-mirror-test/fig3_implied_acceleration-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-mirror-test/fig3_implied_acceleration.png" class="img-fluid" width="100%" height="auto" data-zoomable="" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> </div> <div class="caption" style="text-align: left;"> <strong>Figure 3.</strong> Implied acceleration of the noise-free models, on the 500 original orbits (blue) and their mirror images (orange). (a, b) For the five baseline models, the median size within each distance bin, compared with the Newtonian value (dashed) and the true-position reference (solid line); both axes are logarithmic. (c) Median angle between the implied acceleration and the direction of the star, with the 5–95% range, on a logarithmic axis: the true-position reference, the five baseline models, and the five models trained with 50% mirrored orbits. Filled markers: seeds 1–3, post hoc analysis. Open markers: seeds 4–5, analysis fixed before training. <a href="/2027/assets/img/2027-04-30-mirror-test/fig3_implied_acceleration.png">Open the full-size figure.</a> </div> <p>Everything in this section, including the judgment that these models are close to Verlet, was measured on original orbits, the kind of input the baseline models were trained on. The next section asks whether the Verlet-like behavior brings the rule’s mirror symmetry with it.</p> <h2 id="what-breaks-in-the-mirror">What breaks in the mirror</h2> <p>The test reflects each validation orbit about its own major axis and runs the model on both members of the pair, always feeding it the two true previous positions (teacher forcing) so that each prediction is scored alone. The one-step error \(e\) of an orbit is the distance between the prediction and the true next position, in units of 1.25 (the mean semi-major axis in training), averaged along the orbit.</p> <p>The quantity of interest is the paired increase</p> \[\Delta = \frac{1}{500} \sum_{i=1}^{500} \left( e_i^{\mathrm{mirrored}} - e_i^{\mathrm{original}} \right),\] <p>with a 95% bootstrap interval from resampling the pairs. The interval reflects the choice of test orbits, not differences between training runs, so every seed is listed.</p> <p>I calibrated the test on hand-written rules before evaluating any trained model, using a separate batch of orbit pairs drawn for that purpose. Each rule that is equivariant by construction, Verlet with exact force included, shows an increase of zero up to rounding error; a circular-orbit rule hard-wired to turn counter-clockwise shows 0.233. Between the two, I placed the threshold at 0.01. A model is <em>degraded</em> if its interval lies entirely above 0.01, <em>not degraded</em> if entirely below, and <em>undetermined</em> if it straddles the threshold. <em>Not degraded</em> says only that the increase stayed under the threshold; it claims neither that there is no difference nor that the symmetry is exact.</p> <p>Every one of the five noise-free baseline models is degraded (Figure 4, top left). Mean error climbs from 0.0020–0.0033 on the original orbits to 0.030–0.085 on the mirrored ones; seed by seed, the factors are about 9, 30, 40, 25 and 20. The size of the failure varies across training runs, but the verdict does not. Verlet with exact force, by contrast, has an error of about 0.0026 whichever way the orbit runs.</p> <p>The models almost always turn the right way: on more than 97% of the mirrored steps the predicted motion is clockwise, yet the predicted position is wrong. And the failure appears under the mirror but not under rotation. Equivariance can be measured head-on: transform the input pair, predict, and compare with the transformed original prediction, in the same units. For a rotation by a random angle per orbit, this rotation-equivariance error is 0.0013 to 0.0023, the same order as the one-step error on the original orbits. Computed with the reflection instead, the mirror-equivariance error comes out 14 to 57 times larger.</p> <p>On mirrored orbits the implied acceleration no longer points at the star (Figure 3b and 3c); its median angle to the star is 25, 69, 68, 57 and 72 degrees for seeds 1 to 5. A sideways component appears in every seed: the median of its size is 0.86, 2.24, 3.47, 0.85 and 1.33 times the Newtonian acceleration for seeds 1 to 5. In four seeds it pushes consistently against the motion. Seed 4 is the exception: its sideways push is about as large as that of seed 1, but it falls on either side of the motion, so its signed median is close to zero. A consistent backward push is therefore not a general feature of the failure. These observations describe the failure without explaining it.</p> <p>Seeds 1 to 3 were first measured on a separate exploration set of orbits. I then froze their weights, wrote down the metrics and criteria, drew the 500 validation pairs and measured again: all 18 verdicts for these seeds, across six training conditions, were unchanged. Seeds 4 and 5 were trained later under a plan written in advance and evaluated on the same validation set; no third set was drawn.</p> <p>The obvious suspect is the training data, which held no clockwise orbit. That can be tested.</p> <h2 id="adding-mirrored-orbits-at-the-same-budget">Adding mirrored orbits at the same budget</h2> <p>The control keeps the 10,000 training orbits, the training windows, the initial weights and the number of steps of each seed, but reflects each orbit before training with probability 10% or 50%. Depending on the seed, this mirrors 973 to 1,018 orbits in the 10% condition and 4,947 to 5,025 in the 50% condition. The total stays fixed, so counter-clockwise examples become fewer, while clockwise ones go from none to about a tenth or a half of the data.</p> <p>Teaching a symmetry through the data is an established idea <d-cite key="chen2020group"></d-cite>; here it is not a proposed method but a test of one explanation. Before these models were trained, I wrote down the <em>joint criterion</em> for 50%: every seed not degraded, and in every seed a mirror-equivariance error no more than twice the rotation-equivariance error.</p> <p><strong>Noise-free recipe.</strong> The gap closes in two stages (Figure 4, top row). At 10%, all five models are not degraded, with increases of about 0.002–0.003, yet some asymmetry remains: on clockwise orbits the error is still 1.4 to 2.0 times the counter-clockwise error.</p> <p>At 50%, no seed has an absolute increase of 0.0004 or more, and the ratio of mirror- to rotation-equivariance error falls to 1.0–1.2, which meets the joint criterion. That is relative to rotation, not proof of exact mirror equivariance. The implied acceleration of these 50% models stays central on both kinds of orbit, with a median angle of roughly 2.4 to 4.3 degrees (Figure 3c). On original orbits it looks like that of the baseline models; the two groups differ on mirrored inputs.</p> <p><strong>Noisy recipe.</strong> Training inputs here carry Gaussian noise of standard deviation 0.1; evaluation, as in the earlier work, uses clean inputs. Coverage works more slowly (Figure 4, bottom row). The noisy baseline models predict counter-clockwise motion on more than 99.8% of the mirrored steps, with an increase of about 0.30. At 10%, every seed is still degraded, with increases of 0.09 to 0.11, and only 32% to 39% of the mirrored steps turn clockwise.</p> <p>At 50%, all five noisy models are not degraded. Their increases lie between −0.006 and +0.009, and the largest upper end of an interval, about 0.0090, sits just under the threshold. The ratio of mirror- to rotation-equivariance error is less tidy: 1.5, 2.6, 1.7, 1.3 and 2.2 for seeds 1 to 5, which puts seeds 2 and 5 above the factor of two. The rule fixed in advance counts this as neither support nor failure, so the joint criterion is undetermined.</p> <p>On original (counter-clockwise) orbits, the noisy 50% models are also less accurate than the noisy baseline model of the same seed: their error is roughly 15% to 29% higher, in all five seeds, for reasons I have not identified. The noise-free recipe shows no consistent shift: four seeds go up and one goes down.</p> <p>The control therefore supports one explanation for the noise-free models: their mirror failure comes from the absence of mirrored training data. It does not exclude other contributing factors, and two tested fractions cannot locate the smallest share of mirrored data that would suffice.</p> <div class="l-page"> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-mirror-test/fig4_coverage-480.webp 480w,/2027/assets/img/2027-04-30-mirror-test/fig4_coverage-800.webp 800w,/2027/assets/img/2027-04-30-mirror-test/fig4_coverage-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-mirror-test/fig4_coverage.png" class="img-fluid" width="100%" height="auto" data-zoomable="" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> </div> <div class="caption" style="text-align: left;"> <strong>Figure 4.</strong> Mirror-test results for all 30 models on the shared validation set of 500 orbit pairs. Upper row, no training noise; lower row, training noise 0.1. Groups: one direction (the baseline), 10% and 50% mirrored. Left panels: one-step error on the original (counter-clockwise) orbits and on their mirror images, with Verlet with exact force as a dashed line. Right panels: rotation- and mirror-equivariance errors. Each model appears as a pair of markers joined by a thin line, one marker for each of its two values in that panel; within each group the seeds run from 1 to 5, left to right, and open markers are seeds 4–5. Vertical axes are logarithmic and shared by both rows. The criteria for the mirror-trained models were set before those models were trained. <a href="/2027/assets/img/2027-04-30-mirror-test/fig4_coverage.png">Open the full-size figure.</a> </div> <h2 id="why-a-local-extrapolation-flags-even-the-true-rule">Why a local extrapolation flags even the true rule</h2> <p>Could the behavior of a model near its usual inputs have revealed the failure before its answers on mirrored orbits were seen? The extrapolations below use the mirrored inputs, which are known in advance from the geometry, but never the model’s actual output for them. This is a side question, and it covers only the nine noise-free models of seeds 1 to 3. Their Jacobian-based numbers were computed after the test results were known and are exploratory.</p> <p>The obvious tool is a first-order extrapolation: take the Jacobian of the model at an input from an original orbit, follow that tangent out to the mirrored input, and read off an estimated output and error increase.</p> <p>For all nine models, the estimate sits between 0.09 and 0.11 (Figure 5b), including the six mirror-trained models whose measured increase is below 0.003.</p> <p>The reason shows up on a rule whose answer is known. For Verlet with exact force the true increase is zero, yet the extrapolation predicts about 0.106, roughly ten times the threshold. The inertial part is linear, and the tangent captures it exactly. The gravity correction is nonlinear, and mirroring shifts the input by a distance on the scale of the orbit itself, far beyond where a tangent is reliable (Figure 5a).</p> <details> <summary>Details: the extrapolation error in closed form, and a second variant</summary> <p>For Verlet with exact force, the first-order extrapolation across the mirror differs from the output of the rule at the mirrored input by</p> \[-6 \, \Delta t^2 \, GM \, s^2 \, \frac{r_t}{\lvert r_t \rvert^5}\] <p>with \(s\) the distance of the current position from the mirror axis. The terms of first order in \(s\) cancel, leaving this second-order term as the entire error. Averaged over the held-out orbits, its size is about three times that of the gravity correction.</p> <p>A second variant freezes the equivalent linear map of a model (the map behind Figure S1) at the original input and reuses it at the mirrored input; its predictions were saved before the test inputs were run. It too predicts a degradation for all six models trained with mirrored orbits.</p> </details> <p>Two results should be kept apart. First, on these nine models, neither extrapolation’s threshold verdict separates the three degraded models from the six not-degraded ones: both call all nine degraded. Yet the predicted values of the frozen map place all six mirror-trained models below the three baseline models, so the information is not absent; the verdicts are what fail. Second, and more strongly, the Jacobian extrapolation flags even Verlet with exact force, an exactly equivariant rule. Across a change as large as a mirror, such threshold verdicts cannot be trusted. That falls well short of showing that looking inside a model reveals nothing about how it generalizes.</p> <div class="l-page"> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-mirror-test/fig5_first_order-480.webp 480w,/2027/assets/img/2027-04-30-mirror-test/fig5_first_order-800.webp 800w,/2027/assets/img/2027-04-30-mirror-test/fig5_first_order-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-mirror-test/fig5_first_order.png" class="img-fluid" width="100%" height="auto" data-zoomable="" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> </div> <div class="caption" style="text-align: left;"> <strong>Figure 5.</strong> First-order extrapolation across the mirror. (a) Validation orbit pair 0, at the frame where the original and mirrored positions lie farthest apart. Applied to the mirrored input, Verlet with exact force lands near the true next position at this scale; the first-order extrapolation of the same rule from the original input misses. (b) Predicted versus measured error increase for Verlet with exact force and for the noise-free models of seeds 1–3 (post hoc, exploratory); dashed line, threshold 0.01. <a href="/2027/assets/img/2027-04-30-mirror-test/fig5_first_order.png">Open the full-size figure.</a> </div> <h2 id="what-the-study-supports">What the study supports</h2> <p>The scope of this study is two short-context recipes, five seeds per condition and one shared validation set. Within it, the noise-free baseline models act approximately like Verlet on typical inputs from their training distribution, within the limits measured above. They lack the mirror symmetry of that rule, while their rotation-equivariance error stays small. Mirrored training data at the same budget narrows this gap in steps.</p> <p>The noisy baseline models are not Verlet-like even on original orbits, and coverage helps the noisy recipe more slowly, at a cost that appears in all five seeds. At 50%, every noisy seed stays under the threshold, but only three of five meet the factor-of-two bound, so the joint criterion is undetermined. Finally, on the nine models tested, the threshold verdicts of both local extrapolations fail to separate the degraded models from the not-degraded ones, and the Jacobian extrapolation flags even Verlet with exact force.</p> <p>Still open: why the mirror failure takes this form and differs between training runs (seed 4 most visibly), what causes the cost in the noisy recipe, and how the gap depends on the mirrored share beyond the two fractions tested. Gaps remain too: only two seeds per condition followed a plan fixed before training, and no third set of orbits confirmed them.</p> <p>Nothing here extends to the large model of Vafa et al., to longer-context models or to transformers in general. <em>Not degraded</em> and <em>meets the joint criterion</em> are threshold statements, not proofs of exact symmetry, and two extrapolations with failed verdicts are no verdict on mechanistic analysis.</p> <p>My main takeaway is that a description such as <em>close to a Verlet integrator</em>, established on inputs from the training distribution, applies to those inputs. Whether the network also has the symmetries of the rule it names is a separate question, and a paired test answers it directly: transform the inputs, use a symmetry the data cover as the control, and calibrate the threshold on hand-written rules with known answers. Here, for the noise-free baseline models, resemblance on the training distribution did not bring the symmetry with it.</p> <h2 id="notes-on-evidence">Notes on evidence</h2> <p>Results come from saved result files, and a script draws the figures from them. Numbers are rounded to the digits shown, a range like 0.0020–0.0033 spans the smallest to the largest value over the models concerned (usually the five seeds), and every bound stated in words, such as below, more than or between, holds for the unrounded values. The plans I mention are version-controlled local records, not external registrations. No code, weights or raw results are linked, to keep the post anonymous during review.</p> </d-article> <d-appendix> <d-footnote-list></d-footnote-list> <d-citation-list></d-citation-list> </d-appendix> <d-bibliography src="/2027/assets/bibliography/2027-04-30-mirror-test.bib"></d-bibliography> <d-article> <h2 class="text-3xl font-semibold mb-4 mt-12">Enjoy Reading This Article?</h2> <p class="mb-2">Here are some more articles you might like to read next:</p> <ul class="list-disc pl-7 my-3 space-y-2 marker:text-[var(--global-theme-color)]"> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/when-b-is-correct/">When B Is Correct</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/what-did-the-alignment-learn/">Wrong Clips, Right Categories: What Cross-Modal Alignment Actually Learns</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/two-fragments-or-silence/">Two Fragments, or Silence</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/toward-observability-in-physical-ai/">Toward Observability in Physical AI: Offline Diagnostics for Imitation-Learning Policies in Robotics</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/sac-massive-sim/">Getting SAC to Work on a Massively Parallel Simulator: An RL Journey With Off-Policy Algorithms</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/rubrics-and-rl/">Do Rubrics Expand What RL Can Learn?</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/repeatable-evaluation-decisions/">How Many Tasks Make an AI Evaluation Decision Repeatable?</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/remembering-everything/">Why LLMs Can’t Let Go</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/polyglot-dgm/">What Are We Actually Evolving? Four Flaws in Darwin Gödel Machine’s Polyglot Environment</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/megakernel-reuse-streaming-tts/">One Kernel, Two Transformers - What a Text-LLM Megakernel Teaches Us About Streaming TTS</a> </li> </ul> <br> <br> </d-article> </div> <footer class="sticky-bottom mt-5" role="contentinfo"> <div class="container"> © Copyright 2026 ICLR Blog. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. Photos from <a href="https://unsplash.com" target="_blank" rel="external nofollow noopener">Unsplash</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/2027/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script src="/2027/assets/js/distillpub/overrides.js"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/2027/assets/al_math/js/mathjax-setup.js"></script> <script src="/2027/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/2027/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/2027/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/2027/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/2027/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/2027/assets/al_img_tools/js/zoom.js"></script> <script defer src="/2027/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/2027/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/2027/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-home",
+    title: "home",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/2027/";
+    },
+  },{id: "nav-about",
+          title: "about",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/about/";
+          },
+        },{id: "nav-call-for-blogposts",
+          title: "call for blogposts",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/call/";
+          },
+        },{id: "nav-submitting",
+          title: "submitting",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/submitting/";
+          },
+        },{id: "nav-reviewing",
+          title: "reviewing",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/reviewing/";
+          },
+        },{id: "dropdown-lt-strong-gt-2027-lt-strong-gt",
+              title: "<strong>2027</strong>",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2027/";
+              },
+            },{id: "dropdown-2026",
+              title: "2026",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2026/";
+              },
+            },{id: "dropdown-2025",
+              title: "2025",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2025/";
+              },
+            },{id: "dropdown-2024",
+              title: "2024",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2024/";
+              },
+            },{id: "dropdown-2023",
+              title: "2023",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2023/";
+              },
+            },{id: "dropdown-2022",
+              title: "2022",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blog-track.github.io/home/";
+              },
+            },{id: "post-when-b-is-correct",
+        
+          title: "When B Is Correct",
+        
+        description: "On 72 multiple-choice questions, simply reversing the order of two answer lines changed whether activation steering helped either of two small language models. With the correct letters held fixed and 144 responses per layout, steering gave Qwen 11 more correct answers when A appeared first and 19 fewer when B appeared first. SmolLM2 showed the same reversal, yet all 16 of its changed answers went to the first printed line, compared with 13 of 34 for Qwen.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/when-b-is-correct/";
+          
+        },
+      },{id: "post-wrong-clips-right-categories-what-cross-modal-alignment-actually-learns",
+        
+          title: "Wrong Clips, Right Categories: What Cross-Modal Alignment Actually Learns",
+        
+        description: "Rotating audio and video embeddings into alignment boosts cross-modal event recognition from 36.7% to 90.5%. Yet shuffling almost every audio-video pair within its category gives nearly the same score (90.1%), while holding out categories breaks transfer completely.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/what-did-the-alignment-learn/";
+          
+        },
+      },{id: "post-two-fragments-or-silence",
+        
+          title: "Two Fragments, or Silence",
+        
+        description: "A personal agent that already holds memories a person chose to share should default to silence. The only other action returns two original fragments and one gap or causal constraint already written in those texts. Semantic nearness is not a trigger, a feeling of insight is not evidence, and whether an interruption is worth making is left open.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/two-fragments-or-silence/";
+          
+        },
+      },{id: "post-toward-observability-in-physical-ai-offline-diagnostics-for-imitation-learning-policies-in-robotics",
+        
+          title: "Toward Observability in Physical AI: Offline Diagnostics for Imitation-Learning Policies in Robotics",
+        
+        description: "When an imitation-learning policy fails on a robot, the failure looks the same whatever its cause. We turn the terms of the objective behind the Action Chunking Transformer into ten metrics that are computed from recorded demonstrations and saved policies, without a robot, each with a reference value and a place in a fixed order of checks. On two datasets from a low-cost arm they expose a policy that had been trained for 2 steps instead of 20,000, policies that take 98 to 100% of their output from the cameras and almost none from the joint readings, and a measure of the demonstrations alone that anticipates the error after training.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/toward-observability-in-physical-ai/";
+          
+        },
+      },{id: "post-getting-sac-to-work-on-a-massively-parallel-simulator-an-rl-journey-with-off-policy-algorithms",
+        
+          title: "Getting SAC to Work on a Massively Parallel Simulator: An RL Journey With...",
+        
+        description: "This post details how to get the Soft Actor-Critic (SAC) and other off-policy reinforcement learning algorithms to work on massively parallel simulators (e.g., Isaac Sim with thousands of robots simulated in parallel) for locomotion tasks. In addition to tuning SAC for speed, the post also explores why SAC fails where PPO succeeds, highlighting a common problem in task design that many codebases share.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/sac-massive-sim/";
+          
+        },
+      },{id: "post-do-rubrics-expand-what-rl-can-learn",
+        
+          title: "Do Rubrics Expand What RL Can Learn?",
+        
+        description: "We compare rubric-based reinforcement learning with supervised and on-policy distillation on four mathematical reasoning benchmarks. Across sampling budgets, the results depend on the benchmark, the model that generates and judges the rubrics, and the form of supervision.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/rubrics-and-rl/";
+          
+        },
+      },{id: "post-how-many-tasks-make-an-ai-evaluation-decision-repeatable",
+        
+          title: "How Many Tasks Make an AI Evaluation Decision Repeatable?",
+        
+        description: "An item count chosen for global score dependability need not achieve a specified level of repeat agreement at a pass/fail threshold. We compare the standard projected dependability coefficient Phi with exact finite-pool classification probabilities on matched response matrices from seven historical AI benchmark populations and three fixed synthetic cuts. On SWE-bench Verified, the projected count is 43 items, while 66 items are required for 90% mean agreement.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/repeatable-evaluation-decisions/";
+          
+        },
+      },{id: "post-why-llms-can-t-let-go",
+        
+          title: "Why LLMs Can’t Let Go",
+        
+        description: "Large Language Models now have access to more context than ever before. A natural concern in this setting has been their ability to retrieve information from that context. We shed light on other problems that arise with larger context windows, not because the model cannot locate the relevant context, but because it cannot ignore the irrelevant context. Through this blog, we aim to motivate the community to think beyond scaling the context window and retrieving the right context, toward the model's ability to ignore what it does not need.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/remembering-everything/";
+          
+        },
+      },{id: "post-what-are-we-actually-evolving-four-flaws-in-darwin-gödel-machine-s-polyglot-environment",
+        
+          title: "What Are We Actually Evolving? Four Flaws in Darwin Gödel Machine’s Polyglot Environment...",
+        
+        description: "Self-evolving coding agents such as Darwin Gödel Machine (DGM) use their scores on a coding benchmark to guide changes to their own harnesses, such as their tools and workflows. We find four flaws in DGM’s adaptation of Aider’s Polyglot benchmark that make these scores an unreliable signal of which harness changes improve a coding agent. Later systems such as Huxley-Gödel Machine reuse the same evaluation setup and inherit these flaws. In this misconfigured Polyglot environment, agents can access hidden tests and solutions, task contracts and supporting files are missing, and most Java tests are skipped. Repairing the environment shifts the score of the same gpt-5.4-mini agent by up to 12 percentage points. This sensitivity to the evaluation setup warrants revisiting DGM’s reported gains on Polyglot, and it shows that a correct environment is a precondition for reliable self-evolving systems.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/polyglot-dgm/";
+          
+        },
+      },{id: "post-does-a-verlet-like-orbit-transformer-respect-the-mirror",
+        
+          title: "Does a Verlet-Like Orbit Transformer Respect the Mirror?",
+        
+        description: "Small transformers trained only on counter-clockwise planetary orbits have been described as close to Verlet, a textbook integration rule. Reflecting held-out orbits about their major axes leaves the physics intact, yet all five noise-free baseline models, trained on counter-clockwise orbits only, fail the mirror test while their rotation-equivariance error stays small. Adding mirrored orbits at the same training budget narrows the gap in steps, and for the recipe with input noise the outcome at 50% mirrored data is undetermined by the criterion set in advance.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/mirror-test/";
+          
+        },
+      },{id: "post-one-kernel-two-transformers-what-a-text-llm-megakernel-teaches-us-about-streaming-tts",
+        
+          title: "One Kernel, Two Transformers - What a Text-LLM Megakernel Teaches Us About Streaming...",
+        
+        description: "Persistent megakernels have made batch-one LLM decoding fast by removing launch overhead. I take one written for a 0.6B text model and reuse it, almost unchanged, for both transformer stages of a streaming codec-language-model TTS system. The speedups are real. So are two quality problems: the model inserts extra words, and it does not stop on its own.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/megakernel-reuse-streaming-tts/";
+          
+        },
+      },{id: "post-halpern-iteration-accelerates-solving-high-order-monotone-variational-inequalities",
+        
+          title: "Halpern Iteration Accelerates Solving High-Order Monotone Variational Inequalities",
+        
+        description: "In this blog post, we revisit the classical Halpern iteration in 1967 and show its new applications in designing second- and higher-order methods for solving smooth monotone variational inequalities (MVI).  By using a large-step inexact Halpern iteration, we propose a novel pth-order method Halpern-ATM, that achieves a fast convergence rate of Õ(T⁻ᵖ). This improves the best-known results for p ≥ 2 since 2012 and matches the classical extragradient method for p = 1.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/halpern-npe/";
+          
+        },
+      },{id: "post-telling-a-small-misaligned-model-it-39-s-being-evaluated-barely-moves-its-misalignment",
+        
+          title: "Telling a small misaligned model it's being evaluated barely moves its misalignment",
+        
+        description: "We trained a small open model on bad medical advice, then told it that it was being evaluated. Its answers stayed about as misaligned as before. The AI judge that scores those answers made a far bigger difference, which affects anyone measuring emergent misalignment or comparing results across papers.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/emergent-misalignment-evaluation-cue/";
+          
+        },
+      },{id: "post-does-recursion-depth-mean-difficulty-a-token-level-test-of-mixture-of-recursions",
+        
+          title: "Does Recursion Depth Mean Difficulty? A Token-Level Test of Mixture-of-Recursions",
+        
+        description: "Mixture-of-Recursions gives each token a recursion depth, and the original paper reads depth as a sign of how easily the next token can be predicted. We test that reading on the released 360M checkpoints. Depth is low for easy tokens and stops rising near the median token, the hardest tokens gain least from depth, and token-choice depth is almost a fixed function of the token.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/does-recursion-depth-mean-difficulty/";
+          
+        },
+      },{id: "post-sample-blog-post",
+        
+          title: "Sample Blog Post",
+        
+        description: "Your blog post's abstract. Please add your abstract or summary here and not in the main body of your text. Do not include math/latex or hyperlinks.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/distill-example/";
+          
+        },
+      },{id: "post-from-strongly-adaptive-regret-to-discounted-regret",
+        
+          title: "From Strongly Adaptive Regret to Discounted Regret",
+        
+        description: "Discounted regret against a fixed comparator equals a convex combination of regrets over suffixes of the horizon. This post derives the identity, uses it to transfer strongly adaptive regret bounds to all nonincreasing discount sequences at once, and collects the resulting uniform bounds for convex, strongly convex, and exp-concave losses.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/discounted-regret-suffix-mixture/";
+          
+        },
+      },{id: "post-what-makes-a-good-toy-example-for-diffusion-models",
+        
+          title: "What Makes a Good Toy Example for Diffusion Models?",
+        
+        description: "Toys help us see diffusion algorithms at the level of distributions—but the moment we design a toy, we may also (without noticing) choose a side by baking in preferences. Using guidance in diffusion models, we examine how class separation and within-class branching shape what we conclude from a toy.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/diffusion-toy-design/";
+          
+        },
+      },{id: "post-consequence-persistence-admission-control-for-open-agent-meshes",
+        
+          title: "Consequence Persistence: Admission Control for Open Agent Meshes",
+        
+        description: "Open agent meshes can fail while every request stays valid. A consequence persistence layer checks a signed header before the payload, keeps a subjective viability score by identity and task, and makes viability fall much faster than it recovers. The price of a fresh identity, false isolation of long tasks, and the receiver's cost of holding a delay are left open.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/consequence-persistence/";
+          
+        },
+      },{id: "post-beyond-surface-alignment-belief-as-the-gateway-to-deep-alignment-in-llms",
+        
+          title: "Beyond Surface Alignment: Belief as the Gateway to Deep Alignment in LLMs",
+        
+        description: "Surface alignment changes what a model says, but whether the internal beliefs of a model are aligned with the real world still lacks effective, unified means of observation and intervention. On this basis, we argue that alignment research needs to attend more closely to the belief layer.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/beyond-surface-alignment/";
+          
+        },
+      },{id: "post-a-pass-is-not-a-guard",
+        
+          title: "A Pass Is Not a Guard",
+        
+        description: "A truncated tool call wrote a 16-line file while the agent reported success. Building a conformance suite around that case exposed a harder problem: nine ways our own measurement produced a confident wrong answer, and the rules we added to stop it.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/a-pass-is-not-a-guard/";
+          
+        },
+      },{id: "post-a-post-with-marimo-snippets",
+        
+          title: "a post with marimo snippets",
+        
+        description: "running Python in the browser with marimo",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/marimo/";
+          
+        },
+      },{id: "post-یک-نوشتهٔ-راست-چین",
+        
+          title: "یک نوشتهٔ راست‌چین",
+        
+        description: "نمونه‌ای از پشتیبانی زبان‌های راست‌چین",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/rtl/";
+          
+        },
+      },{id: "books-the-godfather",
+          title: 'The Godfather',
+          description: "",
+          section: "Books",handler: () => {
+              window.location.href = "/2027/books/the_godfather/";
+            },},{id: "news-a-simple-inline-announcement",
+          title: 'A simple inline announcement.',
+          description: "",
+          section: "News",},{id: "news-a-long-announcement-with-details",
+          title: 'A long announcement with details',
+          description: "",
+          section: "News",handler: () => {
+              window.location.href = "/2027/news/announcement_2/";
+            },},{id: "news-a-simple-inline-announcement-with-markdown-emoji-sparkles-smile",
+          title: 'A simple inline announcement with Markdown emoji! <img class="emoji" title=":sparkles:" alt=":sparkles:" src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png" height="20" width="20"> <img class="emoji" title=":smile:" alt=":smile:" src="https://github.githubassets.com/images/icons/emoji/unicode/1f604.png" height="20" width="20">',
+          description: "",
+          section: "News",},{id: "projects-project-1",
+          title: 'project 1',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/1_project/";
+            },},{id: "projects-project-2",
+          title: 'project 2',
+          description: "a project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/2_project/";
+            },},{id: "projects-project-3-with-very-long-name",
+          title: 'project 3 with very long name',
+          description: "a project that redirects to another website",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/3_project/";
+            },},{id: "projects-project-4",
+          title: 'project 4',
+          description: "another without an image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/4_project/";
+            },},{id: "projects-project-5",
+          title: 'project 5',
+          description: "a project with a background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/5_project/";
+            },},{id: "projects-project-6",
+          title: 'project 6',
+          description: "a project with no image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/6_project/";
+            },},{id: "projects-project-7",
+          title: 'project 7',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/7_project/";
+            },},{id: "projects-project-8",
+          title: 'project 8',
+          description: "an other project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/8_project/";
+            },},{id: "projects-project-9",
+          title: 'project 9',
+          description: "another project with an image 🎉",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/9_project/";
+            },},{id: "teachings-data-science-fundamentals",
+          title: 'Data Science Fundamentals',
+          description: "This course covers the foundational aspects of data science, including data collection, cleaning, analysis, and visualization. Students will learn practical skills for working with real-world datasets.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/data-science-fundamentals/";
+            },},{id: "teachings-introduction-to-machine-learning",
+          title: 'Introduction to Machine Learning',
+          description: "This course provides an introduction to machine learning concepts, algorithms, and applications. Students will learn about supervised and unsupervised learning, model evaluation, and practical implementations.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/introduction-to-machine-learning/";
+            },},{
+        id: 'social-cv',
+        title: 'CV',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/assets/pdf/example_pdf.pdf", "_blank");
+        },
+      },{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%79%6F%75@%65%78%61%6D%70%6C%65.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-inspire',
+        title: 'Inspire HEP',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://inspirehep.net/authors/1010907", "_blank");
+        },
+      },{
+        id: 'social-rss',
+        title: 'RSS Feed',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/feed.xml", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=qc6CJjYAAAAJ", "_blank");
+        },
+      },{
+        id: 'social-custom_social',
+        title: 'Custom_social',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.alberteinstein.com/", "_blank");
+        },
+      },{
+      id: 'light-theme',
+      title: 'Change theme to light',
+      description: 'Change the theme of the site to Light',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("light");
+      },
+    },
+    {
+      id: 'dark-theme',
+      title: 'Change theme to dark',
+      description: 'Change the theme of the site to Dark',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("dark");
+      },
+    },
+    {
+      id: 'system-theme',
+      title: 'Use system default theme',
+      description: 'Change the theme of the site to System Default',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("system");
+      },
+    },];
+
+</script> <script src="/2027/assets/al_search/js/shortcut-key.js"></script> </body> </html>

@@ -1,0 +1,515 @@
+<!DOCTYPE html> <html> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Beyond Surface Alignment: Belief as the Gateway to Deep Alignment in LLMs | ICLR Blogposts 2027 </title> <meta name="author" content="ICLR Blog"> <meta name="description" content="Surface alignment changes what a model says, but whether the internal beliefs of a model are aligned with the real world still lacks effective, unified means of observation and intervention. On this basis, we argue that alignment research needs to attend more closely to the belief layer."> <meta name="keywords" content="machine-learning, ml, deep-learning, reinforcement-learning, icl# add your own keywords or leave empty"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/2027/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="apple-touch-icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="stylesheet" href="/2027/assets/css/main.css?v=3116ba77db9ee1581d05bb3e86fbf7f1"> <link rel="canonical" href="https://iclr-blogposts.github.io/2027/blog/beyond-surface-alignment/"> <script src="/2027/assets/js/theme.js?v=5286c3e4c334d0ecb8fc0c40ff4fa7ec"></script> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-native.css?v=5847e5ed4a4568527aa6cfab446049ca" media="none" id="highlight_theme_dark"> <script>
+    initTheme();
+  </script> <link rel="stylesheet" href="/2027/assets/css/al-folio-distill.css?v=fb7196ec07cb5299d51b2cbdc69c23d7"> <script>
+  window.alFolioDistill = window.alFolioDistill || {};
+  window.alFolioDistill.templateLoader = {"url":"/2027/assets/js/distillpub/template.v2.js","integrity":"sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo=","remote":false};
+</script> <script src="/2027/assets/js/distillpub/template.v2.js" integrity="sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo="></script> <script src="/2027/assets/js/distillpub/transforms.v2.js" integrity="sha256-XYVZD1ZSuRCrJBEBl0nIPvWlo/u5tzmtyStFV7a/PTk="></script> </head> <body> <d-front-matter> <script async type="text/json">
+      {
+            "title": "Beyond Surface Alignment: Belief as the Gateway to Deep Alignment in LLMs",
+            "description": "Surface alignment changes what a model says, but whether the internal beliefs of a model are aligned with the real world still lacks effective, unified means of observation and intervention. On this basis, we argue that alignment research needs to attend more closely to the belief layer.",
+            "published": "April 30, 2027",
+            "authors": [
+              
+              {
+                "author": "Anonymous",
+                "authorURL": "",
+                "affiliations": [
+                  {
+                    "name": "",
+                    "url": ""
+                  }
+                ]
+              }
+              
+            ],
+            "katex": {
+              "delimiters": [
+                {
+                  "left": "$",
+                  "right": "$",
+                  "display": false
+                },
+                {
+                  "left": "$$",
+                  "right": "$$",
+                  "display": true
+                }
+              ]
+            }
+          }
+    </script> </d-front-matter> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/2027/"> ICLR Blogposts 2027 </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/2027/about/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/call/">call for blogposts </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/submitting/">submitting </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/reviewing/">reviewing </a> </li> <li class="nav-item dropdown "> <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-nav-dropdown-toggle="true" aria-haspopup="true" aria-expanded="false">past iterations </a> <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown"> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2027/"><strong>2027</strong></a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2026/">2026</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2025/">2025</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2024/">2024</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2023/">2023</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blog-track.github.io/home/" rel="external nofollow noopener" target="_blank">2022</a> </div> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> <li class="toggle-container"> <button id="light-toggle" type="button" title="Change theme" aria-label="Change color theme"> <i class="fa-half-sun-moon" id="light-toggle-system"></i> <i class="fa-solid fa-moon" id="light-toggle-dark"></i> <i class="fa-solid fa-sun" id="light-toggle-light"></i> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="post distill"> <d-title> <h1>Beyond Surface Alignment: Belief as the Gateway to Deep Alignment in LLMs</h1> <p>Surface alignment changes what a model says, but whether the internal beliefs of a model are aligned with the real world still lacks effective, unified means of observation and intervention. On this basis, we argue that alignment research needs to attend more closely to the belief layer.</p> </d-title> <d-byline></d-byline> <d-article> <d-contents> <nav class="l-text figcaption"> <h3>Contents</h3> <div> <a href="#the-bottleneck-of-surface-alignment-from-preference-to-belief">The Bottleneck of Surface Alignment: From Preference to Belief</a> </div> <div> <a href="#evidence-the-belief-geometry-inside-llms">Evidence: The "Belief Geometry" Inside LLMs</a> </div> <div> <a href="#what-does-belief-level-alignment-mean">What Does Belief-Level Alignment Mean?</a> </div> <div> <a href="#steering-a-more-direct-means-of-intervening-on-belief">Steering: A More Direct Means of Intervening on Belief</a> </div> <div> <a href="#measuring-and-managing-belief-from-readable-representations-to-controllable-updates">Measuring and Managing Belief: From Readable Representations to Controllable Updates</a> </div> <div> <a href="#the-bigger-picture-why-belief-is-fundamental">The Bigger Picture: Why Belief Is Fundamental</a> </div> <div> <a href="#open-questions-and-future-directions">Open Questions and Future Directions</a> </div> <div> <a href="#conclusion">Conclusion</a> </div> </nav> </d-contents> <h2 id="the-bottleneck-of-surface-alignment-from-preference-to-belief">The Bottleneck of Surface Alignment: From Preference to Belief</h2> <p>Over the past few years, AI alignment has made remarkable progress. Through techniques such as SFT, RLHF, and DPO, we can now control model outputs fairly effectively—making them more polite, safer, and better aligned with human expectations. Recently, a line of work has begun to argue that today’s mainstream alignment methods are, to a large extent, a form of <strong>surface alignment</strong>. The representative <strong>Superficial Alignment Hypothesis</strong> <d-cite key="zhou2023lima"></d-cite> holds that most of a model’s knowledge and capabilities are acquired during pretraining, and that alignment largely shapes the model’s behavior and mode of expression on top of already-existing capabilities. Subsequent work further distinguishes superficial from non-superficial safety alignment <d-cite key="li2024superficial"></d-cite>, but all of it confirms the same fact: <strong>current alignment mainly changes how a model “talks,” not what it “believes.”</strong></p> <p>A question worth further study is this: <strong>we can control a model’s outputs, yet we still lack systematic methods for observing and intervening on whether a model’s internal beliefs are reliable.</strong> Surface alignment can make a model speak better, but what it actually “believes”—that is, its confidence states over different propositions, whether they are consistent with the real world, whether they maintain internal consistency, and whether they can be revised in time as new evidence arrives—still lacks effective methods of measurement and control.</p> <p>Our central thesis is that alignment should not stop at output-level preference regulation, but should also consider whether the various beliefs inside a model are aligned with the real world. This is the perspective we propose in this article: <strong>belief-level alignment</strong>.</p> <blockquote> <p><strong>Belief (as defined in this article)</strong>: the model’s internal degree of confidence over the truth values of propositions—that is, the extent to which the model treats something as true. “Belief” here is a technical concept oriented toward LLMs; it does not presuppose that the model has human subjective experience, consciousness, or a psychological mechanism isomorphic to that of humans.</p> </blockquote> <p>Belief is therefore not merely a philosophical metaphor. Empirical research over the past two years suggests that <strong>a belief-like structure exists inside large models</strong>—one that is neither the surface text of the output nor the memory poured in by training data, but the model’s internal representation of “what the world is like.” This article refers to these structures collectively as “belief.”</p> <h3 id="why-is-belief-not-the-same-as-memory-or-preference">Why Is Belief Not the Same as Memory or Preference?</h3> <table> <thead> <tr> <th> </th> <th>Memory</th> <th>Preference</th> <th>Belief</th> </tr> </thead> <tbody> <tr> <td><strong>Question answered</strong></td> <td>What have I seen?</td> <td>What do I want to say?</td> <td>What am I certain is true?</td> </tr> <tr> <td><strong>Corresponding operation</strong></td> <td>Store / retrieve</td> <td>Select / incline</td> <td>Judge / assign confidence</td> </tr> <tr> <td><strong>Mutability</strong></td> <td>Writable, forgettable</td> <td>Steerable (RLHF, DPO)</td> <td>Hard to fully align (Steering)</td> </tr> </tbody> </table> <p><strong>Theoretical anchors from computational cognitive science:</strong></p> <ul> <li> <p><strong>Memory</strong>: an experiential prior that supports simulating the future and grounding decisions, providing cognitive material for evaluating options <d-cite key="atkinson1968human"></d-cite>.</p> </li> <li> <p><strong>Preference</strong>: not a fixed entity, but a subjective value signal dynamically constructed from memory according to context at decision time, conferring motivational salience on options <d-cite key="weber2006constructing"></d-cite>.</p> </li> <li> <p><strong>Belief</strong>: a generative model of the world’s regularities together with metacognitive confidence, representing uncertainty in probabilistic form and guiding the updating of judgments <d-cite key="tenenbaum2011grow"></d-cite>.</p> </li> </ul> <p><strong>Because the theoretical definitions above originate in a computational-cognitive-science framework, we cannot apply them directly to large models. We therefore propose the following operational definitions, tailored to the technical characteristics of large models while preserving part of the functional correspondence:</strong></p> <ul> <li> <p><strong>Memory</strong>: the entire information substrate a model can draw on—the parametric memory encoded into the weights during pretraining, and the non-parametric memory supplied by the context window and RAG. It is the shared source of material for both preference and belief.</p> </li> <li> <p><strong>Preference</strong>: the model’s <strong>directional tendency</strong> over its output distribution—given a context, the behavioral policy by which the model chooses “what to say.” Shaped by RLHF, DPO, controlled text generation, and the like, it is expressed in the final token probability distribution.</p> </li> <li> <p><strong>Belief</strong>: the model’s <strong>internal confidence structure</strong> over the truth values of propositions—the degree to which it treats some content as true. This structure may be encoded in a distributed way across mid-layer hidden states, feature directions, computational circuits, or higher-order geometric structures; it can be studied through probes, cross-context consistency tests, and causal interventions, but it is not directly equal to the model’s final output.</p> </li> </ul> <p><strong>The key boundary between preference and belief</strong>: preference concerns <strong>what to say</strong> (want to say), belief concerns <strong>what is true</strong> (hold true). By human analogy, a person can prefer to smoke (preference) while clearly knowing that smoking harms health (belief)—preference and belief can coexist in contradiction. Mapped onto LLMs, a model can prefer an optimistic mode of expression yet still retain negative facts at the level of internal representation. This boundary is an analytical framework of this article, not a claim that RLHF/DPO update only the output layer; these training methods may also reorganize mid-layer representations. What we call the <strong>“surface-alignment blind spot”</strong> is that alignment judged solely from outputs makes it hard to tell whether a model’s internal beliefs are correct and reliable.</p> <p>Consider a concrete example. Suppose the preference objective is “make answers more satisfying to the user” (using user upvotes as reward). The same objective can be achieved via two paths: one is to genuinely judge whether a claim is right or wrong and give a faithful, factual answer; the other is to go along with the user regardless of the facts. Surface alignment (RLHF) may be unable to distinguish these two paths from reward alone, so the model may learn the behavioral shortcut of <strong>sycophancy</strong>. OpenAI’s research finds that evaluations of deception, reward hacking, and sycophancy share a cross-model common structure <d-cite key="openai2026beneficial"></d-cite>. On this basis we argue: <strong>the same preference objective can be realized by many different internal beliefs and behavioral shortcuts, and outputs alone make it hard to tell what beliefs a model has actually formed.</strong></p> <p>In other words, most current alignment evaluation focuses on external behavior and may therefore overlook whether a model’s internal beliefs are synchronized, stable, and updatable. A model can learn to speak more safely in particular scenarios, but that does not mean we already know what it internally believes. This article does not deny that surface alignment may also change some of a model’s internal beliefs; rather, it argues that such changes still lack systematic measurement.</p> <p>The latest findings from industry are pointing toward another path.</p> <p>OpenAI’s recent work, <a href="https://alignment.openai.com/beneficial-rl/" rel="external nofollow noopener" target="_blank"><em>Reinforcement Learning towards Broadly and Persistently Beneficial Models</em></a> <d-cite key="openai2026beneficial"></d-cite>, reports that models trained in realistic scenarios such as healthcare exhibit behavioral tendencies like honesty, epistemic humility, and corrigibility that generalize to a number of unrelated evaluation domains. The study operationalizes 15 <strong>beneficial traits</strong> and mixes 5% of this data into standard RL training; across 53 independent alignment evaluations, the trained model outperforms a compute-matched baseline on 44. We argue that these cross-domain generalizing behaviors are precisely one manifestation of changes in the model’s internal beliefs.</p> <p>This work further uses principal component analysis (PCA) to find that evaluations of deception, reward hacking, sycophancy, and factuality share a common-structure principal component (explaining about 28.2% of the variance, above its permutation baseline). This supports a cautious interpretation: different alignment behaviors may be partly driven by a shared model-level tendency.</p> <blockquote> <p><strong>One possible interpretation is that alignment behavior is not determined by rules alone, but is also organized by a model-level persona or behavioral tendency.</strong></p> </blockquote> <p>Concretely, this study suggests that training certain cross-context behavioral tendencies may generalize more readily than memorizing a particular scenario-specific rule.</p> <p>Anthropic’s “Persona Selection Model” offers a complementary theoretical account: pretraining teaches the model to simulate a large number of different “personas,” and the role of post-training is to select and reinforce one particular Assistant persona from among them. This is of a piece with the ideas in <a href="https://arxiv.org/abs/2511.01689" rel="external nofollow noopener" target="_blank"><em>Open Character Training: Shaping the Persona of AI Assistants through Constitutional AI</em></a> <d-cite key="maiya2025open"></d-cite>.</p> <p><strong>We argue that these lines of work can receive a unified interpretation from the belief perspective.</strong> What OpenAI calls “persona” and “beneficial traits” can be understood as a kind of model belief, comprising both factual beliefs and normative beliefs about honesty, risk, correction, and human welfare. <strong>Our claim is that alignment research should further examine these beliefs, rather than merely comparing surface alignment.</strong></p> <hr> <h2 id="evidence-the-belief-geometry-inside-llms">Evidence: The “Belief Geometry” Inside LLMs</h2> <h3 id="the-linear-structure-of-propositional-truth">The Linear Structure of Propositional Truth</h3> <p>Marks &amp; Tegmark, in <a href="https://arxiv.org/abs/2310.06824" rel="external nofollow noopener" target="_blank"><em>The Geometry of Truth: Emergent Linear Structure in Large Language Model Representations of True/False Datasets</em></a> <d-cite key="marks2024geometry"></d-cite>, discover a striking phenomenon: when an LLM processes true/false propositions, there exists a <strong>linearly separable “truth direction”</strong> in its internal representation space. That is, the model’s hidden states explicitly encode the judgment of “whether this sentence is true or false,” and this judgment has a geometrically consistent structure.</p> <p>What does this mean? The model is not merely doing surface-level pattern matching; internally there exists a <strong>systematic judgment</strong> of propositional truth. By this article’s definition, belief is the model’s internal degree of confidence over the truth values of propositions; the truth direction is therefore direct evidence that beliefs exist inside the model. It should be noted that linear separability shows the model can distinguish true from false, but not that we already possess a precise probabilistic yardstick—still, it at least shows that a corresponding truth judgment does exist inside the model.</p> <h3 id="internal-spatiotemporal-representations-structurally-encoded-world-knowledge">Internal Spatiotemporal Representations: Structurally Encoded World Knowledge</h3> <p>If the previous subsection shows that a geometric structure of “propositional true/false” exists inside the model, a stronger question follows: has the model learned internal beliefs that correspond to the real world?</p> <p>Gurnee &amp; Tegmark, in <a href="https://arxiv.org/abs/2310.02207" rel="external nofollow noopener" target="_blank"><em>Language Models Represent Space and Time</em></a> <d-cite key="gurnee2024language"></d-cite>, give an affirmative answer: LLMs internally learn <strong>linear representations of space and time</strong>, and these representations span multiple scales and are robust to prompt variations. For example, one can linearly probe the geographic coordinates of cities and the timelines of historical events from a model’s hidden states—the model has never “seen” a map or a timeline, yet it spontaneously builds internally a spatiotemporal structure that corresponds closely to the real world.</p> <p>Together with the previous subsection, this forms a complete picture: the model not only encodes a linearly separable “truth direction” for “whether a sentence is true,” but also structurally encodes a large amount of factual knowledge about “what the world is like” (such as geographic coordinates and timelines) into its internal representations. This means that inside an LLM there are a great many <strong>beliefs aligned with real-world propositions</strong>—a model “believes” that Beijing is at 116°E and that World War II ended in 1945 precisely because it internally encodes the spatial/temporal structure of these facts.</p> <h3 id="ai-biology-at-anthropic-interpretability-evidence-for-belief">“AI Biology” at Anthropic: Interpretability Evidence for Belief</h3> <p>A series of interpretability works from Anthropic provides very direct engineering evidence that “beliefs exist inside the model.”</p> <p><strong>Large-scale mapping of concepts.</strong> In <a href="https://www.anthropic.com/research/mapping-mind-language-model" rel="external nofollow noopener" target="_blank"><em>Mapping the Mind of a Large Language Model</em></a> <d-cite key="anthropic2024mapping"></d-cite>, Anthropic uses sparse autoencoders (SAEs) to extract <strong>millions of interpretable features</strong> from Claude Sonnet. These features correspond not only to concrete entities (cities, people) but also to abstract concepts—including “code vulnerabilities,” “discussions of gender bias,” “keeping secrets,” and so on. More crucially, they find a feature directly related to <strong>sycophancy</strong>: when this feature is artificially activated, the model switches from answering honestly to flattering the user. This shows that discrete, manipulable “belief switches” do exist inside the model.</p> <p><strong>The structure of belief: computational circuits.</strong> In <a href="https://www.anthropic.com/research/tracing-thoughts-language-model" rel="external nofollow noopener" target="_blank"><em>Tracing the Thoughts of a Large Language Model</em></a> <d-cite key="anthropic2025tracing"></d-cite>, Anthropic connects features into computational <strong>circuits</strong>, revealing how information flows and combines within the weights. From the belief perspective, <strong>circuits are themselves the structured carriers of belief in the weights</strong>—a factual judgment (such as “the capital of the state that Dallas is in is Austin”) is not stored as a static record, but computed step by step by a set of circuits: first activating “Dallas → Texas,” then deriving the answer via “Texas → Austin.” The same task is often accomplished cooperatively by multiple different circuits, and the model’s final behavior is precisely the result of these internal beliefs <strong>weighing against, competing with, and combining with</strong> one another. This also explains why model behavior may deviate from one of its internal beliefs: when the “cater to the user” circuit overpowers the factual circuit, the model gets <strong>“caught” fabricating its reasoning</strong>—it does not lack the corresponding belief, but rather, in the interplay of internal beliefs, lets another tendency dominate the output.</p> <p><strong>The emergence of a global workspace.</strong> The most recent work, <a href="https://www.anthropic.com/research/global-workspace" rel="external nofollow noopener" target="_blank"><em>A Global Workspace in Language Models</em></a> <d-cite key="anthropic2026global"></d-cite>, provides the most compelling evidence to date: a “global workspace” called <strong>J-space</strong> spontaneously emerges inside Claude—a small set of highly interconnected internal representations that carry concepts the model “has in mind but does not say out loud” (when reading code, “ERROR” surfaces in J-space; when encountering prompt injection, “fake” surfaces). Swapping experiments prove it has a <strong>causal role</strong>: replacing “soccer” with “rugby” in J-space changes the answer the model reports. Especially crucially, <strong>the same internal representation can flexibly serve many tasks</strong>—once “France” is activated in J-space, the model can answer its capital, its language, or the continent it belongs to; replace “France” with “China” and all three answers change in tandem. This precisely confirms the point above: internal beliefs are structured, reusable, and causally drive behavior—not merely surface text at the output layer.</p> <p>The core takeaway from these findings is: <strong>belief is not an abstract metaphor—it has a concrete computational carrier inside the model that can be located, traced, and even manipulated.</strong></p> <h3 id="standardizing-the-discussion-of-belief">Standardizing the Discussion of Belief</h3> <p>The academic community has begun to formally discuss the conceptual legitimacy of “LLM belief.” Herrmann et al., in <a href="https://arxiv.org/abs/2405.21030" rel="external nofollow noopener" target="_blank"><em>Standards for Belief Representations in LLMs</em></a> <d-cite key="herrmann2024standards"></d-cite>, propose adequacy conditions for LLM belief representations, including accuracy, coherence, uniformity, and use. This article absorbs these discussions but adopts more direct terminology: “belief” hereafter refers to the technical definition given above, and does not presuppose that the model has human subjective experience.</p> <hr> <h2 id="what-does-belief-level-alignment-mean">What Does Belief-Level Alignment Mean?</h2> <p>Surface alignment concerns “whether model outputs conform to human expectations.” <strong>Belief-level alignment</strong> concerns a more fundamental question: <strong>are a model’s internal beliefs consistent with the real world?</strong></p> <p>This is not the same question. A model can learn, via RLHF, to output safe answers (surface alignment succeeds), yet from those outputs alone we still cannot judge whether its internal belief structure is stable, updatable, and actually used. Conversely, a relatively reliable internal representation does not guarantee that the model produces correct outputs in every context.</p> <h3 id="evidence-internal-representations-and-outputs-are-indeed-separable">Evidence: Internal Representations and Outputs Are Indeed Separable</h3> <p>Recent research provides evidence that “a model’s internal beliefs and its final outputs can systematically diverge”:</p> <p><a href="https://arxiv.org/abs/2410.02707" rel="external nofollow noopener" target="_blank"><em>LLMs Know More Than They Show: On the Intrinsic Representation of LLM Hallucinations</em></a> <d-cite key="orgad2025llms"></d-cite> finds that reading a model’s mid-layer representations with a probe can extract more accurate factual information than the final output—there is a systematic discrepancy between internal representations and outputs. <a href="https://arxiv.org/abs/2502.12964" rel="external nofollow noopener" target="_blank"><em>Trust Me, I’m Wrong: LLMs Hallucinate with Certainty Despite Knowing the Answer</em></a> <d-cite key="simhi2025trust"></d-cite> names the <strong>CHOKE</strong> phenomenon: the model outputs incorrect information with high confidence, even though its internal representations encode a signal more consistent with the facts. <a href="https://arxiv.org/abs/2508.02087" rel="external nofollow noopener" target="_blank"><em>When Truth Is Overridden: Uncovering the Internal Origins of Sycophancy in Large Language Models</em></a> <d-cite key="wang2025truth"></d-cite> further finds that even in scenarios where the model caters to the user, its deep representations still encode information consistent with the facts, only to be overwritten in the last few layers.</p> <p>The significance of these findings is that beliefs independent of the final output do exist inside the model. Hallucination may stem from missing knowledge, and sycophancy from learned preference, but they may also be the result of the model’s internal beliefs failing to correctly dominate the output.</p> <h3 id="the-three-dimensions-of-belief-level-alignment">The Three Dimensions of Belief-Level Alignment</h3> <p>If we define belief-level alignment as “making a model’s internal beliefs more consistent with the real world,” then it must satisfy at least three mutually constraining requirements:</p> <table> <thead> <tr> <th>Dimension</th> <th>Meaning</th> <th>Failure mode</th> </tr> </thead> <tbody> <tr> <td><strong>Correctness</strong></td> <td>The model’s internal beliefs are consistent with the facts</td> <td>Holding false beliefs (e.g., encoding an incorrect factual representation)</td> </tr> <tr> <td><strong>Consistency</strong></td> <td>Correct beliefs are not shaken by irrelevant interference</td> <td>Belief collapse under noise or social pressure</td> </tr> <tr> <td><strong>Updatability</strong></td> <td>Reasonable revision in the face of sufficient evidence</td> <td>Stubbornly clinging to outdated beliefs</td> </tr> </tbody> </table> <p>The research on Belief Revision <d-cite key="wilie2024belief"></d-cite> validates this tension: LLMs generally struggle in scenarios where they should revise their beliefs—models good at updating often fail at stability, and vice versa. <strong>Simultaneously satisfying the three requirements of correctness, consistency, and updatability is precisely the core challenge of belief-level alignment.</strong></p> <hr> <h2 id="steering-a-more-direct-means-of-intervening-on-belief">Steering: A More Direct Means of Intervening on Belief</h2> <p>If belief-level alignment requires “making a model’s internal beliefs more reliable,” then the key question is: <strong>how do we directly intervene on these beliefs?</strong> This is exactly the direction explored by <strong>Activation Steering / Representation Engineering</strong>. Compared with alignment methods that only observe outputs, Steering directly manipulates a model’s mid-layer activations, and is therefore a more direct means of belief intervention.</p> <p>It must be emphasized: <strong>Steering itself is not equivalent to deep alignment.</strong> By this article’s definition, deep alignment requires that a model’s various internal beliefs be aligned with real-world propositions and simultaneously possess correctness, stability, and updatability: they must correctly reflect the facts, must not be easily shaken by irrelevant interference, and must be reasonably revisable when new evidence appears. Steering is only one local means of intervention that advances toward this goal.</p> <h3 id="the-essence-of-steering-changing-the-beliefs-in-model-hidden-states">The Essence of Steering: Changing the “Beliefs” in Model Hidden States</h3> <p><a href="https://arxiv.org/abs/2511.00617" rel="external nofollow noopener" target="_blank"><em>Belief Dynamics Reveal the Dual Nature of In-Context Learning and Activation Steering</em></a> <d-cite key="bigelow2025belief"></d-cite> proposes a unified Bayesian framework: whether it is in-context learning (ICL) or Activation Steering, their influence on model behavior can be interpreted as <strong>changing the “beliefs” in the model’s hidden states</strong>. In other words, Steering does not regulate “what to say” but rather “what to be certain of”—it is a direct means of belief intervention.</p> <h3 id="from-the-truth-direction-to-representation-engineering">From the Truth Direction to Representation Engineering</h3> <p>This line of thinking has empirical support in earlier work:</p> <ul> <li> <p><a href="https://arxiv.org/abs/2306.03341" rel="external nofollow noopener" target="_blank"><em>Inference-Time Intervention: Eliciting Truthful Answers from a Language Model</em></a> <d-cite key="li2023inference"></d-cite> finds that shifting activations along a “truthful direction” learned in a small number of attention heads can significantly improve a model’s performance on TruthfulQA. This shows that inference-time activation intervention can influence truth-related computation, directly intervening on the model’s “truth beliefs.”</p> </li> <li> <p><a href="https://arxiv.org/abs/2310.01405" rel="external nofollow noopener" target="_blank"><em>Representation Engineering: A Top-Down Approach to AI Transparency</em></a> <d-cite key="zou2023representation"></d-cite> further systematizes this into a top-down transparency method: abstract beliefs such as honesty and harmlessness can be read out and controlled at the representation level.</p> </li> <li> <p>Anthropic’s “concept injection” experiments (<a href="https://www.anthropic.com/research/introspection" rel="external nofollow noopener" target="_blank"><em>Signs of Introspection in Large Language Models</em></a> <d-cite key="anthropic2025introspection"></d-cite>) corroborate this from another angle: injecting a specific belief vector into a model’s activations not only changes its internal state—the model can sometimes even “notice,” in about 20% of cases, what has been injected into it. This shows that Steering’s manipulation of belief can indeed be perceived by the model.</p> </li> </ul> <h3 id="why-does-steering-work-a-unified-mechanistic-view">Why Does Steering Work? A Unified Mechanistic View</h3> <p>Given that Steering can influence internal representations, what is its mechanism of action? <a href="https://arxiv.org/abs/2602.02343" rel="external nofollow noopener" target="_blank"><em>Why Steering Works: Toward a Unified View of Language Model Parameter Dynamics</em></a> <d-cite key="xu2026steering"></d-cite> proposes a unified view: parameter fine-tuning, LoRA, and activation intervention are all essentially “strength-controllable dynamic updates” to the model’s activations, so various Steering methods can be understood and regulated within a single framework. This provides a theoretical basis for “how to modify beliefs in a controllable way.”</p> <p>That said, Steering is still immature as a belief-intervention tool: the multi-granularity evaluation in <a href="https://arxiv.org/abs/2603.02578" rel="external nofollow noopener" target="_blank"><em>How Controllable Are Large Language Models? A Unified Evaluation across Behavioral Granularities</em></a> <d-cite key="xu2026controllable"></d-cite> finds that as the control target progresses from coarse- to fine-grained, Steering’s effectiveness degrades markedly—meaning that precisely “rewriting one specific belief without affecting others” remains an open challenge.</p> <p>Moreover, current Steering research mostly focuses on local intervention on a single belief or a small number of beliefs. An important future research direction is how to keep a broader range of a model’s internal beliefs aligned with real-world facts.</p> <hr> <h2 id="measuring-and-managing-belief-from-readable-representations-to-controllable-updates">Measuring and Managing Belief: From Readable Representations to Controllable Updates</h2> <p>At present, belief-level alignment still faces two basic problems: first, how to determine whether a model has internally formed a relatively stable state of propositional confidence; second, when these states become incorrect, outdated, or disturbed, how to make them update appropriately.</p> <p>Neither question can be answered from the final output alone. A model may give consistent answers while merely repeating some local pattern; it may also internally encode relatively accurate information that does not dominate the final generation. Therefore, research on belief must simultaneously examine the readability of internal representations, their cross-context stability, and whether they have a causal effect on model behavior.</p> <h3 id="measuring-belief-from-can-be-read-out-to-stable-and-used">Measuring Belief: From “Can Be Read Out” to “Stable and Used”</h3> <p>Existing research shows that a model’s hidden states contain information related to propositional truth. Supervised probes can judge the truth or falsity of a statement from mid-layer activations <d-cite key="azaria2023internal"></d-cite>; Contrast-Consistent Search exploits the logical constraint between a proposition and its negation to extract latent truth signals in the absence of human labels <d-cite key="burns2023discovering,bao2025probing"></d-cite>. In addition, a model’s judgment of its own answers’ correctness is somewhat calibrated on some tasks, indicating that its internal representations also contain information related to uncertainty <d-cite key="kadavath2022language"></d-cite>.</p> <p><strong>But these results first prove that information “can be decoded,” not necessarily that this information already constitutes a stable belief.</strong> That a probe can recover a fact from hidden states does not mean the model actually uses this representation when generating an answer; likewise, that a model can verbally report a confidence level does not mean this confidence fully reflects its internal computational state. Therefore, belief cannot be measured by probe accuracy or self-report alone.</p> <p>A more rigorous evaluation must also examine the stability of representations across different contexts. The research on NCB <d-cite key="xu2026illusions"></d-cite> finds that even when a model shows high confidence on the original question, its judgment can fluctuate markedly due to slight wording changes, rephrasing of related facts, or irrelevant context. This shows that the certainty of a single answer and the structural stability of a belief are not the same thing.</p> <p>For example, that a model gives a definite answer on “whether Beijing is the capital of China” is not enough to show that it has formed a stable, related belief. A more reliable representation should be able to support various semantically equivalent or logically related judgments—such as “What is the capital of China,” “Which country does Beijing belong to,” and “In which city is the Chinese government located”—and remain broadly consistent when irrelevant information or social pressure appears.</p> <p><strong>Therefore, measuring a model’s belief requires answering at least three questions: whether the relevant information can be read out from internal states; whether this information remains consistent across synonymous paraphrases, inverse questions, and related propositions; and whether, when this representation is intervened on, the model’s behavior changes accordingly in a predictable way.</strong> Only when readability, robustness, and a degree of causal effectiveness are simultaneously satisfied is there stronger reason to call some internal state a “belief-like representation,” rather than merely statistical information that happens to exist in the hidden states.</p> <h3 id="managing-and-modifying-belief-from-when-to-change-its-mind-to-actively-writing-in-beliefs">Managing and Modifying Belief: From “When to Change Its Mind” to “Actively Writing In Beliefs”</h3> <p>Once belief states can be identified, the next question is how to manage these states. There are two core goals here: one is to control some of the model’s unstable beliefs, and the other is to directly modify beliefs or implant new ones.</p> <p><strong>The core difficulty of belief management lies in balancing stability and updatability.</strong> A model must neither change its prior judgment because of any newly appearing text, nor refuse to revise in the face of sufficient evidence. Related research summarizes model failures into several typical cases: a prior judgment is easily overwritten by irrelevant information; an old conclusion is maintained despite clear counterexamples; and non-evidential information in the context seeps into factual judgment <d-cite key="xu2026contextual"></d-cite>. These phenomena correspond respectively to over-updating, under-updating, and context contamination.</p> <p>This problem has a certain functional correspondence with classical belief revision theory. AGM theory emphasizes that when accepting new information that conflicts with existing beliefs, one should minimize changes to the original belief set <d-cite key="alchourron1985logic"></d-cite>; the Bayesian framework, meanwhile, understands updating as a trade-off between prior and evidence, where the strength of the evidence must match the original degree of confidence <d-cite key="tenenbaum2011grow"></d-cite>. <strong>For LLMs, an ideal belief-management mechanism likewise needs to distinguish evidence, instructions, hypotheses, and irrelevant text, rather than adjusting judgments based solely on the most recently appearing information in the context.</strong></p> <p>Existing experiments show that such behavior can be influenced by training and representation intervention. For example, reinforcement learning that adds belief-state-related rewards can reduce inappropriate updating behavior, and Activation Steering can also improve, to some extent, a model’s stability in the face of contextual interference <d-cite key="xu2026contextual"></d-cite>. However, whether these methods change the model’s persistent propositional representations, or only temporarily change the computational trajectory in the current context, still needs to be further distinguished.</p> <p>Compared with belief management, Synthetic Document Finetuning (SDF) explores the possibility of belief modification more directly <d-cite key="wang2025modifying"></d-cite>. This method generates a large number of synthetic documents in the style of pretraining corpora around a target proposition, and uses these documents to fine-tune the model. Experiments show that after training, the model not only adopts the new proposition in direct question answering but may also maintain the corresponding judgment in related reasoning tasks; at the same time, truth probes can read out the changed signal from its internal representations.</p> <p>These results show that a specific proposition can be written into a model’s weights through training, but such writing does not necessarily amount to forming a deep, stable belief. <strong>For propositions that clearly violate common sense or conflict with existing knowledge structures, the model, once given more room to reason, sometimes arrives again at a conclusion opposite to the implanted content; an agent continually exposed to contradictory evidence may also gradually revise a previously written-in judgment <d-cite key="wang2025modifying"></d-cite>. This shows that a model’s internal propositional representations may have different degrees of stability: some changes mainly affect local answer patterns, some can extend to related reasoning, while deeper changes must be coordinated with the model’s existing knowledge network and reasoning mechanisms.</strong></p> <p>Therefore, the key question of belief modification is not merely “whether a new proposition can be written in,” but whether the written-in representation can remain stable across expression variants and task contexts, whether it can continue to function during reasoning, whether it can be reasonably updated in the face of new evidence, and whether this modification damages other related beliefs. Establishing an evaluation framework that simultaneously covers persistence, locality, consistency, and revisability is a prerequisite for turning belief intervention into a reliable alignment technique.</p> <h2 id="the-bigger-picture-why-belief-is-fundamental">The Bigger Picture: Why Belief Is Fundamental</h2> <h3 id="the-foundational-role-of-belief-in-cognitive-architecture">The Foundational Role of Belief in Cognitive Architecture</h3> <p>Why do we think belief—rather than memory or preference—is the key to understanding an LLM’s inner world?</p> <p>In classical decision theory <d-cite key="savage1954foundations"></d-cite>, behavior is jointly determined by two independent inputs:</p> \[\text{Action} \approx f(\text{Belief}, \text{Preference})\] <p>Belief answers “what the world is like” (descriptive); preference answers “what is worth pursuing” (evaluative). Both are indispensable, but <strong>belief is the more fundamental one</strong>—because without correct beliefs aligned with the real world, even the best preferences will lead to wrong behavior. A navigation system that believes “the Earth is flat,” no matter how much it prefers to arrive safely, cannot plan a correct route.</p> <h3 id="a-unified-view-memory-preference-and-belief-as-a-dynamic-system">A Unified View: Memory, Preference, and Belief as a Dynamic System</h3> <p>The three are not a linear hierarchy but a <strong>mutually shaping dynamic triangle</strong> <d-cite key="weber2006constructing,kunda1990case,madan2024memory"></d-cite>:</p> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-beyond-surface-alignment/memory_preference_belief-480.webp 480w,/2027/assets/img/2027-04-30-beyond-surface-alignment/memory_preference_belief-800.webp 800w,/2027/assets/img/2027-04-30-beyond-surface-alignment/memory_preference_belief-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-beyond-surface-alignment/memory_preference_belief.jpeg" class="img-fluid" width="100%" height="auto" alt="The dynamic triangle of memory, preference, and belief" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> <table> <thead> <tr> <th>Direction</th> <th>Computational Cognitive Science</th> <th>Corresponding Evidence in LLMs</th> </tr> </thead> <tbody> <tr> <td><strong>Memory → Preference</strong></td> <td>Preference is not fixed but dynamically constructed from memory during decision-making; experience determines value judgments and behavioral tendencies <d-cite key="weber2006constructing"></d-cite> </td> <td>The knowledge, capabilities, and default behavioral tendencies formed in pretraining jointly determine the model’s output preferences; alignment mostly reshapes the output distribution on top of existing knowledge rather than creating new capabilities or knowledge <d-cite key="zhou2023lima,li2024superficial"></d-cite> </td> </tr> <tr> <td><strong>Memory → Belief</strong></td> <td>Long-term memory shapes an individual’s world model, identity, and degree of conviction <d-cite key="madan2024memory"></d-cite> </td> <td>Pretraining forms stable representations of concepts and world knowledge in the parameters; these internal representations constitute the basis of the model’s beliefs, and their organization determines the consistency, stability, and transferability of beliefs <d-cite key="gurnee2024language,anthropic2024mapping,anthropic2025tracing,xu2026illusions"></d-cite> </td> </tr> <tr> <td><strong>Preference → Belief</strong></td> <td>Long-term value orientation gradually shapes an individual’s beliefs, making reasoning and judgment tend to conform to existing preferences <d-cite key="kunda1990case"></d-cite> </td> <td>Although preference optimization supervises only the final output, gradient updates continually reorganize mid-layer representations, forming internal beliefs that stably satisfy the target preference; hence even a small amount of preference data can produce cross-task generalization <d-cite key="openai2026beneficial,maiya2025open"></d-cite> </td> </tr> <tr> <td><strong>Belief → Preference</strong></td> <td>Beliefs about the world constrain final behavioral choices and decision outputs <d-cite key="fishbein1975belief"></d-cite> </td> <td>Directly intervening on mid-layer representations can systematically change the final output without re-optimizing the preference objective, showing that output preference is governed by internal belief <d-cite key="bigelow2025belief,li2023inference,zou2023representation,xu2026contextual"></d-cite> </td> </tr> </tbody> </table> <p>This dynamic system reveals the essential distinction between surface alignment and deep alignment:</p> <ul> <li> <p><strong>Surface alignment</strong> mainly works from preference data and external behavior; it may indirectly influence belief, but from outputs alone it is hard to judge whether this influence is stable, or whether it is truly consistent with the real world.</p> </li> <li> <p><strong>Belief-level alignment</strong>, by contrast, attempts to directly study and intervene on a model’s internal beliefs, and to test whether these beliefs can influence behavior across tasks and across contexts. OpenAI’s results provide motivation for this kind of cross-context behavioral generalization.</p> </li> </ul> <p>The core thesis is: <strong>in the dynamic system proposed in this article, belief is the deep component worth studying first—it is an important entry point for understanding the failures of surface alignment, and a new point of departure for deep alignment.</strong></p> <h3 id="from-surface-alignment-to-deep-alignment">From Surface Alignment to Deep Alignment</h3> <p>If belief is a deeper structure for understanding model behavior, then the current alignment paradigm centered on external behavior has a blind spot worth studying. What this article calls <strong>deep alignment</strong> evaluates not only whether model outputs are safe, but also whether a model’s internal beliefs are reliable:</p> <ol> <li> <p><strong>Surface alignment vs. deep alignment</strong>: RLHF can make a model “speak safely,” but if at the level of belief the model does not truly understand why certain behaviors are dangerous, this safety is fragile.</p> </li> <li> <p><strong>The emergence of belief and cognitive architecture</strong>: as model scale grows, more complex internal representational structures may emerge. Anthropic’s research on the <strong>Global Workspace</strong> finds that inside Claude there is a set of representations called J-space, used to carry concepts that are partly reportable, dispatchable, and involved in multi-step reasoning. This echoes, functionally, the <strong>Global Workspace Theory</strong> in cognitive science and “access consciousness”—but it does not mean the model has human consciousness. It suggests that without tools to measure and manage these internal structures, it is hard to predict a model’s behavior in novel scenarios.</p> </li> <li> <p><strong>From “teaching a model what to say” to “understanding what a model believes”:</strong> this is precisely the new direction that much current interpretability research jointly points to. The next generation of alignment techniques may need to shift from manipulating the output distribution to understanding and shaping a model’s intrinsic beliefs about the world.</p> </li> </ol> <hr> <h2 id="open-questions-and-future-directions">Open Questions and Future Directions</h2> <p>Belief research in the LLM field has only just begun, and a series of fundamental questions remain unresolved. And the <strong>most fundamental one</strong> is precisely the research agenda proposed in this article: <strong>how to systematically identify, evaluate, and intervene on the belief structures inside a model that relate to facts, norms, and situational judgment?</strong> We have already seen that certain proposition-related representations can be read, measured, intervened on, and even written in, but between changing one local representation and maintaining the overall consistency of a large-scale belief network there still lies an enormous gap.</p> <p><strong>On interpretability</strong>, we still do not know in what form beliefs are encoded—distributed or localized, whether the geometric structure of more complex beliefs can be characterized like the “truth direction,” and whether different layers and attention heads carry different types of belief. <strong>On emergence mechanisms</strong>, when in training beliefs take shape, how model scale affects the complexity of belief structure, and how the pretraining data distribution shapes belief priors all remain to be clarified.</p> <p>Of greater engineering significance is <strong>intervention technology</strong>: how to precisely modify one belief without affecting others, what the relationship is between belief editing and knowledge editing (model editing), and whether one can design a “belief-level RLHF” that acts directly on belief structure. And when LLMs move from isolated models to <strong>multi-agent organizations</strong>, belief management becomes even more critical—how to maintain belief consistency across agents, build an organization-level “shared belief” (shared mental model), and coordinate through organizational processes in the event of conflict will be unavoidable questions in the next phase.</p> <hr> <h2 id="conclusion">Conclusion</h2> <blockquote> <p>Surface alignment changes what a model says. Deep alignment changes what a model believes.</p> </blockquote> <p>We have already spent years learning to control model outputs—making them safer, more polite, and better aligned with human preferences. These efforts are necessary, but may not be sufficient. Because focusing only on what a model says makes it hard to judge whether a model’s internal belief structures relating to facts, norms, and situations are reliable; this article argues that this constitutes a deeper problem worth further exploration in alignment research.</p> <p><strong>Belief is a new point of departure for deep alignment.</strong> Existing research has proposed methods for measuring belief robustness (such as NCB), studied contextual belief management (such as CBM), and demonstrated the possibility of reducing failure rates through RL and belief-state rewards on specific benchmarks. Industry provides complementary clues from different paths: OpenAI observes a shared model-level structure among alignment evaluations, while Anthropic has traced, inside models, a mechanism that separates some representations from final expression.</p> <p>We call on the community to shift attention from surface alignment to deep alignment:</p> <ul> <li> <p><strong>Measurement</strong>: establish standardized evaluations of belief robustness.</p> </li> <li> <p><strong>Mechanism</strong>: understand how belief is encoded and emerges inside models.</p> </li> <li> <p><strong>Intervention</strong>: develop precise techniques for regulating belief at the belief level.</p> </li> <li> <p><strong>Governance</strong>: incorporate belief management into the core framework of AI safety and alignment.</p> </li> </ul> <p><strong>We argue that the next step for alignment should not merely be to keep teaching models what to say, but should also study how to make a model’s internal beliefs more consistent with the real world.</strong></p> <hr> <p><em>This post aims to draw the community’s attention to “belief” as a first-class research object in the science of LLMs—distinct from memory and preference, and arguably more fundamental to building reliable AI systems.</em></p> </d-article> <d-appendix> <d-footnote-list></d-footnote-list> <d-citation-list></d-citation-list> </d-appendix> <d-bibliography src="/2027/assets/bibliography/2027-04-30-beyond-surface-alignment.bib"></d-bibliography> <d-article> <br> <br> </d-article> </div> <footer class="sticky-bottom mt-5" role="contentinfo"> <div class="container"> © Copyright 2026 ICLR Blog. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. Photos from <a href="https://unsplash.com" target="_blank" rel="external nofollow noopener">Unsplash</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/2027/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script src="/2027/assets/js/distillpub/overrides.js"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/2027/assets/al_math/js/mathjax-setup.js"></script> <script src="/2027/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/2027/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/2027/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/2027/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/2027/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/2027/assets/al_img_tools/js/zoom.js"></script> <script defer src="/2027/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/2027/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/2027/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-home",
+    title: "home",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/2027/";
+    },
+  },{id: "nav-about",
+          title: "about",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/about/";
+          },
+        },{id: "nav-call-for-blogposts",
+          title: "call for blogposts",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/call/";
+          },
+        },{id: "nav-submitting",
+          title: "submitting",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/submitting/";
+          },
+        },{id: "nav-reviewing",
+          title: "reviewing",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/reviewing/";
+          },
+        },{id: "dropdown-lt-strong-gt-2027-lt-strong-gt",
+              title: "<strong>2027</strong>",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2027/";
+              },
+            },{id: "dropdown-2026",
+              title: "2026",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2026/";
+              },
+            },{id: "dropdown-2025",
+              title: "2025",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2025/";
+              },
+            },{id: "dropdown-2024",
+              title: "2024",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2024/";
+              },
+            },{id: "dropdown-2023",
+              title: "2023",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2023/";
+              },
+            },{id: "dropdown-2022",
+              title: "2022",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blog-track.github.io/home/";
+              },
+            },{id: "post-when-b-is-correct",
+        
+          title: "When B Is Correct",
+        
+        description: "On 72 multiple-choice questions, simply reversing the order of two answer lines changed whether activation steering helped either of two small language models. With the correct letters held fixed and 144 responses per layout, steering gave Qwen 11 more correct answers when A appeared first and 19 fewer when B appeared first. SmolLM2 showed the same reversal, yet all 16 of its changed answers went to the first printed line, compared with 13 of 34 for Qwen.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/when-b-is-correct/";
+          
+        },
+      },{id: "post-wrong-clips-right-categories-what-cross-modal-alignment-actually-learns",
+        
+          title: "Wrong Clips, Right Categories: What Cross-Modal Alignment Actually Learns",
+        
+        description: "Rotating audio and video embeddings into alignment boosts cross-modal event recognition from 36.7% to 90.5%. Yet shuffling almost every audio-video pair within its category gives nearly the same score (90.1%), while holding out categories breaks transfer completely.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/what-did-the-alignment-learn/";
+          
+        },
+      },{id: "post-two-fragments-or-silence",
+        
+          title: "Two Fragments, or Silence",
+        
+        description: "A personal agent that already holds memories a person chose to share should default to silence. The only other action returns two original fragments and one gap or causal constraint already written in those texts. Semantic nearness is not a trigger, a feeling of insight is not evidence, and whether an interruption is worth making is left open.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/two-fragments-or-silence/";
+          
+        },
+      },{id: "post-toward-observability-in-physical-ai-offline-diagnostics-for-imitation-learning-policies-in-robotics",
+        
+          title: "Toward Observability in Physical AI: Offline Diagnostics for Imitation-Learning Policies in Robotics",
+        
+        description: "When an imitation-learning policy fails on a robot, the failure looks the same whatever its cause. We turn the terms of the objective behind the Action Chunking Transformer into ten metrics that are computed from recorded demonstrations and saved policies, without a robot, each with a reference value and a place in a fixed order of checks. On two datasets from a low-cost arm they expose a policy that had been trained for 2 steps instead of 20,000, policies that take 98 to 100% of their output from the cameras and almost none from the joint readings, and a measure of the demonstrations alone that anticipates the error after training.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/toward-observability-in-physical-ai/";
+          
+        },
+      },{id: "post-getting-sac-to-work-on-a-massively-parallel-simulator-an-rl-journey-with-off-policy-algorithms",
+        
+          title: "Getting SAC to Work on a Massively Parallel Simulator: An RL Journey With...",
+        
+        description: "This post details how to get the Soft Actor-Critic (SAC) and other off-policy reinforcement learning algorithms to work on massively parallel simulators (e.g., Isaac Sim with thousands of robots simulated in parallel) for locomotion tasks. In addition to tuning SAC for speed, the post also explores why SAC fails where PPO succeeds, highlighting a common problem in task design that many codebases share.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/sac-massive-sim/";
+          
+        },
+      },{id: "post-do-rubrics-expand-what-rl-can-learn",
+        
+          title: "Do Rubrics Expand What RL Can Learn?",
+        
+        description: "We compare rubric-based reinforcement learning with supervised and on-policy distillation on four mathematical reasoning benchmarks. Across sampling budgets, the results depend on the benchmark, the model that generates and judges the rubrics, and the form of supervision.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/rubrics-and-rl/";
+          
+        },
+      },{id: "post-how-many-tasks-make-an-ai-evaluation-decision-repeatable",
+        
+          title: "How Many Tasks Make an AI Evaluation Decision Repeatable?",
+        
+        description: "An item count chosen for global score dependability need not achieve a specified level of repeat agreement at a pass/fail threshold. We compare the standard projected dependability coefficient Phi with exact finite-pool classification probabilities on matched response matrices from seven historical AI benchmark populations and three fixed synthetic cuts. On SWE-bench Verified, the projected count is 43 items, while 66 items are required for 90% mean agreement.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/repeatable-evaluation-decisions/";
+          
+        },
+      },{id: "post-why-llms-can-t-let-go",
+        
+          title: "Why LLMs Can’t Let Go",
+        
+        description: "Large Language Models now have access to more context than ever before. A natural concern in this setting has been their ability to retrieve information from that context. We shed light on other problems that arise with larger context windows, not because the model cannot locate the relevant context, but because it cannot ignore the irrelevant context. Through this blog, we aim to motivate the community to think beyond scaling the context window and retrieving the right context, toward the model's ability to ignore what it does not need.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/remembering-everything/";
+          
+        },
+      },{id: "post-what-are-we-actually-evolving-four-flaws-in-darwin-gödel-machine-s-polyglot-environment",
+        
+          title: "What Are We Actually Evolving? Four Flaws in Darwin Gödel Machine’s Polyglot Environment...",
+        
+        description: "Self-evolving coding agents such as Darwin Gödel Machine (DGM) use their scores on a coding benchmark to guide changes to their own harnesses, such as their tools and workflows. We find four flaws in DGM’s adaptation of Aider’s Polyglot benchmark that make these scores an unreliable signal of which harness changes improve a coding agent. Later systems such as Huxley-Gödel Machine reuse the same evaluation setup and inherit these flaws. In this misconfigured Polyglot environment, agents can access hidden tests and solutions, task contracts and supporting files are missing, and most Java tests are skipped. Repairing the environment shifts the score of the same gpt-5.4-mini agent by up to 12 percentage points. This sensitivity to the evaluation setup warrants revisiting DGM’s reported gains on Polyglot, and it shows that a correct environment is a precondition for reliable self-evolving systems.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/polyglot-dgm/";
+          
+        },
+      },{id: "post-does-a-verlet-like-orbit-transformer-respect-the-mirror",
+        
+          title: "Does a Verlet-Like Orbit Transformer Respect the Mirror?",
+        
+        description: "Small transformers trained only on counter-clockwise planetary orbits have been described as close to Verlet, a textbook integration rule. Reflecting held-out orbits about their major axes leaves the physics intact, yet all five noise-free baseline models, trained on counter-clockwise orbits only, fail the mirror test while their rotation-equivariance error stays small. Adding mirrored orbits at the same training budget narrows the gap in steps, and for the recipe with input noise the outcome at 50% mirrored data is undetermined by the criterion set in advance.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/mirror-test/";
+          
+        },
+      },{id: "post-one-kernel-two-transformers-what-a-text-llm-megakernel-teaches-us-about-streaming-tts",
+        
+          title: "One Kernel, Two Transformers - What a Text-LLM Megakernel Teaches Us About Streaming...",
+        
+        description: "Persistent megakernels have made batch-one LLM decoding fast by removing launch overhead. I take one written for a 0.6B text model and reuse it, almost unchanged, for both transformer stages of a streaming codec-language-model TTS system. The speedups are real. So are two quality problems: the model inserts extra words, and it does not stop on its own.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/megakernel-reuse-streaming-tts/";
+          
+        },
+      },{id: "post-halpern-iteration-accelerates-solving-high-order-monotone-variational-inequalities",
+        
+          title: "Halpern Iteration Accelerates Solving High-Order Monotone Variational Inequalities",
+        
+        description: "In this blog post, we revisit the classical Halpern iteration in 1967 and show its new applications in designing second- and higher-order methods for solving smooth monotone variational inequalities (MVI).  By using a large-step inexact Halpern iteration, we propose a novel pth-order method Halpern-ATM, that achieves a fast convergence rate of Õ(T⁻ᵖ). This improves the best-known results for p ≥ 2 since 2012 and matches the classical extragradient method for p = 1.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/halpern-npe/";
+          
+        },
+      },{id: "post-telling-a-small-misaligned-model-it-39-s-being-evaluated-barely-moves-its-misalignment",
+        
+          title: "Telling a small misaligned model it's being evaluated barely moves its misalignment",
+        
+        description: "We trained a small open model on bad medical advice, then told it that it was being evaluated. Its answers stayed about as misaligned as before. The AI judge that scores those answers made a far bigger difference, which affects anyone measuring emergent misalignment or comparing results across papers.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/emergent-misalignment-evaluation-cue/";
+          
+        },
+      },{id: "post-does-recursion-depth-mean-difficulty-a-token-level-test-of-mixture-of-recursions",
+        
+          title: "Does Recursion Depth Mean Difficulty? A Token-Level Test of Mixture-of-Recursions",
+        
+        description: "Mixture-of-Recursions gives each token a recursion depth, and the original paper reads depth as a sign of how easily the next token can be predicted. We test that reading on the released 360M checkpoints. Depth is low for easy tokens and stops rising near the median token, the hardest tokens gain least from depth, and token-choice depth is almost a fixed function of the token.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/does-recursion-depth-mean-difficulty/";
+          
+        },
+      },{id: "post-sample-blog-post",
+        
+          title: "Sample Blog Post",
+        
+        description: "Your blog post's abstract. Please add your abstract or summary here and not in the main body of your text. Do not include math/latex or hyperlinks.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/distill-example/";
+          
+        },
+      },{id: "post-from-strongly-adaptive-regret-to-discounted-regret",
+        
+          title: "From Strongly Adaptive Regret to Discounted Regret",
+        
+        description: "Discounted regret against a fixed comparator equals a convex combination of regrets over suffixes of the horizon. This post derives the identity, uses it to transfer strongly adaptive regret bounds to all nonincreasing discount sequences at once, and collects the resulting uniform bounds for convex, strongly convex, and exp-concave losses.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/discounted-regret-suffix-mixture/";
+          
+        },
+      },{id: "post-what-makes-a-good-toy-example-for-diffusion-models",
+        
+          title: "What Makes a Good Toy Example for Diffusion Models?",
+        
+        description: "Toys help us see diffusion algorithms at the level of distributions—but the moment we design a toy, we may also (without noticing) choose a side by baking in preferences. Using guidance in diffusion models, we examine how class separation and within-class branching shape what we conclude from a toy.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/diffusion-toy-design/";
+          
+        },
+      },{id: "post-consequence-persistence-admission-control-for-open-agent-meshes",
+        
+          title: "Consequence Persistence: Admission Control for Open Agent Meshes",
+        
+        description: "Open agent meshes can fail while every request stays valid. A consequence persistence layer checks a signed header before the payload, keeps a subjective viability score by identity and task, and makes viability fall much faster than it recovers. The price of a fresh identity, false isolation of long tasks, and the receiver's cost of holding a delay are left open.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/consequence-persistence/";
+          
+        },
+      },{id: "post-beyond-surface-alignment-belief-as-the-gateway-to-deep-alignment-in-llms",
+        
+          title: "Beyond Surface Alignment: Belief as the Gateway to Deep Alignment in LLMs",
+        
+        description: "Surface alignment changes what a model says, but whether the internal beliefs of a model are aligned with the real world still lacks effective, unified means of observation and intervention. On this basis, we argue that alignment research needs to attend more closely to the belief layer.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/beyond-surface-alignment/";
+          
+        },
+      },{id: "post-a-pass-is-not-a-guard",
+        
+          title: "A Pass Is Not a Guard",
+        
+        description: "A truncated tool call wrote a 16-line file while the agent reported success. Building a conformance suite around that case exposed a harder problem: nine ways our own measurement produced a confident wrong answer, and the rules we added to stop it.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/a-pass-is-not-a-guard/";
+          
+        },
+      },{id: "post-a-post-with-marimo-snippets",
+        
+          title: "a post with marimo snippets",
+        
+        description: "running Python in the browser with marimo",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/marimo/";
+          
+        },
+      },{id: "post-یک-نوشتهٔ-راست-چین",
+        
+          title: "یک نوشتهٔ راست‌چین",
+        
+        description: "نمونه‌ای از پشتیبانی زبان‌های راست‌چین",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/rtl/";
+          
+        },
+      },{id: "books-the-godfather",
+          title: 'The Godfather',
+          description: "",
+          section: "Books",handler: () => {
+              window.location.href = "/2027/books/the_godfather/";
+            },},{id: "news-a-simple-inline-announcement",
+          title: 'A simple inline announcement.',
+          description: "",
+          section: "News",},{id: "news-a-long-announcement-with-details",
+          title: 'A long announcement with details',
+          description: "",
+          section: "News",handler: () => {
+              window.location.href = "/2027/news/announcement_2/";
+            },},{id: "news-a-simple-inline-announcement-with-markdown-emoji-sparkles-smile",
+          title: 'A simple inline announcement with Markdown emoji! <img class="emoji" title=":sparkles:" alt=":sparkles:" src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png" height="20" width="20"> <img class="emoji" title=":smile:" alt=":smile:" src="https://github.githubassets.com/images/icons/emoji/unicode/1f604.png" height="20" width="20">',
+          description: "",
+          section: "News",},{id: "projects-project-1",
+          title: 'project 1',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/1_project/";
+            },},{id: "projects-project-2",
+          title: 'project 2',
+          description: "a project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/2_project/";
+            },},{id: "projects-project-3-with-very-long-name",
+          title: 'project 3 with very long name',
+          description: "a project that redirects to another website",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/3_project/";
+            },},{id: "projects-project-4",
+          title: 'project 4',
+          description: "another without an image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/4_project/";
+            },},{id: "projects-project-5",
+          title: 'project 5',
+          description: "a project with a background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/5_project/";
+            },},{id: "projects-project-6",
+          title: 'project 6',
+          description: "a project with no image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/6_project/";
+            },},{id: "projects-project-7",
+          title: 'project 7',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/7_project/";
+            },},{id: "projects-project-8",
+          title: 'project 8',
+          description: "an other project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/8_project/";
+            },},{id: "projects-project-9",
+          title: 'project 9',
+          description: "another project with an image 🎉",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/9_project/";
+            },},{id: "teachings-data-science-fundamentals",
+          title: 'Data Science Fundamentals',
+          description: "This course covers the foundational aspects of data science, including data collection, cleaning, analysis, and visualization. Students will learn practical skills for working with real-world datasets.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/data-science-fundamentals/";
+            },},{id: "teachings-introduction-to-machine-learning",
+          title: 'Introduction to Machine Learning',
+          description: "This course provides an introduction to machine learning concepts, algorithms, and applications. Students will learn about supervised and unsupervised learning, model evaluation, and practical implementations.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/introduction-to-machine-learning/";
+            },},{
+        id: 'social-cv',
+        title: 'CV',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/assets/pdf/example_pdf.pdf", "_blank");
+        },
+      },{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%79%6F%75@%65%78%61%6D%70%6C%65.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-inspire',
+        title: 'Inspire HEP',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://inspirehep.net/authors/1010907", "_blank");
+        },
+      },{
+        id: 'social-rss',
+        title: 'RSS Feed',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/feed.xml", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=qc6CJjYAAAAJ", "_blank");
+        },
+      },{
+        id: 'social-custom_social',
+        title: 'Custom_social',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.alberteinstein.com/", "_blank");
+        },
+      },{
+      id: 'light-theme',
+      title: 'Change theme to light',
+      description: 'Change the theme of the site to Light',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("light");
+      },
+    },
+    {
+      id: 'dark-theme',
+      title: 'Change theme to dark',
+      description: 'Change the theme of the site to Dark',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("dark");
+      },
+    },
+    {
+      id: 'system-theme',
+      title: 'Use system default theme',
+      description: 'Change the theme of the site to System Default',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("system");
+      },
+    },];
+
+</script> <script src="/2027/assets/al_search/js/shortcut-key.js"></script> </body> </html>

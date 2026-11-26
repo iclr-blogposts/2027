@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pass probability and pair agreement for one system</title>
+<!-- Single-system calculator for p_j(n,c) and C_j(n,c) = p_j^2 + (1 - p_j)^2. Finite pool: the success count is
+     Hypergeometric(L, K, n); unlimited pool: Binomial(n, r). The system passes when successes / n >= c, compared
+     exactly in integers. Probabilities are exact sums of the probability mass function in double precision
+     (checked against SciPy and exact rational arithmetic). Self-contained: no external scripts, fonts, or requests. -->
+<style>
+  :root {
+    --fg: #1f2328; --muted: #57606a; --grid: #e8ebef; --axis: #8c959f; --target: #6e7781;
+    --pass: #009e73; --agree: #d55e00; --rule: #8250df; --ok: #1a7f37;
+    --bg: #ffffff; --btn: #f6f8fa; --btn-hover: #eaeef2; --border: #d0d7de; --focus: #0969da;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex; flex-direction: column; overflow: hidden;
+    padding: 10px 12px 8px; background: var(--bg); color: var(--fg); color-scheme: light;
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  body > * { flex-shrink: 0; }
+  input, button { font: inherit; color: inherit; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+  .poolctl { gap: 2px 12px; }
+  .poolctl label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; }
+  .poolctl input { margin: 0; }
+  .srow {
+    display: grid; grid-template-columns: 5.6em minmax(90px, 1fr) minmax(16.5em, auto);
+    align-items: center; gap: 2px 10px; margin-top: 4px;
+  }
+  .srow input[type="range"] { width: 100%; margin: 0; accent-color: #24292f; }
+  .val { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .val b { font-weight: 600; }
+  .nowrap { white-space: nowrap; }
+  .srow input[type="number"] { width: 6em; padding: 1px 4px; border: 1px solid var(--border); border-radius: 4px; }
+  button.small {
+    padding: 0 7px; border: 1px solid var(--border); border-radius: 4px; background: var(--btn);
+    font-size: 12px; line-height: 1.6; cursor: pointer;
+  }
+  button.small:hover { background: var(--btn-hover); }
+  button.small[aria-pressed="true"] { border-color: var(--fg); }
+  .muted { color: var(--muted); }
+  .legend { margin-top: 6px; gap: 2px 16px; font-size: 13px; color: var(--muted); }
+  .legend > span { display: inline-flex; align-items: center; gap: 6px; }
+  .main { display: flex; flex: 1 1 auto; gap: 4px 16px; margin-top: 2px; }
+  .chart {
+    position: relative; flex: 1 1 auto; min-width: 0; min-height: 150px; cursor: crosshair;
+    touch-action: pan-y pinch-zoom; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  }
+  .chart svg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+  .side { flex: 0 0 auto; width: 19.5em; align-self: flex-start; margin-top: 4px; }
+  table.plan { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13px; }
+  .plan caption { caption-side: top; text-align: left; color: var(--muted); padding-bottom: 3px; line-height: 1.3; }
+  .plan th, .plan td { padding: 2px 4px; border-bottom: 1px solid var(--grid); text-align: right; font-weight: normal; }
+  .plan thead th { color: var(--muted); }
+  .plan th[scope="row"], .plan thead th:first-child { text-align: left; color: var(--muted); }
+  .plan th[scope="row"] { white-space: nowrap; }
+  .plan td.rule { color: var(--rule); padding-left: 8px; }
+  .plan th.rule { white-space: nowrap; }
+  .plan button {
+    min-width: 4.8em; padding: 0 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--btn);
+    font-size: 13px; line-height: 1.6; text-align: right; cursor: pointer; font-variant-numeric: tabular-nums;
+  }
+  .plan button:hover { background: var(--btn-hover); }
+  .plan button[aria-pressed="true"] { border-color: var(--agree); box-shadow: inset 0 0 0 1px var(--agree); }
+  .plan .na { color: var(--muted); padding-right: 10px; }
+  .plan.stale button { color: var(--muted); }
+  .readout { margin-top: 4px; gap: 2px 18px; font-variant-numeric: tabular-nums; align-content: flex-start; }
+  .readout b { font-weight: 600; }
+  .ok { color: var(--ok); }
+  .marks { margin-top: 3px; gap: 4px 14px; font-size: 13px; color: var(--muted); align-content: flex-start; }
+  .marks > span { display: inline-flex; align-items: center; gap: 5px; }
+  .marks b { color: var(--fg); font-weight: 600; }
+  .note { margin-top: 4px; font-size: 12px; color: var(--muted); }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  svg text { font-size: 12px; fill: var(--muted); }
+  .grid { stroke: var(--grid); stroke-width: 1; }
+  .axis { stroke: var(--axis); stroke-width: 1; }
+  .target { stroke: var(--target); stroke-width: 1.2; stroke-dasharray: 2 3; }
+  .s-pass, .s-agree { fill: none; stroke-linejoin: round; }
+  .s-pass { stroke: var(--pass); stroke-width: 1.5; }
+  .s-agree { stroke: var(--agree); stroke-width: 2; }
+  .guide { stroke: var(--agree); stroke-width: 1; stroke-dasharray: 1 3; }
+  .rule-line { stroke: var(--rule); stroke-width: 1.5; stroke-dasharray: 5 3; }
+  .m-rule { fill: var(--rule); stroke: #fff; stroke-width: 1; }
+  .m-first { fill: var(--agree); stroke: #fff; stroke-width: 1.2; }
+  .m-pers { fill: #fff; stroke: var(--agree); stroke-width: 1.6; }
+  .cursor { stroke: #24292f; stroke-width: 1; }
+  .dot { stroke: #fff; stroke-width: 1.5; }
+  .dot-pass { fill: var(--pass); }
+  .dot-agree { fill: var(--agree); }
+  /* Narrow frames: the table moves under the chart and each slider gets its own line. */
+  @media (max-width: 560px) {
+    .main { flex-direction: column; }
+    .chart { min-height: 170px; }
+    .side { width: 100%; max-width: 22em; margin-top: 0; }
+    .plan th, .plan td { padding: 1px 4px; }
+    .plan button { line-height: 1.45; }
+  }
+  @media (max-width: 520px) {
+    .srow { grid-template-columns: auto 1fr; grid-template-areas: "lbl val" "rng rng"; }
+    .srow > .lbl { grid-area: lbl; }
+    .srow > input[type="range"] { grid-area: rng; }
+    .srow > .val { grid-area: val; justify-self: end; }
+    .val { white-space: normal; flex-wrap: wrap; justify-content: flex-end; text-align: right; }
+  }
+  /* Very narrow frames: tighter table so its four columns fit. */
+  @media (max-width: 330px) {
+    .plan th, .plan td { padding: 1px 2px; font-size: 12px; }
+    .plan button { min-width: 3.6em; padding: 0 3px; font-size: 12px; }
+    .plan td.rule { padding-left: 4px; }
+  }
+  /* iOS Safari zooms the page when a form control under 16px gets focus. */
+  @media (pointer: coarse) {
+    .srow input[type="number"] { font-size: 16px; }
+    .poolctl label { padding: 2px 0; }
+  }
+  /* Windows High Contrast forces HTML colours but not SVG ones. */
+  @media (forced-colors: active) {
+    svg text { fill: CanvasText; }
+    .cursor, .axis { stroke: CanvasText; }
+    .grid { stroke: GrayText; }
+  }
+</style>
+</head>
+<body>
+<noscript><p>This interactive figure needs JavaScript.</p></noscript>
+<div class="row poolctl" role="radiogroup" aria-labelledby="poolLbl">
+  <span id="poolLbl">Pool <i>L</i></span>
+  <label><input type="radio" name="pool" value="468" checked><span>468 items (SWE-bench Verified)</span></label>
+  <label><input type="radio" name="pool" value="2000"><span>2,000 items</span></label>
+  <label><input type="radio" name="pool" value="0"><span>Unlimited</span></label>
+</div>
+<div class="srow">
+  <label class="lbl" for="cut">Cut <i>c</i></label>
+  <input type="range" id="cut" min="10" max="990" step="1" value="567">
+  <span class="val"><span id="cutOut"></span><button type="button" class="small" id="cutSwe" aria-pressed="true"
+    aria-label="Set the cut to the SWE-bench Verified median, 59/104">SWE median</button></span>
+</div>
+<div class="srow">
+  <label class="lbl" for="rate">Solve rate</label>
+  <input type="range" id="rate" min="0" max="468" step="1" value="289">
+  <span class="val" id="rateOut"></span>
+</div>
+<div class="row legend" aria-hidden="true">
+  <span><svg width="24" height="10"><line x1="1" y1="5" x2="23" y2="5" class="s-agree"/></svg><span>Pair agreement <i>C<sub>j</sub></i>(<i>n</i>,&thinsp;<i>c</i>)</span></span>
+  <span><svg width="24" height="10"><line x1="1" y1="5" x2="23" y2="5" class="s-pass"/></svg><span>Pass probability <i>p<sub>j</sub></i>(<i>n</i>,&thinsp;<i>c</i>)</span></span>
+  <span><svg width="24" height="10"><line x1="1" y1="5" x2="23" y2="5" class="target"/></svg><span>0.90 target</span></span>
+  <span><svg width="12" height="12"><line x1="6" y1="0" x2="6" y2="12" class="rule-line"/></svg><span>Rule of thumb 0.66/&delta;<sup>2</sup></span></span>
+</div>
+<p class="sr-only" id="svgTitle"></p>
+<p class="sr-only" id="svgDesc"></p>
+<div class="main">
+  <div class="chart" id="chart"><svg id="svg" role="img" aria-labelledby="svgTitle" aria-describedby="svgDesc"><g id="plot"></g></svg></div>
+  <div class="side">
+    <table class="plan" id="plan">
+      <caption id="planCap"></caption>
+      <thead><tr><th scope="col">Distance &delta; from <i>c</i></th><th scope="col">Below</th><th scope="col">Above</th><th scope="col" class="rule">0.66/&delta;<sup>2</sup></th></tr></thead>
+      <tbody id="planBody"></tbody>
+    </table>
+  </div>
+</div>
+<div class="srow">
+  <label class="lbl" for="nrange">Items <i>n</i></label>
+  <input type="range" id="nrange" min="0" max="1000" step="1" value="0">
+  <span class="val"><input type="number" id="nnum" min="1" max="468" step="1" value="66" inputmode="numeric"
+    aria-label="Items per administration n"><span class="muted" id="nPool"></span></span>
+</div>
+<div class="row readout" id="readout"></div>
+<div class="row marks" id="marks"></div>
+<div class="note">Each administration draws <i>n</i> items without replacement (Unlimited: independent items) and passes if the
+  solved share is at least <i>c</i>. Persistent: <i>C<sub>j</sub></i>&nbsp;&ge;&nbsp;90% at every larger <i>n</i> through the pool
+  size (Unlimited: 10,000). Rule of thumb: <i>n</i><sub>0</sub>&nbsp;= 0.66/&delta;<sup>2</sup> with &delta;&nbsp;= |solve rate&nbsp;&minus;&nbsp;<i>c</i>|;
+  a pool of <i>L</i> items gives <i>n</i><sub>0</sub>/(1&nbsp;+&nbsp;(<i>n</i><sub>0</sub>&nbsp;&minus;&nbsp;1)/<i>L</i>). Table counts load that system.</div>
+<div class="sr-only" id="status" aria-live="polite"></div>
+<script>
+(function () {
+  "use strict";
+  // ---- Exact single-system probabilities (no DOM; tested against SciPy and exact fractions) ----
+  // Finite pool: S ~ Hypergeometric(L, K, n). Unlimited pool: S ~ Binomial(n, r).
+  // Pass iff S / n >= a / b, i.e. S >= ceil(a n / b), compared in integers so ties pass exactly.
+  const NMAX_INF = 10000;
+
+  // ln(i!) for i <= NMAX_INF: direct sums below 20, Stirling's series (error < 1e-12) from 20 on.
+  const LF = (function () {
+    const t = new Float64Array(NMAX_INF + 1);
+    for (let i = 2; i < 20; i++) t[i] = t[i - 1] + Math.log(i);
+    for (let i = 20; i <= NMAX_INF; i++) {
+      const i2 = i * i;
+      t[i] = i * Math.log(i) - i + 0.5 * Math.log(2 * Math.PI * i) + 1 / (12 * i) - 1 / (360 * i * i2) + 1 / (1260 * i2 * i2 * i);
+    }
+    return t;
+  })();
+
+  const passCount = (n, a, b) => Math.floor((a * n + b - 1) / b);
+
+  // Tail sums start at the term nearest the mode and move away from it, so the first term is the largest
+  // (or within one step of it) and the loop can stop once the terms no longer change the sum.
+  function hyperPass(L, K, n, k) {
+    const M = L - K, lo = Math.max(0, n - M), hi = Math.min(n, K);
+    if (k <= lo) return 1;
+    if (k > hi) return 0;
+    const base = LF[L] - LF[n] - LF[L - n];
+    const lp = (x) => LF[K] - LF[x] - LF[K - x] + LF[M] - LF[n - x] - LF[M - n + x] - base;
+    let t, s;
+    if (k * L > n * K) {
+      t = s = Math.exp(lp(k));
+      for (let x = k; x < hi; x++) {
+        t *= ((K - x) * (n - x)) / ((x + 1) * (M - n + x + 1));
+        s += t;
+        if (t <= s * 1e-17) break;
+      }
+      return Math.min(1, s);
+    }
+    t = s = Math.exp(lp(k - 1));
+    for (let x = k - 1; x > lo; x--) {
+      t *= (x * (M - n + x)) / ((K - x + 1) * (n - x + 1));
+      s += t;
+      if (t <= s * 1e-17) break;
+    }
+    return Math.max(0, 1 - s);
+  }
+
+  function binomPass(n, r, k) {
+    if (k <= 0) return 1;
+    if (k > n) return 0;
+    if (r <= 0) return 0;
+    if (r >= 1) return 1;
+    const lr = Math.log(r), l1r = Math.log1p(-r), odds = r / (1 - r);
+    const lp = (x) => LF[n] - LF[x] - LF[n - x] + x * lr + (n - x) * l1r;
+    let t, s;
+    if (k > n * r) {
+      t = s = Math.exp(lp(k));
+      for (let x = k; x < n; x++) {
+        t *= ((n - x) / (x + 1)) * odds;
+        s += t;
+        if (t <= s * 1e-17) break;
+      }
+      return Math.min(1, s);
+    }
+    t = s = Math.exp(lp(k - 1));
+    for (let x = k - 1; x > 0; x--) {
+      t *= (x / (n - x + 1)) / odds;
+      s += t;
+      if (t <= s * 1e-17) break;
+    }
+    return Math.max(0, 1 - s);
+  }
+
+  // p[n] = pass probability, C[n] = p^2 + (1 - p)^2 for n = 1..N (N = L, or NMAX_INF for an unlimited pool).
+  // first: smallest n with C >= 0.9. persistent: smallest n with C >= 0.9 for every m from n through N
+  // (0 when C[N] < 0.9). A finite pool always has C[L] = 1, since drawing every item leaves no variation.
+  function curve(L, K, r, a, b) {
+    const N = L ? L : NMAX_INF;
+    const p = new Float64Array(N + 1), C = new Float64Array(N + 1);
+    let first = 0;
+    for (let n = 1; n <= N; n++) {
+      const k = passCount(n, a, b);
+      const q = L ? hyperPass(L, K, n, k) : binomPass(n, r, k);
+      p[n] = q;
+      C[n] = q * q + (1 - q) * (1 - q);
+      if (!first && C[n] >= 0.9) first = n;
+    }
+    let persistent = 0;
+    for (let n = N; n >= 1 && C[n] >= 0.9; n--) persistent = n;
+    return { N: N, p: p, C: C, first: first, persistent: persistent };
+  }
+
+  // Rule of thumb for C_j >= 0.9: n0 = 0.66 / delta^2, the normal approximation with the worst-case variance r(1 - r) = 1/4
+  // (z = 1.618 for p = 0.947). A finite pool of L items shrinks it to n0 L / (L - 1 + n0), the finite population correction.
+  // Infinity for a system exactly at the cut.
+  function ruleOfThumb(delta, L) {
+    if (!(delta > 0)) return Infinity;
+    const n0 = 0.66 / (delta * delta);
+    return L ? (n0 * L) / (L - 1 + n0) : n0;
+  }
+
+  // Planning rows: systems d points below and above the cut. Finite pools round the solve count to the
+  // nearest whole item; a solve rate outside [0, 1] gives null.
+  const DISTANCES = [1, 2, 5, 10, 20];
+  function planRows(L, a, b) {
+    const c = a / b;
+    return DISTANCES.map((d) => [-1, 1].map((sgn) => {
+      const target = c + (sgn * d) / 100;
+      if (target < 0 || target > 1) return null;
+      const K = L ? Math.round(target * L) : null;
+      const res = L ? curve(L, K, 0, a, b) : curve(0, 0, target, a, b);
+      return { d: d, side: sgn, K: K, r: L ? K / L : target, first: res.first, persistent: res.persistent, rule: ruleOfThumb(d / 100, L) };
+    }));
+  }
+  // ---- Interface ----
+  const NS = "http://www.w3.org/2000/svg";
+  const byId = (id) => document.getElementById(id);
+  const ui = {
+    pools: Array.from(document.querySelectorAll('input[name="pool"]')),
+    cut: byId("cut"), cutOut: byId("cutOut"), cutSwe: byId("cutSwe"),
+    rate: byId("rate"), rateOut: byId("rateOut"),
+    range: byId("nrange"), num: byId("nnum"), nPool: byId("nPool"),
+    readout: byId("readout"), marks: byId("marks"),
+    chart: byId("chart"), svg: byId("svg"), plot: byId("plot"), title: byId("svgTitle"), desc: byId("svgDesc"),
+    plan: byId("plan"), planBody: byId("planBody"), planCap: byId("planCap"), status: byId("status"),
+  };
+  const SWE = { a: 59, b: 104 };
+  // L = 0 means an unlimited pool. For a finite pool the solve count K is authoritative; r is used when L = 0.
+  const state = { L: 468, a: SWE.a, b: SWE.b, K: 289, r: 289 / 468, n: 66 };
+  let cur = null, plan = null, planKey = "", geom = null;
+
+  const fmtInt = (n) => n.toLocaleString("en-US");
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const nMax = () => (state.L ? state.L : NMAX_INF);
+  const cutVal = () => state.a / state.b;
+  const rateVal = () => (state.L ? state.K / state.L : state.r);
+  const isSwe = () => state.a === SWE.a && state.b === SWE.b;
+
+  // Percent with one decimal, adding decimals when rounding would move the value across a threshold.
+  function pct(v, thresholds) {
+    for (let d = 1; d <= 7; d++) {
+      const s = (100 * v).toFixed(d), back = parseFloat(s) / 100;
+      if (thresholds.every((t) => (back >= t) === (v >= t) && (back > t) === (v > t))) return s;
+    }
+    return String(100 * v);
+  }
+  const pctC = (v) => pct(v, [0.9]);
+  const pctP = (v) => pct(v, [0.1, 0.9]);
+  function distText(r, c) {
+    const d = (r - c) * 100, s = Math.abs(d).toFixed(1);
+    if (r === c) return "at <i>c</i>";
+    if (s === "0.0") return (d > 0 ? "just above" : "just below") + " <i>c</i>";
+    return s + (s === "1.0" ? " point " : " points ") + (d > 0 ? "above" : "below") + " <i>c</i>";
+  }
+  const plain = (html) => html.replace(/<[^>]+>/g, "").replace(/&thinsp;|&nbsp;/g, " ").replace(/&ge;/g, "≥").replace(/&lt;/g, "<");
+
+  function svgEl(name, attrs, parent) {
+    const node = document.createElementNS(NS, name);
+    for (const key of Object.keys(attrs)) node.setAttribute(key, String(attrs[key]));
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+
+  // ---- Computation scheduling: the curve on the next frame, the planning table after input settles ----
+  let frame = 0, planTimer = 0;
+  function refresh(planToo) {
+    if (planToo) {
+      ui.plan.classList.add("stale");
+      clearTimeout(planTimer);
+      planTimer = setTimeout(() => { computePlan(); renderPlan(); }, 120);
+    }
+    if (!frame) frame = requestAnimationFrame(() => { frame = 0; computeCurve(); render(); });
+  }
+  function computeCurve() { cur = curve(state.L, state.K, state.r, state.a, state.b); }
+  function computePlan() {
+    const key = state.L + ":" + state.a + "/" + state.b;
+    if (key !== planKey) { plan = planRows(state.L, state.a, state.b); planKey = key; }
+    ui.plan.classList.remove("stale");
+  }
+
+  // ---- Rendering ----
+  function makeX(N, x0, x1) {
+    const k = (x1 - x0) / Math.log(N);
+    return { f: (n) => x0 + Math.log(n) * k, inv: (px) => Math.exp((px - x0) / k) };
+  }
+  function xTicks(N, width) {
+    const base = width < 300 ? [1, 10, 100, 1000, 10000] : [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000];
+    return base.filter((t) => t <= N);
+  }
+  function linePath(values, N, xs, ys) {
+    let d = "";
+    for (let n = 1; n <= N; n++) d += (n > 1 ? "L" : "M") + xs.f(n).toFixed(1) + "," + ys(values[n]).toFixed(1);
+    return d;
+  }
+  function marker(cls, x, y, g) {
+    if (cls === "m-first") return svgEl("rect", { class: cls, x: x - 4.5, y: y - 4.5, width: 9, height: 9 }, g);
+    return svgEl("path", { class: cls, d: "M" + x + "," + (y - 5.5) + "L" + (x + 5.5) + "," + y + "L" + x + "," + (y + 5.5) + "L" + (x - 5.5) + "," + y + "Z" }, g);
+  }
+
+  function draw() {
+    const W = ui.chart.clientWidth, H = ui.chart.clientHeight, g = ui.plot;
+    g.textContent = "";
+    if (!cur || W < 60 || H < 60) { geom = null; return; }
+    ui.svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    const N = cur.N, x0 = 34, x1 = W - 14, y0 = H - 36, y1 = 8;
+    const xs = makeX(N, x0, x1), ys = (v) => y0 - v * (y0 - y1);
+    for (const v of [0, 0.2, 0.4, 0.6, 0.8, 1]) {
+      svgEl("line", { class: "grid", x1: x0, x2: x1, y1: ys(v), y2: ys(v) }, g);
+      svgEl("text", { x: x0 - 6, y: ys(v) + 4, "text-anchor": "end" }, g).textContent = v === 0 || v === 1 ? String(v) : v.toFixed(1);
+    }
+    for (const t of xTicks(N, x1 - x0)) {
+      const x = xs.f(t);
+      svgEl("line", { class: "grid", x1: x, x2: x, y1: y1, y2: y0 }, g);
+      svgEl("text", { x: x, y: y0 + 15, "text-anchor": "middle" }, g).textContent = fmtInt(t);
+    }
+    svgEl("line", { class: "axis", x1: x0, x2: x1, y1: y0, y2: y0 }, g);
+    svgEl("line", { class: "axis", x1: x0, x2: x0, y1: y1, y2: y0 }, g);
+    svgEl("text", { x: (x0 + x1) / 2, y: y0 + 31, "text-anchor": "middle" }, g).textContent = "Items per administration n (log scale)";
+    svgEl("line", { class: "target", x1: x0, x2: x1, y1: ys(0.9), y2: ys(0.9) }, g);
+    if (ys(0.8) - ys(0.9) >= 14) svgEl("text", { x: x0 - 6, y: ys(0.9) + 4, "text-anchor": "end" }, g).textContent = "0.9";
+    svgEl("path", { class: "s-pass", d: linePath(cur.p, N, xs, ys) }, g);
+    svgEl("path", { class: "s-agree", d: linePath(cur.C, N, xs, ys) }, g);
+    const marks = [];
+    if (cur.first) marks.push(["m-first", cur.first]);
+    if (cur.persistent && cur.persistent !== cur.first) marks.push(["m-pers", cur.persistent]);
+    for (const [cls, n] of marks) {
+      const x = xs.f(n), y = ys(cur.C[n]);
+      svgEl("line", { class: "guide", x1: x, x2: x, y1: y, y2: y0 }, g);
+    }
+    const rn = ruleN();
+    if (rn !== null && rn <= N) {
+      const x = xs.f(rn);
+      svgEl("line", { class: "rule-line", x1: x, x2: x, y1: y1, y2: y0 }, g);
+    }
+    for (const [cls, n] of marks.slice().reverse()) marker(cls, xs.f(n), ys(cur.C[n]), g);
+    const cursor = svgEl("g", { "pointer-events": "none" }, g);
+    geom = {
+      x0: x0, x1: x1, xs: xs, ys: ys,
+      line: svgEl("line", { class: "cursor", y1: y1, y2: y0 }, cursor),
+      dots: ["pass", "agree"].map((k) => svgEl("circle", { class: "dot dot-" + k, r: 3.5 }, cursor)),
+    };
+    moveCursor();
+  }
+
+  function moveCursor() {
+    if (!geom || !cur) return;
+    const n = state.n, x = geom.xs.f(n);
+    geom.line.setAttribute("x1", x);
+    geom.line.setAttribute("x2", x);
+    [cur.p[n], cur.C[n]].forEach((v, j) => {
+      geom.dots[j].setAttribute("cx", x);
+      geom.dots[j].setAttribute("cy", geom.ys(v));
+    });
+  }
+
+  function readoutHTML(t) {
+    return "<span><i>n</i>&nbsp;= <b>" + t.n + "</b>" + (t.pool ? " (" + t.pool + "% of pool)" : "") + "</span>" +
+      "<span>Pass probability <i>p<sub>j</sub></i>&nbsp;= <b>" + t.p + "%</b>" +
+        (t.unc ? ' <span class="muted">(0.10&nbsp;&lt;&nbsp;<i>p<sub>j</sub></i>&nbsp;&lt;&nbsp;0.90)</span>' : "") + "</span>" +
+      "<span>Pair agreement <i>C<sub>j</sub></i>&nbsp;= <b>" + t.c + "%</b> " +
+        (t.ok ? '<span class="ok">&ge;&nbsp;90%</span>' : "&lt;&nbsp;90%") + "</span>";
+  }
+  function showButton(n, what) {
+    return '<button type="button" class="small" data-n="' + n + '" aria-label="Show n = ' + n + " (" + what + ')">Show</button>';
+  }
+  const ICON = {
+    first: '<svg width="12" height="12" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9" class="m-first"/></svg>',
+    pers: '<svg width="12" height="12" aria-hidden="true"><path d="M6 0.8L11.2 6L6 11.2L0.8 6Z" class="m-pers"/></svg>',
+  };
+  // The current system's rule-of-thumb count (pool-corrected for a finite pool), rounded; null at the cut.
+  function ruleRaw() { return ruleOfThumb(Math.abs(rateVal() - cutVal()), state.L); }
+  function ruleN() {
+    const v = ruleRaw();
+    return Number.isFinite(v) ? Math.max(1, Math.round(v)) : null;
+  }
+  function ruleHTML() {
+    const n = ruleN();
+    const icon = '<svg width="12" height="12" aria-hidden="true"><line x1="6" y1="0" x2="6" y2="12" class="rule-line"/></svg>';
+    if (n === null) return "<span>" + icon + "<span>0.66/&delta;<sup>2</sup>: &mdash; (system at the cut)</span></span>";
+    const plainN = Math.max(1, Math.round(ruleOfThumb(Math.abs(rateVal() - cutVal()), 0)));
+    const extra = state.L ? " (" + fmtInt(plainN) + " before pool correction)" : (n > NMAX_INF ? " (beyond 10,000)" : "");
+    return "<span>" + icon + "<span>0.66/&delta;<sup>2</sup>: <b>" + fmtInt(n) + "</b>" + extra + "</span>" +
+      (n <= nMax() ? showButton(n, "rule of thumb") : "") + "</span>";
+  }
+  function marksHTML() {
+    return exactMarksHTML() + ruleHTML();
+  }
+  function exactMarksHTML() {
+    if (!cur.first) return "<span><i>C<sub>j</sub></i> stays below 90% through <i>n</i>&nbsp;= " + fmtInt(cur.N) + "</span>";
+    if (!cur.persistent) {
+      return "<span>" + ICON.first + "<span>First <i>C<sub>j</sub></i>&nbsp;&ge;&nbsp;90%: <b>" + fmtInt(cur.first) + "</b></span>" +
+        showButton(cur.first, "first 90% agreement") + "</span><span>Back below 90% at <i>n</i>&nbsp;= " + fmtInt(cur.N) + "</span>";
+    }
+    if (cur.first === cur.persistent) {
+      return "<span>" + ICON.first + "<span>First and persistent <i>C<sub>j</sub></i>&nbsp;&ge;&nbsp;90%: <b>" + fmtInt(cur.first) +
+        "</b></span>" + showButton(cur.first, "first and persistent 90% agreement") + "</span>";
+    }
+    return "<span>" + ICON.first + "<span>First <i>C<sub>j</sub></i>&nbsp;&ge;&nbsp;90%: <b>" + fmtInt(cur.first) + "</b></span>" +
+        showButton(cur.first, "first 90% agreement") + "</span>" +
+      "<span>" + ICON.pers + "<span>Persistent: <b>" + fmtInt(cur.persistent) + "</b></span>" +
+        showButton(cur.persistent, "persistent 90% agreement") + "</span>";
+  }
+
+  // Reserve the tallest readout and marks layouts so the chart does not jump while values change.
+  function reserveHeights() {
+    const savedReadout = ui.readout.innerHTML, savedMarks = ui.marks.innerHTML;
+    const big = fmtInt(nMax());
+    const variants = [
+      { n: big, pool: "100.0", p: "100.0000", unc: true, c: "100.0000", ok: false },
+      { n: big, pool: "100.0", p: "100.0000", unc: false, c: "100.0000", ok: true },
+    ];
+    ui.readout.style.minHeight = "0px";
+    ui.marks.style.minHeight = "0px";
+    let h = 0;
+    for (const t of variants) { ui.readout.innerHTML = readoutHTML(t); h = Math.max(h, ui.readout.offsetHeight); }
+    ui.readout.style.minHeight = h + "px";
+    const saved = cur;
+    let hm = 0;
+    for (const v of [{ first: 9999, persistent: 10000, N: 10000 }, { first: 9999, persistent: 0, N: 10000 }]) {
+      cur = v;
+      ui.marks.innerHTML = exactMarksHTML() + "<span>" + "<span>0.66/&delta;<sup>2</sup>: <b>10,000</b> (99,999 before pool correction)</span>" + showButton(1, "x") + "</span>";
+      hm = Math.max(hm, ui.marks.offsetHeight);
+    }
+    cur = saved;
+    ui.marks.style.minHeight = hm + "px";
+    ui.readout.innerHTML = savedReadout;
+    ui.marks.innerHTML = savedMarks;
+  }
+
+  function renderControls() {
+    const c = cutVal(), r = rateVal();
+    ui.cutOut.innerHTML = "<b>" + (100 * c).toFixed(1) + "%</b>" + (isSwe() ? " (59/104)" : "");
+    ui.cutSwe.setAttribute("aria-pressed", String(isSwe()));
+    ui.cut.setAttribute("aria-valuetext", (100 * c).toFixed(1) + " percent" + (isSwe() ? ", the SWE-bench Verified median 59/104" : ""));
+    const share = state.L ? " (" + fmtInt(state.K) + " of " + fmtInt(state.L) + ")" : "";
+    ui.rateOut.innerHTML = '<span class="nowrap"><b>' + (100 * r).toFixed(1) + "%</b>" + share + '</span> <span class="nowrap">&middot; ' + distText(r, c) + "</span>";
+    ui.rate.setAttribute("aria-valuetext", (100 * r).toFixed(1) + " percent" + share + ", " + plain(distText(r, c)).replace(" c", " the cut"));
+  }
+
+  function renderN(fromNumberBox) {
+    const n = state.n, N = nMax();
+    ui.range.value = String(Math.round((Math.log(n) / Math.log(N)) * 1000));
+    if (!fromNumberBox) ui.num.value = String(n);
+    ui.nPool.textContent = state.L ? "of " + fmtInt(N) : "of up to 10,000";
+    if (!cur) return;
+    const p = cur.p[n], c = cur.C[n];
+    const t = { n: fmtInt(n), pool: state.L ? (Math.round((1000 * n) / N) / 10).toFixed(1) : "", p: pctP(p), unc: p > 0.1 && p < 0.9, c: pctC(c), ok: c >= 0.9 };
+    ui.readout.innerHTML = readoutHTML(t);
+    ui.range.setAttribute("aria-valuetext", "n = " + n + ": pass probability " + t.p + " percent, pair agreement " + t.c + " percent");
+    moveCursor();
+  }
+
+  function render() {
+    renderControls();
+    ui.marks.innerHTML = marksHTML();
+    const r = rateVal(), c = cutVal();
+    ui.title.textContent = "Pass probability and pair agreement by items per administration for a system solving " +
+      (100 * r).toFixed(1) + "% of " + (state.L ? "a " + fmtInt(state.L) + "-item pool" : "an unlimited pool") + ", cut " + (100 * c).toFixed(1) + "%";
+    const rn = ruleN();
+    const ruleTxt = rn === null ? "" : " The 0.66/δ² rule of thumb gives n = " + rn + (state.L ? " after pool correction." : ".");
+    ui.desc.textContent = (!cur.first ? "Pair agreement stays below 0.90 through n = " + cur.N + "." :
+      "Pair agreement first reaches 0.90 at n = " + cur.first + (cur.persistent ? (cur.persistent === cur.first ?
+        " and stays at or above it for every larger n" : " and stays at or above it from n = " + cur.persistent) : " but is below it at n = " + cur.N) + ".") + ruleTxt;
+    draw();
+    renderN();
+    renderPlanPressed();
+  }
+
+  function planCell(cell) {
+    if (!cell) return '<td class="na">&mdash;</td>';
+    const rate = (100 * cell.r).toFixed(1) + "%" + (cell.K !== null ? " (" + fmtInt(cell.K) + " of " + fmtInt(state.L) + ")" : "");
+    const txt = cell.persistent ? fmtInt(cell.persistent) : "&gt;&nbsp;10,000";
+    const label = "System " + cell.d + (cell.d === 1 ? " point " : " points ") + (cell.side > 0 ? "above" : "below") + " the cut, solve rate " + rate + ": " +
+      (cell.persistent ? "persistent 90% agreement from n = " + cell.persistent : "agreement stays below 90% through n = 10,000") + ". Load this system.";
+    return '<td><button type="button" data-d="' + cell.d + '" data-side="' + cell.side + '" aria-label="' + label + '" title="' + rate + '">' + txt + "</button></td>";
+  }
+  function renderPlan() {
+    if (!plan) return;
+    ui.planCap.innerHTML = "Persistent <i>n</i> for <i>C<sub>j</sub></i>&nbsp;&ge;&nbsp;90% at this cut and pool";
+    ui.planBody.innerHTML = plan.map((row, i) => {
+      const cell = row[0] || row[1];
+      return '<tr><th scope="row">' + DISTANCES[i] + (DISTANCES[i] === 1 ? " point" : " points") + "</th>" + planCell(row[0]) + planCell(row[1]) +
+        '<td class="rule">' + fmtInt(Math.round(cell.rule)) + "</td></tr>";
+    }).join("");
+    renderPlanPressed();
+  }
+  function cellMatches(cell) {
+    return !!cell && (state.L ? cell.K === state.K : cell.r === state.r);
+  }
+  function renderPlanPressed() {
+    if (!plan) return;
+    for (const btn of ui.planBody.querySelectorAll("button")) {
+      const row = plan[DISTANCES.indexOf(Number(btn.dataset.d))], cell = row[btn.dataset.side === "1" ? 1 : 0];
+      btn.setAttribute("aria-pressed", String(!ui.plan.classList.contains("stale") && cellMatches(cell)));
+    }
+  }
+
+  // ---- State changes ----
+  let announceTimer = 0;
+  function announce(prefix) {
+    clearTimeout(announceTimer);
+    announceTimer = setTimeout(() => {
+      if (!cur) return;
+      const n = state.n;
+      ui.status.textContent = (prefix ? prefix + ". " : "") + "At n = " + n + ", pass probability " + pctP(cur.p[n]) +
+        " percent and pair agreement " + pctC(cur.C[n]) + " percent. " + ui.desc.textContent;
+    }, 450);
+  }
+  function setN(n, fromNumberBox) {
+    const v = clamp(Math.round(n), 1, nMax());
+    if (v === state.n && !fromNumberBox) return;
+    state.n = v;
+    renderN(fromNumberBox);
+  }
+  function setPool(L) {
+    const r = rateVal();
+    state.L = L;
+    if (L) state.K = clamp(Math.round(r * L), 0, L);
+    else state.r = r;
+    state.n = clamp(state.n, 1, nMax());
+    ui.rate.max = String(L ? L : 1000);
+    ui.rate.value = String(L ? state.K : Math.round(state.r * 1000));
+    ui.num.max = String(nMax());
+    reserveHeights();
+    refresh(true);
+    announce(L ? fmtInt(L) + "-item pool" : "Unlimited pool");
+  }
+
+  ui.pools.forEach((radio) => radio.addEventListener("change", () => { if (radio.checked) setPool(Number(radio.value)); }));
+  ui.cut.addEventListener("input", () => { state.a = Number(ui.cut.value); state.b = 1000; refresh(true); });
+  ui.cut.addEventListener("change", () => announce("Cut " + (100 * cutVal()).toFixed(1) + " percent"));
+  ui.cutSwe.addEventListener("click", () => {
+    state.a = SWE.a; state.b = SWE.b; ui.cut.value = String(Math.round(1000 * cutVal()));
+    refresh(true);
+    announce("Cut set to the SWE-bench Verified median, 59/104");
+  });
+  ui.rate.addEventListener("input", () => {
+    const v = Number(ui.rate.value);
+    if (state.L) state.K = v; else state.r = v / 1000;
+    refresh(false);
+  });
+  ui.rate.addEventListener("change", () => announce("Solve rate " + (100 * rateVal()).toFixed(1) + " percent"));
+  ui.range.addEventListener("input", () => setN(Math.exp((Number(ui.range.value) / 1000) * Math.log(nMax()))));
+  ui.range.addEventListener("change", () => announce(""));
+  // The slider is logarithmic, so arrow keys step n by one item instead of one slider position.
+  ui.range.addEventListener("keydown", (e) => {
+    const n = state.n, N = nMax();
+    const next = { ArrowRight: n + 1, ArrowUp: n + 1, ArrowLeft: n - 1, ArrowDown: n - 1, PageUp: Math.ceil(n * 1.1), PageDown: Math.floor(n / 1.1), Home: 1, End: N }[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    setN(next);
+    announce("");
+  });
+  ui.num.addEventListener("input", () => {
+    const v = parseInt(ui.num.value, 10);
+    if (v >= 1 && v <= nMax()) setN(v, true);
+  });
+  ui.num.addEventListener("change", () => {
+    const v = parseInt(ui.num.value, 10);
+    setN(Number.isNaN(v) ? state.n : v);
+    ui.num.value = String(state.n);
+    announce("");
+  });
+  ui.marks.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-n]");
+    if (!btn) return;
+    setN(Number(btn.dataset.n));
+    announce("");
+  });
+  ui.planBody.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-d]");
+    if (!btn || !plan || ui.plan.classList.contains("stale")) return;
+    const cell = plan[DISTANCES.indexOf(Number(btn.dataset.d))][btn.dataset.side === "1" ? 1 : 0];
+    if (!cell) return;
+    if (state.L) { state.K = cell.K; ui.rate.value = String(cell.K); }
+    else { state.r = cell.r; ui.rate.value = String(Math.round(cell.r * 1000)); }
+    state.n = cell.persistent || nMax();
+    computeCurve();
+    render();
+    announce("System " + cell.d + (cell.d === 1 ? " point " : " points ") + (cell.side > 0 ? "above" : "below") + " the cut");
+  });
+
+  // Chart: hover (mouse) or drag (touch, pen) to read any n.
+  let dragging = false;
+  function nFromEvent(e) {
+    if (!geom) return null;
+    const rect = ui.chart.getBoundingClientRect();
+    const px = clamp(e.clientX - rect.left, geom.x0, geom.x1);
+    return geom.xs.inv(px);
+  }
+  ui.chart.addEventListener("pointerdown", (e) => {
+    const n = nFromEvent(e);
+    if (n === null) return;
+    dragging = true;
+    ui.chart.setPointerCapture(e.pointerId);
+    setN(n);
+  });
+  ui.chart.addEventListener("pointermove", (e) => {
+    if (!dragging && e.pointerType !== "mouse") return;
+    const n = nFromEvent(e);
+    if (n !== null) setN(n);
+  });
+  const endDrag = () => { if (dragging) { dragging = false; announce(""); } };
+  ui.chart.addEventListener("pointerup", endDrag);
+  ui.chart.addEventListener("pointercancel", endDrag);
+
+  let resizeFrame = 0;
+  const onResize = () => {
+    if (resizeFrame) return;
+    resizeFrame = requestAnimationFrame(() => { resizeFrame = 0; reserveHeights(); draw(); });
+  };
+  if (typeof ResizeObserver === "function") new ResizeObserver(onResize).observe(document.body);
+  else window.addEventListener("resize", onResize);
+
+  ui.cut.value = String(Math.round(1000 * cutVal()));
+  computePlan();
+  computeCurve();
+  reserveHeights();
+  renderPlan();
+  render();
+})();
+</script>
+</body>
+</html>

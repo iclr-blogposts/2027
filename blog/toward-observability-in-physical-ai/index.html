@@ -1,0 +1,515 @@
+<!DOCTYPE html> <html> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Toward Observability in Physical AI: Offline Diagnostics for Imitation-Learning Policies in Robotics | ICLR Blogposts 2027 </title> <meta name="author" content="ICLR Blog"> <meta name="description" content="When an imitation-learning policy fails on a robot, the failure looks the same whatever its cause. We turn the terms of the objective behind the Action Chunking Transformer into ten metrics that are computed from recorded demonstrations and saved policies, without a robot, each with a reference value and a place in a fixed order of checks. On two datasets from a low-cost arm they expose a policy that had been trained for 2 steps instead of 20,000, policies that take 98 to 100% of their output from the cameras and almost none from the joint readings, and a measure of the demonstrations alone that anticipates the error after training."> <meta name="keywords" content="machine-learning, ml, deep-learning, reinforcement-learning, icl# add your own keywords or leave empty"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/2027/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="apple-touch-icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="stylesheet" href="/2027/assets/css/main.css?v=3116ba77db9ee1581d05bb3e86fbf7f1"> <link rel="canonical" href="https://iclr-blogposts.github.io/2027/blog/toward-observability-in-physical-ai/"> <script src="/2027/assets/js/theme.js?v=5286c3e4c334d0ecb8fc0c40ff4fa7ec"></script> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-native.css?v=5847e5ed4a4568527aa6cfab446049ca" media="none" id="highlight_theme_dark"> <script>
+    initTheme();
+  </script> <link rel="stylesheet" href="/2027/assets/css/al-folio-distill.css?v=fb7196ec07cb5299d51b2cbdc69c23d7"> <script>
+  window.alFolioDistill = window.alFolioDistill || {};
+  window.alFolioDistill.templateLoader = {"url":"/2027/assets/js/distillpub/template.v2.js","integrity":"sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo=","remote":false};
+</script> <script src="/2027/assets/js/distillpub/template.v2.js" integrity="sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo="></script> <script src="/2027/assets/js/distillpub/transforms.v2.js" integrity="sha256-XYVZD1ZSuRCrJBEBl0nIPvWlo/u5tzmtyStFV7a/PTk="></script> </head> <body> <d-front-matter> <script async type="text/json">
+      {
+            "title": "Toward Observability in Physical AI: Offline Diagnostics for Imitation-Learning Policies in Robotics",
+            "description": "When an imitation-learning policy fails on a robot, the failure looks the same whatever its cause. We turn the terms of the objective behind the Action Chunking Transformer into ten metrics that are computed from recorded demonstrations and saved policies, without a robot, each with a reference value and a place in a fixed order of checks. On two datasets from a low-cost arm they expose a policy that had been trained for 2 steps instead of 20,000, policies that take 98 to 100% of their output from the cameras and almost none from the joint readings, and a measure of the demonstrations alone that anticipates the error after training.",
+            "published": "April 30, 2027",
+            "authors": [
+              
+              {
+                "author": "Anonymous",
+                "authorURL": "",
+                "affiliations": [
+                  {
+                    "name": "",
+                    "url": ""
+                  }
+                ]
+              }
+              
+            ],
+            "katex": {
+              "delimiters": [
+                {
+                  "left": "$",
+                  "right": "$",
+                  "display": false
+                },
+                {
+                  "left": "$$",
+                  "right": "$$",
+                  "display": true
+                }
+              ]
+            }
+          }
+    </script> </d-front-matter> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/2027/"> ICLR Blogposts 2027 </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/2027/about/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/call/">call for blogposts </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/submitting/">submitting </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/reviewing/">reviewing </a> </li> <li class="nav-item dropdown "> <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-nav-dropdown-toggle="true" aria-haspopup="true" aria-expanded="false">past iterations </a> <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown"> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2027/"><strong>2027</strong></a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2026/">2026</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2025/">2025</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2024/">2024</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2023/">2023</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blog-track.github.io/home/" rel="external nofollow noopener" target="_blank">2022</a> </div> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> <li class="toggle-container"> <button id="light-toggle" type="button" title="Change theme" aria-label="Change color theme"> <i class="fa-half-sun-moon" id="light-toggle-system"></i> <i class="fa-solid fa-moon" id="light-toggle-dark"></i> <i class="fa-solid fa-sun" id="light-toggle-light"></i> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="post distill"> <d-title> <h1>Toward Observability in Physical AI: Offline Diagnostics for Imitation-Learning Policies in Robotics</h1> <p>When an imitation-learning policy fails on a robot, the failure looks the same whatever its cause. We turn the terms of the objective behind the Action Chunking Transformer into ten metrics that are computed from recorded demonstrations and saved policies, without a robot, each with a reference value and a place in a fixed order of checks. On two datasets from a low-cost arm they expose a policy that had been trained for 2 steps instead of 20,000, policies that take 98 to 100% of their output from the cameras and almost none from the joint readings, and a measure of the demonstrations alone that anticipates the error after training.</p> </d-title> <d-byline></d-byline> <d-article> <d-contents> <nav class="l-text figcaption"> <h3>Contents</h3> <div> <a href="#introduction">Introduction</a> </div> <div> <a href="#related-work">Related Work</a> </div> <div> <a href="#preliminaries">Preliminaries</a> </div> <ul> <li> <a href="#behavioural-cloning">Behavioural Cloning</a> </li> <li> <a href="#covariate-shift">Covariate Shift</a> </li> <li> <a href="#action-chunking-with-a-hidden-variable">Action Chunking With a Hidden Variable</a> </li> </ul> <div> <a href="#offline-observability-metrics">Offline Observability Metrics</a> </div> <ul> <li> <a href="#what-the-metrics-need">What the Metrics Need</a> </li> <li> <a href="#the-ten-metrics">The Ten Metrics</a> </li> <li> <a href="#the-order-of-the-checks">The Order of the Checks</a> </li> </ul> <div> <a href="#experiments">Experiments</a> </div> <ul> <li> <a href="#setup">Setup</a> </li> <li> <a href="#a-failed-run">A Failed Run</a> </li> <li> <a href="#training">Training</a> </li> <li> <a href="#new-demonstrations">New Demonstrations</a> </li> <li> <a href="#more-demonstrations">More Demonstrations</a> </li> <li> <a href="#the-inputs">The Inputs</a> </li> <li> <a href="#the-light">The Light</a> </li> </ul> <div> <a href="#limitations">Limitations</a> </div> <div> <a href="#conclusion">Conclusion</a> </div> <div> <a href="#reproducibility">Reproducibility</a> </div> <div> <a href="#appendix">Appendix</a> </div> </nav> </d-contents> <h2 id="introduction">Introduction</h2> <p>Training a manipulation policy by imitation has become an afternoon’s work. With an open-source library such as LeRobot <d-cite key="cadene2026lerobot"></d-cite>, a low-cost arm and a set of teleoperated demonstrations, a practitioner can record data, train an Action Chunking Transformer (ACT) <d-cite key="zhao2023act"></d-cite> and run it on hardware the same day. What has not become easier is finding out why such a policy fails. On the robot every failure looks alike: the arm does not do the task.</p> <p>The papers that introduce these policies report how often a task succeeds, which needs the robot. Studies with many rollouts have shown that numbers computed from recordings cannot stand in for that, because they do not rank policies by success <d-cite key="mandlekar2021matters,cowling2026validation"></d-cite>. Ranking is not the only use of a number, however. Elsewhere in machine learning, SHAP <d-cite key="lundberg2017shap"></d-cite> and LIME <d-cite key="ribeiro2016lime"></d-cite> are used to look inside a model before it is trusted. This raises the question we pursue here: <em>what can the files that a training run leaves behind tell us about why a policy will fail, before it is put on a robot?</em></p> <p>We are trying to make better metrics and observability for these models, just like SHAP and LIME are used in ML.<d-footnote>SHAP and LIME explain a single prediction by the inputs that drove it. Most of the checks here are of another kind and come earlier: whether a policy was trained, whether it fits its data, whether it carries over to something new. What they share with SHAP and LIME is the aim: a model whose behaviour can be looked at before it is trusted. One of our metrics, the share of an answer that comes from each input, is a Shapley value in the strict sense.</d-footnote> We check the math at each step and take decisions accordingly. In other words, this is an attempt to monitor what is going on and then decide what to do, rather than estimate, ask your favourite LLM or search online. The thought process, the calculation, the analysis should be yours. Asking an LLM is letting it make judgement calls, which can go either way depending on how effectively you have used the prompt and which version of the LLM you are using (Sonnet, Fable, etc.); each has different token limits and infrastructure available around it. Going by analysis is first making the table, taking a look, and then making the decision.</p> <p>The work started from a failure of exactly this kind. A policy trained at a hackathon was run on an SO-101 arm for 55 seconds, and the arm stayed where it was. The explanation written down afterwards blamed a change in the light, and nothing that was checked at the time contradicted it. Eight months later the files of that run told a different story: the training had run for 2 optimisation steps instead of 20,000, and none of the policy’s 51.7 million parameters had moved by more than 0.000021 from its starting value.</p> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/order-of-questions-480.webp 480w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/order-of-questions-800.webp 800w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/order-of-questions-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/order-of-questions.png" class="img-fluid" width="100%" height="auto" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> <div class="caption"> <strong>Figure 1.</strong> Overview. The terms of the imitation-learning objective become checks that are run in a fixed order on recorded files. Each check has a reference to read it against, and a check that fails says what to do before the later ones are worth running. The values shown are the ones found in the experiments below. </div> <p>We take the objective behind ACT and turn each of its terms into a metric that can be computed from three things a training run leaves behind: the recorded demonstrations, the saved policy and the random seed. Every metric comes with a reference value to read it against, and the metrics are grouped into four checks with a fixed order (Figure 1). We apply them to two datasets recorded on a low-cost arm: a pick-and-place task with 2 demonstrations, trained for 2 to 20,000 steps, and a second task with up to 58 demonstrations.</p> <p>Our contributions are summarized as follows:</p> <ul> <li>We define ten offline metrics for imitation-learning policies, grouped into four checks. Each is tied to a term of the objective and has a reference value: a policy that holds still, the movement in the demonstrations, the starting parameters rebuilt from the seed, or the distances among the training pictures. None needs a robot.</li> <li>Three of the metrics we have not found reported for ACT: the share of an answer that comes from each input, as an exact Shapley value; the coverage of new demonstrations by the training demonstrations, computed before any training; and the first action of a chunk, compared with holding still.</li> <li>On real data we find that the joint readings account for 0 to 2% of a policy’s answer and the cameras for the rest; that coverage anticipates the error after training; that on new demonstrations a chunk starts 5 to 17 units away from where the arm is; and that a policy trained to an error of 1.8 on two demonstrations has an error of 45.8 on a third.</li> </ul> <p>This work is not meant to show awesome new ways of training. Rather, it builds on what three types of model have already achieved: ACT and then a VLA and SmolVLA <d-cite key="shukor2025smolvla"></d-cite>. Nothing is better than understanding something at its core, to control how to build on those foundations.</p> <h2 id="related-work">Related Work</h2> <p><strong>Imitation learning on low-cost arms.</strong> ACT trains a conditional variational autoencoder <d-cite key="kingma2013vae"></d-cite> to predict chunks of future actions from camera images and joint readings <d-cite key="zhao2023act"></d-cite>. LeRobot packages it with tools for recording and training <d-cite key="cadene2026lerobot,lerobot2024github"></d-cite>, and a tutorial from the same group gives the derivations we follow <d-cite key="capuano2025robot"></d-cite>. The ACT authors “record 50 demonstrations for each task” <d-cite key="zhao2023act"></d-cite>, and LeRobot’s <a href="https://huggingface.co/docs/lerobot/il_robots" rel="external nofollow noopener" target="_blank">documentation</a> suggests “at least 50 episodes, with 10 episodes per location”.</p> <p><strong>What recordings can and cannot tell.</strong> In a large study in simulation, choosing a checkpoint by its loss on validation data gave a policy “significantly worse than the best one (10% to 100% decrease)” <d-cite key="mandlekar2021matters"></d-cite>. A recent study on the same arm as ours, with four kinds of policy and 930 rollouts on the robot, concludes that “Held-out metrics are a sound diagnostic of learning but no substitute for evaluation on the robot” <d-cite key="cowling2026validation"></d-cite>. We take the first half of that sentence as our subject. The effects we measure are known at scale. A benchmark of manipulation policies under controlled perturbations found changes in lighting among the most damaging <d-cite key="pumacay2024colosseum"></d-cite>, and a study with more than 40,000 demonstrations found that generalisation follows the variety of the data more than its amount <d-cite key="lin2025scaling"></d-cite>.</p> <p><strong>Looking inside a policy.</strong> SHAP and LIME explain a single prediction by the inputs that drove it, and MM-SHAP uses Shapley values to measure how much each modality contributes in vision and language models <d-cite key="parcalabescu2023mmshap"></d-cite>. For vision-language-action models, a visual importance ratio has been estimated by replacing the visual input or the joint readings with zeros and measuring the change in the action; it ranges from proprioception-dominant to vision-dominant across models and environments <d-cite key="zhang2026idr"></d-cite>. A study at ICLR 2026 finds that in policies given both vision and proprioception, vision plays a limited role in the phases where the motion changes, because proprioception dominates there <d-cite key="lu2026when"></d-cite>; the ACT policies tested here show the opposite imbalance. Scores of how unusual an observation is for a policy are used to predict failures without a robot <d-cite key="majumdar2025redteaming"></d-cite>. Diffusion policies trained on small datasets have been found to memorise a lookup table of their training actions, while “ACT shows action interpolation with poor robustness in OOD regimes” <d-cite key="he2025demystifying"></d-cite>. Our metrics bring these ideas to ACT on recorded files, and add the three listed above.</p> <h2 id="preliminaries">Preliminaries</h2> <p>So understanding the base paper and each equation is imperative. Here is the translation. Table I gives each equation in plain words, with its value in the run of the section “A Failed Run”. The rest of this section states the equations. The derivations follow the tutorial of Capuano et al. <d-cite key="capuano2025robot"></d-cite>, which is distributed under a CC BY-NC-SA 4.0 license.</p> <div class="caption"> <strong>TABLE I</strong><br>The equations in plain words, and their values in the first run. </div> <table> <thead> <tr> <th>Equation</th> <th>In plain words</th> <th>Value in the first run</th> </tr> </thead> <tbody> <tr> <td>(1) \(\mathcal{D} = \{(o_t, a_t)\}\)</td> <td>A demonstration is a recording of the task done once. Thirty times a second it holds what the robot saw and what it was told to do.</td> <td>2 demonstrations, 3,365 timesteps</td> </tr> <tr> <td>(2) \(\mathcal{L}(\theta) = -\,\mathbb{E}\bigl[\log \pi_\theta(a \mid o)\bigr]\)</td> <td>How surprised the policy is by what the demonstrator did. There is no reward in it and no notion of success.</td> <td>Error on its own data: 27.9 after 2 steps, 1.8 after 20,000</td> </tr> <tr> <td>(3) \(\theta_{k+1} = \theta_k - \eta\, u_k\)</td> <td>One training step moves every parameter a little. \(\eta\) sets how little, so the number of steps times \(\eta\) bounds how far the parameters can go.</td> <td>\(\eta\) = 0.00001 and 2 steps: no parameter moved by more than 0.000021</td> </tr> <tr> <td>(4) \(p_{\text{deploy}}(o_t) \neq p_{\text{train}}(o_t)\)</td> <td>The policy only knows what the cameras saw during the demonstrations. Anything else is outside its experience, and small errors build on each other.</td> <td>1.9% of the picture at or near white in training, 5 to 23% in the rollout</td> </tr> <tr> <td>(5) \(p(o, a) = \int p(o, a \mid z)\, p(z)\, dz\)</td> <td>Some things about a demonstration are never recorded, such as the way the demonstrator chose to reach. \(z\) stands in for them.</td> <td>32 numbers in training, all zero on the robot</td> </tr> <tr> <td>(6) \(\text{ELBO} = \mathbf{L}^{\text{rec}} - D_{\text{KL}}\bigl[q_\phi \,\Vert\, p(z)\bigr]\)</td> <td>Two terms pull against each other: reconstruct what was demonstrated, and keep \(z\) close to plain noise so that it cannot memorise each demonstration.</td> <td>The weight on the second term, \(\beta\), is 10</td> </tr> <tr> <td>(7) \(\pi_\theta(a_t, \ldots, a_{t+H-1} \mid o_t, z)\)</td> <td>The policy predicts the next \(H\) actions at once. Fewer decisions means fewer chances for errors to build up; the cost is that it does not look again until the chunk is played.</td> <td>\(H\) = 100 actions, 3.3 s per chunk, 17 chunks in the 55 s rollout</td> </tr> </tbody> </table> <h3 id="behavioural-cloning">Behavioural Cloning</h3> <p>A demonstration \(\tau^{(i)}\) is a recording of the task done once by teleoperation. At each of its \(T_i\) timesteps it holds an observation \(o_t\), here camera images and joint readings, and an action \(a_t\), the target joint positions:</p> \[\mathcal{D} = \{\tau^{(i)}\}_{i=1}^{N}, \qquad \tau^{(i)} = \{(o_t^{(i)}, a_t^{(i)})\}_{t=0}^{T_i}. \tag{1}\] <p>Behavioural cloning fits a policy \(\pi_\theta(a \mid o)\) to the \(N\) demonstrations by minimising</p> \[\mathcal{L}(\theta) = -\,\mathbb{E}_{(o,a) \sim \mathcal{D}}\bigl[\log \pi_\theta(a \mid o)\bigr]. \tag{2}\] <p>There is no reward in this loss and no notion of success: the policy learns to reproduce the demonstrator. Training repeats one small step,</p> \[\theta_{k+1} = \theta_k - \eta\, u_k, \tag{3}\] <p>where \(u_k\) is the direction that reduces the loss on a batch of recorded timesteps and \(\eta\) is the learning rate. With the optimiser used here, AdamW <d-cite key="loshchilov2019adamw"></d-cite>, a parameter moves by about \(\eta\) at most in each of the first steps, so the distance \(\theta\) can have travelled is bounded by about the number of steps times \(\eta\).</p> <h3 id="covariate-shift">Covariate Shift</h3> <p>A cloned policy has only seen the observations that the demonstrator produced. At deployment it meets others:</p> \[p_{\text{deploy}}(o_t) \neq p_{\text{train}}(o_t). \tag{4}\] <p>Once the policy errs, it sees something outside the training distribution, and its next action is less reliable still. A policy that errs with probability \(\epsilon\) on the demonstrator’s states “can make as many as \(T^2 \epsilon\) mistakes in expectation over \(T\)-steps” when it runs by itself <d-cite key="ross2011dagger"></d-cite>, a bound due to Ross and Bagnell <d-cite key="ross2010efficient"></d-cite>. Anything that changes what the camera sees, a shifted object or a change in the light, moves the observations away from the training distribution (Figure 2).</p> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/covariate-shift-480.webp 480w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/covariate-shift-800.webp 800w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/covariate-shift-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/covariate-shift.png" class="img-fluid" width="100%" height="auto" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> <div class="caption"> <strong>Figure 2.</strong> Covariate shift: the observations seen in training (blue) and at deployment (red). The shaded band holds observations the policy was never trained on. </div> <h3 id="action-chunking-with-a-hidden-variable">Action Chunking With a Hidden Variable</h3> <p>ACT is a conditional variational autoencoder (Figure 3). A hidden variable \(z\) stands for what a demonstration does not record, such as the way the demonstrator chose to reach. The likelihood of the data is an average over \(z\),</p> \[p(o, a) = \int_{\text{supp}(Z)} p(o, a \mid z)\, p(z)\; dz, \tag{5}\] <p>which cannot be computed directly. Training maximises a lower bound instead, derived in the Appendix:</p> \[\text{ELBO}_{\mathcal{D}}(\theta, \phi) = \sum_{i=1}^{N} \Bigl( \underbrace{\mathbb{E}_{z \sim q_\phi(\bullet \mid (o,a)_i)}\bigl[\log p_\theta((o,a)_i \mid z)\bigr]}_{\mathbf{L}^{\text{rec}}(\theta):\;\text{reconstruction}} - \underbrace{D_{\text{KL}}\bigl[q_\phi(z \mid (o,a)_i) \,\Vert\, p(z)\bigr]}_{\mathbf{L}^{\text{reg}}(\phi):\;\text{regularisation}} \Bigr). \tag{6}\] <p>The first term rewards the decoder for reconstructing the demonstrated actions from the encoder’s estimate of \(z\). The second keeps that estimate close to a standard normal distribution, so that the decoder can act without the encoder. In ACT the decoder predicts a chunk of \(H\) actions at once,</p> \[\pi_\theta(a_t, a_{t+1}, \ldots, a_{t+H-1} \mid o_t, z), \tag{7}\] <p>and is trained with an L1 reconstruction term and a weight \(\beta\) on the regularisation term:</p> \[\mathcal{L}_{\text{ACT}}(\theta, \phi) = \bigl\lVert a_{t:t+H-1} - \hat a_{t:t+H-1} \bigr\rVert_1 + \beta\, D_{\text{KL}}\bigl[q_\phi(z \mid o_t, a_{t:t+H-1}) \,\Vert\, \mathcal{N}(\mathbf{0}, \mathbf{I})\bigr]. \tag{8}\] <p>Predicting in chunks “reduces the effective horizon of the task by k-fold, mitigating compounding errors” <d-cite key="zhao2023act"></d-cite>. At deployment there is no demonstration to encode, and \(z\) is set to zero, “the mean of the prior distribution” <d-cite key="zhao2023act"></d-cite>. One property of the L1 term is used later: a model that can only output a constant does best with the median of the data.</p> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/act-cvae-480.webp 480w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/act-cvae-800.webp 800w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/act-cvae-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/act-cvae.png" class="img-fluid" width="100%" height="auto" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> <div class="caption"> <strong>Figure 3.</strong> ACT as a conditional variational autoencoder. In training, the encoder turns the demonstrated chunk into \(z\) and the decoder reconstructs the chunk. At deployment the encoder is not used and \(z = 0\). </div> <h2 id="offline-observability-metrics">Offline Observability Metrics</h2> <h3 id="what-the-metrics-need">What the Metrics Need</h3> <p>The metrics need three things that a training run leaves behind: the recorded demonstrations, with at least one demonstration kept out of training; the saved policy, at one or more checkpoints; and the random seed of the run. None of them needs the robot. A <em>chunk</em> is the \(H\) actions a policy predicts from one observation. Distances between chunks are mean absolute differences over the \(H\) steps and the joints, in the units of the dataset.</p> <p>A number means little alone, so each metric is read against a reference:</p> <ul> <li> <strong>Holding still.</strong> A policy that predicts no movement: its chunk repeats the arm’s current joint positions. It needs no learning, so a learned policy should beat it.</li> <li> <strong>The demonstrations.</strong> How far the joints travel within \(H\) steps of a demonstration, and how far the demonstrator’s first action is from where the arm is.</li> <li> <strong>The starting parameters.</strong> They are rebuilt by seeding the random generators as the training script does and constructing the policy.</li> <li> <strong>The training pictures.</strong> The distances among them in the policy’s own vision features.</li> </ul> <h3 id="the-ten-metrics">The Ten Metrics</h3> <p>Table II lists the metrics and the reference each is read against. Their definitions follow it.</p> <div class="caption"> <strong>TABLE II</strong><br>The ten metrics, grouped into four checks. </div> <table> <thead> <tr> <th>Check</th> <th>Metric</th> <th>What it makes visible</th> <th>Read it against</th> </tr> </thead> <tbody> <tr> <td><strong>1. Was it trained?</strong></td> <td>M1. Parameter movement</td> <td>Whether training happened at all</td> <td>Steps times \(\eta\); the size of a typical parameter</td> </tr> <tr> <td><strong>2. Does it fit its data?</strong></td> <td>M2. Error on its own demonstrations</td> <td>Whether the policy fits its data</td> <td>Holding still</td> </tr> <tr> <td> </td> <td>M3. Movement inside a chunk</td> <td>Whether it moves at all</td> <td>The demonstrations</td> </tr> <tr> <td><strong>3. Does it carry over?</strong></td> <td>M4. Error on demonstrations it never saw</td> <td>Memory or skill</td> <td>Holding still, and M2</td> </tr> <tr> <td> </td> <td>M5. Coverage</td> <td>Whether the data can support what will be asked, before training</td> <td>M4, after training</td> </tr> <tr> <td> </td> <td>M6. Closest stretch</td> <td>Where an answer comes from</td> <td>The distance to the truth</td> </tr> <tr> <td><strong>4. What does it depend on?</strong></td> <td>M7. Input shares</td> <td>Whether it listens to its cameras, its joint readings, or both</td> <td>The other inputs</td> </tr> <tr> <td> </td> <td>M8. First action of a chunk</td> <td>Whether a chunk starts where the arm is</td> <td>The demonstrator’s first action; holding still</td> </tr> <tr> <td> </td> <td>M9. Brightness sensitivity</td> <td>How much it depends on how the scene looks</td> <td>The error on unchanged pictures</td> </tr> <tr> <td> </td> <td>M10. Picture distance</td> <td>How new a scene is to the policy</td> <td>The distances among the training pictures</td> </tr> </tbody> </table> <p><strong>M1, parameter movement.</strong> The mean and the largest absolute difference between the saved parameters \(\theta_k\) and the starting parameters \(\theta_0\) rebuilt from the seed. By (3) it cannot much exceed \(k\eta\).</p> <p><strong>M2 to M4, error and movement.</strong> The policy is given a recorded frame and the joint readings that went with it, and its chunk is compared with the \(H\) actions that the demonstrator took next. Movement inside a chunk is the range each joint covers within the chunk, averaged over joints.</p> <p><strong>M5 and M6, coverage and closest stretch.</strong> Let \(\mathcal{S}\) be every stretch of \(H\) consecutive actions in the training demonstrations, and let \(d(c, \mathcal{S})\) be the distance from a chunk \(c\) to the closest of them. Coverage is \(d\) averaged over the true chunks of demonstrations the policy will not see; it needs the recordings only. The closest-stretch metric is \(d\) of the chunks the policy predicts.</p> <p><strong>M7, input shares.</strong> For two recorded frames \(i\) and \(j\), write \(f(I, S)\) for the chunk the policy predicts from picture \(I\) and joint readings \(S\). The share of the cameras in the difference between the two answers is</p> \[\phi_{\text{cam}} = \tfrac{1}{2}\bigl[f(I_i, S_i) - f(I_j, S_i)\bigr] + \tfrac{1}{2}\bigl[f(I_i, S_j) - f(I_j, S_j)\bigr], \tag{9}\] <p>and the share of the joint readings is defined in the same way with the roles exchanged. The two shares add up exactly to \(f(I_i, S_i) - f(I_j, S_j)\). This is the Shapley value for two inputs; with two cameras there are three inputs and eight evaluations per pair. We report the mean absolute share. For comparison we also report the visual importance ratio \(R_{\text{img}}\) of Zhang et al. <d-cite key="zhang2026idr"></d-cite>, which replaces an input with zeros instead of with that of another frame, and a variant of it that uses the mean over the training data.</p> <p><strong>M8, first action of a chunk.</strong> The distance between the first predicted action and the arm’s current joint positions, against the same distance for the demonstrator’s action. We also give the first position in the chunk from which the policy’s error stays below that of holding still.</p> <p><strong>M9 and M10, brightness and picture distance.</strong> For M9 every pixel value is multiplied by a gain and clipped at white, with the joint readings unchanged; a pixel counts as at or near white when its three colour values average at least 250 of 255. For M10 each frame is passed through the policy’s vision backbone and averaged over the picture; the metric is the distance to the closest training frame, in units of the median distance between a training frame and the closest training frame more than 5 s away.</p> <h3 id="the-order-of-the-checks">The Order of the Checks</h3> <p>The checks are ordered so that each one is informative only once the earlier ones pass (Figure 1). A policy has to be trained before it can fit its data. It has to fit its data before its behaviour on new data means anything. And it has to carry over before its sensitivity to the scene is what limits it. A check that fails says what to do: train; train longer; record more demonstrations; control the scene, or put its variation in the data.</p> <h2 id="experiments">Experiments</h2> <h3 id="setup">Setup</h3> <p>Table III describes the two datasets and the policies trained on them.</p> <div class="caption"> <strong>TABLE III</strong><br>Datasets and policies. All policies are ACT as implemented in LeRobot 0.4.5 with default settings: \(H = 100\), \(\beta = 10\), \(\eta = 10^{-5}\), batch size 8, seed 1000. </div> <table> <thead> <tr> <th> </th> <th>Ball task</th> <th>Toaster task</th> </tr> </thead> <tbody> <tr> <td>Robot</td> <td>One SO-101 arm, 6 joints</td> <td>Two SO-101 arms, 12 joints; one arm moves</td> </tr> <tr> <td>Cameras</td> <td>1, above the table, 1920 × 1080</td> <td>2, front and hand, 640 × 480</td> </tr> <tr> <td>Units</td> <td>Degrees; gripper in % of its opening</td> <td>A scale from −100 to 100</td> </tr> <tr> <td>Demonstrations</td> <td>2 for training (3,365 timesteps at 30 Hz); 1 unseen</td> <td>64 (32,670 timesteps at 30 Hz); the last 6 unseen</td> </tr> <tr> <td>Policies</td> <td>2 steps (the failed run); 300 to 20,000 steps; 20,000 steps with image augmentation</td> <td>20,000 steps on the first 2, 8, 29 and 58 demonstrations; 58 continued to 60,000 steps</td> </tr> <tr> <td>Also recorded</td> <td>One rollout of the 2-step policy on the arm, 1,656 steps</td> <td> </td> </tr> </tbody> </table> <p><strong>Datasets.</strong> The ball task is to pick up a ball and put it in a roll of tape. The toaster task is to put a slice of bread in a toaster; it was recorded two months later by the author and two teammates. Because the two tasks use different units, numbers are never compared across them. Each is read against its own references, and for the toaster task errors are taken over the six joints of the arm that moves.</p> <p><strong>Evaluation.</strong> All tests are offline and use every 30th frame unless stated otherwise: 113 frames of the two training demonstrations and 60 of the unseen one for the ball task; about 90 frames of the six unseen demonstrations for the toaster task. The offline test was checked against the robot: on frames of the recorded rollout it reproduces the commands that were sent to the arm to within 2.8 units on average.</p> <h3 id="a-failed-run">A Failed Run</h3> <p>The first run took place at a public hackathon, with LeRobot and the <a href="https://github.com/GetSoloTech/solo-cli" rel="external nofollow noopener" target="_blank"><code class="language-plaintext highlighter-rouge">solo-cli</code></a> tool that wraps it. Table IV lists what its files record, and Table V sets the run beside the published recipe.</p> <div class="caption"> <strong>TABLE IV</strong><br>The day of the first run, as recorded in its files. </div> <table> <thead> <tr> <th>Local time</th> <th>What the records show</th> <th>Source</th> </tr> </thead> <tbody> <tr> <td>12:38</td> <td>Tool downloaded</td> <td>Version-control history</td> </tr> <tr> <td>13:00, 14:10</td> <td>Leader arm calibrated, then follower arm</td> <td>Calibration files</td> </tr> <tr> <td>14:42 – 14:56</td> <td>Four demonstrations recorded, about a minute each; the last two form the training set</td> <td>Dataset files</td> </tr> <tr> <td>15:20</td> <td>Replay of the first training demonstration on the arm; no policy involved</td> <td>Shell history, tool settings</td> </tr> <tr> <td>15:31</td> <td>Training launched on a cloud GPU</td> <td>Shell history</td> </tr> <tr> <td>16:35</td> <td>Policy uploaded; its saved configuration says <code class="language-plaintext highlighter-rouge">steps: 2</code> </td> <td>Model repository</td> </tr> <tr> <td>16:59</td> <td>Policy run on the arm for 55 s</td> <td>Recorded rollout</td> </tr> <tr> <td>18:15 – 19:04</td> <td>Motor scan, two recalibrations, three more recording attempts, none registered as a dataset</td> <td>Shell history, dataset files</td> </tr> </tbody> </table> <div class="caption"> <strong>TABLE V</strong><br>The published recipe and the first run. </div> <table> <thead> <tr> <th> </th> <th>ACT paper</th> <th>LeRobot documentation</th> <th>First run</th> </tr> </thead> <tbody> <tr> <td>Demonstrations</td> <td>50 per task</td> <td>At least 50, with 10 per location</td> <td><strong>2</strong></td> </tr> <tr> <td>Training</td> <td>Around 5 hours on one GPU</td> <td>100,000 steps by default</td> <td><strong>2 steps</strong></td> </tr> <tr> <td>Chunk size</td> <td>100 actions at 50 Hz</td> <td>100</td> <td>100 actions at 30 Hz</td> </tr> <tr> <td>Learning rate, batch size</td> <td>1e-5, 8</td> <td>The same</td> <td>The same</td> </tr> <tr> <td>Cameras</td> <td>Four</td> <td>Fixed cameras</td> <td>One</td> </tr> <tr> <td>Light</td> <td>Auto-exposure on, “to adjust for changing lighting conditions”</td> <td> </td> <td>Even light for the demonstrations, direct sun on the table two hours later</td> </tr> </tbody> </table> <p><strong>Observation 1: The policy had not been trained.</strong> The saved configuration gives <code class="language-plaintext highlighter-rouge">steps: 2</code>, where the tool’s prompt offers 20,000 by default. The prompt before it asks which policy to train, and ACT is option 2; the likeliest cause is that 2 was entered twice. By (3), two steps at \(\eta = 10^{-5}\) can move a parameter by about 0.00002 at most. Rebuilding the starting parameters from the recorded seed confirms it (M1): of 51.7 million parameters none had moved by more than 0.000021, where a typical parameter is 0.02 in size. For scale, a network started from another seed differs from this start by 0.023 per parameter on average, a thousand times more; only its pretrained vision layers, about a fifth of the parameters, are the same.</p> <p><strong>Observation 2: It fails on its own data, and not as a learned policy fails.</strong> On the two demonstrations it was trained on, the policy’s error is 27.9, where holding still scores 9.5 (M2). Across frames its predicted pose has a standard deviation of 0.8 to 2.4 units per joint, where the demonstrated actions have 12 to 61 (Figure 4). It is not even the best constant: for an L1 loss that is the median, and the policy predicts a shoulder lift of 85.6 where the median is 54.4.</p> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/policy-output-480.webp 480w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/policy-output-800.webp 800w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/policy-output-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/policy-output.png" class="img-fluid" width="100%" height="auto" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> <div class="caption"> <strong>Figure 4.</strong> The 2-step policy on its own training data, for three of the six joints. Grey: the demonstrated action. Red dots: the mean of the chunk the policy predicts at that frame. Blue dashed: the median of the demonstrated actions. The dotted vertical line separates the two demonstrations. </div> <p><strong>Observation 3: The rollout shows the chunk length and nothing else.</strong> In the demonstrations the arm joints sweep through 47 to 190 degrees; in the rollout none covers more than 13.4 degrees, and the gripper never opens (Figure 5). For every one of the six joints, the largest change in the commands falls exactly on a multiple of 100 steps, the chunk length \(H\). Across those boundaries the commands change by 1.85 units on average, against 0.48 between other steps.</p> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/rollout-vs-demos-480.webp 480w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/rollout-vs-demos-800.webp 800w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/rollout-vs-demos-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/rollout-vs-demos.png" class="img-fluid" width="100%" height="auto" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> <div class="caption"> <strong>Figure 5.</strong> Top two rows: the six joint positions over time in the two demonstrations (blue, teal) and in the recorded rollout (red). Bottom: the shoulder-lift command sent to the arm during the rollout, with a dashed line every 100 steps. </div> <p>An account of the day written within two weeks described the arm completing the task, and put the trouble that followed down to a change in the light, drift in the motors and inconsistent demonstrations. The command that account gives for the success is the replay of 15:20, issued eleven minutes before training began. The light did change (Figure 9), but an untrained policy does not depend on it. None of the three observations above needed the robot, and each was available on the day.</p> <h3 id="training">Training</h3> <p>The same training was then repeated with the same data, code, settings and seed, for 20,000 steps instead of 2 (78 minutes on one desktop GPU). Table VI follows the policy through it.</p> <div class="caption"> <strong>TABLE VI</strong><br>Ball task through training. Parameter movement is the mean change per parameter from the rebuilt start. The last three columns are the input shares (M7): how much the answer differs between two frames, and how much of that comes from the camera and from the joint readings. Holding still scores 9.5; the demonstrations move 16.6 units within a chunk. </div> <table> <thead> <tr> <th>Steps</th> <th>Parameter movement (×10⁻³)</th> <th>Error on own data</th> <th>Movement in a chunk</th> <th>Answer differs by</th> <th>From the camera</th> <th>From the joints</th> </tr> </thead> <tbody> <tr> <td>2 (failed run)</td> <td>0.015</td> <td>27.9</td> <td>2.1</td> <td>2.0</td> <td>2.0</td> <td>0.02</td> </tr> <tr> <td>300</td> <td>0.17</td> <td>7.8</td> <td>0.9</td> <td>27.8</td> <td>27.8</td> <td>0.01</td> </tr> <tr> <td>1,000</td> <td>0.28</td> <td>6.5</td> <td>2.5</td> <td>28.2</td> <td>28.2</td> <td>&lt;0.01</td> </tr> <tr> <td>3,000</td> <td>0.53</td> <td>4.8</td> <td>11.0</td> <td>30.3</td> <td>30.3</td> <td>&lt;0.01</td> </tr> <tr> <td>5,000</td> <td>0.73</td> <td>3.7</td> <td>14.6</td> <td>29.4</td> <td>29.4</td> <td>&lt;0.01</td> </tr> <tr> <td>10,000</td> <td>1.02</td> <td>2.6</td> <td>17.2</td> <td>29.7</td> <td>29.7</td> <td>&lt;0.01</td> </tr> <tr> <td>20,000</td> <td>1.36</td> <td><strong>1.8</strong></td> <td>17.6</td> <td>29.1</td> <td>29.1</td> <td>&lt;0.01</td> </tr> </tbody> </table> <p><strong>Observation 4: Training passes through three stages.</strong> At 2 steps the policy holds one pose whatever it sees: its answers differ by 2.0 units between frames. By 300 steps it has found the cheapest good answer, which is to stay roughly where the arm already is; its error is below that of holding still, but its chunks contain almost no movement. Real movement appears between 1,000 and 5,000 steps, and by 10,000 the chunks move as much as the demonstrations do (Figure 6). Had the first run been trained for a few hundred steps, the arm would most likely also have stayed still, for a different reason.</p> <p><strong>Observation 5: The whole of training is a small change in the parameters.</strong> After 20,000 steps the mean change per parameter is 0.0014, about 7% of the size of a typical parameter. At 300 steps, when the second stage has begun, it is 0.00017.</p> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/learning-curve-480.webp 480w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/learning-curve-800.webp 800w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/learning-curve-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/learning-curve.png" class="img-fluid" width="100%" height="auto" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> <div class="caption"> <strong>Figure 6.</strong> Left: the policy's error on its own training data against the number of optimisation steps; the dashed line is a policy that holds still. Right: how far the joints move inside one predicted chunk; the dashed line is the same quantity in the demonstrations. The red dot is the 2-step policy. </div> <h3 id="new-demonstrations">New Demonstrations</h3> <p>A few minutes before the training data, one more demonstration of the same task had been recorded and was never used. Table VII compares the 20,000-step policy on its own data, on that demonstration, and on the frames of the recorded rollout.</p> <div class="caption"> <strong>TABLE VII</strong><br>The 20,000-step ball policy on familiar and new inputs. Holding still and the demonstrator's first action are given in parentheses. Picture distance is in units of the typical distance among training frames, so it is 1.0 for them by definition. On the rollout frames there are no demonstrated actions, so no error is given. </div> <table> <thead> <tr> <th>Input</th> <th>Error (holding still)</th> <th>Closest stretch</th> <th>Coverage</th> <th>First action, from the arm (demonstrator’s)</th> <th>Picture distance</th> </tr> </thead> <tbody> <tr> <td>Its own demonstrations</td> <td> <strong>1.8</strong> (9.5)</td> <td>1.7</td> <td> </td> <td>4.7 (3.5)</td> <td>1.0</td> </tr> <tr> <td>The unseen demonstration</td> <td>45.8 (5.2)</td> <td>10.4</td> <td>32.9</td> <td>51.2 (0.9)</td> <td>1.6</td> </tr> <tr> <td>The rollout frames, arm at rest</td> <td> </td> <td>11.6</td> <td> </td> <td>59.3</td> <td>1.2 without sun, 2.4 with</td> </tr> </tbody> </table> <p><strong>Observation 6: The trained policy has memorised.</strong> Its error is 1.8 on the two demonstrations it trained on and 45.8 on the third (M4). That is nearly nine times worse than holding still, and almost as bad as the 2-step policy, which scores 50.9. It is not timid either: its chunks on the unseen demonstration move 30.5 units where the demonstration moves 10.9.</p> <p><strong>Observation 7: Its wrong answers stay near its recordings.</strong> All 60 predictions on the unseen demonstration lie closer to a stretch of the training demonstrations (10.4 on average) than to what the demonstrator did (45.8) (M6). Of the 60, 56 fall in the same two stretches of the first demonstration, where the arm is raised and comes down towards the ball; so do 14 of the 17 rollout frames (Figure 7). They are not copies: on its own frames the policy is within 1.7 units of the right stretch. This agrees with the finding that ACT interpolates between training actions <d-cite key="he2025demystifying"></d-cite>.</p> <p><strong>Observation 8: What is new in the unseen demonstration is the motion, not the picture.</strong> Its pictures are hardly unusual for the policy: 1.6 on a scale where training frames are 1.0 apart (M10). Its motion is far from anything in the training set: the coverage is 32.9 (M5).</p> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/where-answers-come-from-480.webp 480w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/where-answers-come-from-800.webp 800w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/where-answers-come-from-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/where-answers-come-from.png" class="img-fluid" width="100%" height="auto" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> <div class="caption"> <strong>Figure 7.</strong> Each dot is one chunk predicted by the 20,000-step ball policy. Across: where the frame really is. Up: where the closest stretch of the two training demonstrations starts. A dot on the diagonal means the policy answers with the stretch that belongs to the frame. Left: the training frames as recorded. Middle: the same frames twice as bright. Right: the demonstration it never saw. </div> <h3 id="more-demonstrations">More Demonstrations</h3> <p>The toaster task allows the number of demonstrations to be varied with everything else fixed. Table VIII gives all metrics for the four policies.</p> <div class="caption"> <strong>TABLE VIII</strong><br>Toaster task: all metrics against the number of training demonstrations (Demos), on the six demonstrations no policy saw. Cov. denotes coverage; Seen and Unseen denote the error on trained-on and unseen demonstrations; 2× denotes the unseen error with pixel values doubled (64 to 65% of pixels at or near white), with the change in parentheses; First denotes the distance of the first action from the arm; From denotes the step from which the policy beats holding still. Holding still scores 16.3 to 16.7, and the demonstrator's first action is about 2.3 from the arm. The last three columns are the input shares. Bold marks the best value. </div> <table> <thead> <tr> <th>Demos</th> <th>Cov.</th> <th>Seen</th> <th>Unseen</th> <th>2×</th> <th>First</th> <th>From</th> <th>Front cam.</th> <th>Hand cam.</th> <th>Joints</th> </tr> </thead> <tbody> <tr> <td>2</td> <td>13.9</td> <td><strong>0.8</strong></td> <td>19.1</td> <td>27.7 (+8.6)</td> <td>16.6</td> <td>54</td> <td>76%</td> <td>24%</td> <td>0.2%</td> </tr> <tr> <td>8</td> <td>14.0</td> <td>1.3</td> <td>18.6</td> <td>20.8 (+2.2)</td> <td>17.0</td> <td>56</td> <td>61%</td> <td>39%</td> <td>0.1%</td> </tr> <tr> <td>29</td> <td>11.3</td> <td>2.2</td> <td>14.8</td> <td>19.3 (+4.5)</td> <td>11.8</td> <td>46</td> <td>53%</td> <td>47%</td> <td>0.1%</td> </tr> <tr> <td>58</td> <td><strong>4.1</strong></td> <td>3.2</td> <td><strong>7.0</strong></td> <td> <strong>7.6</strong> (+0.6)</td> <td><strong>5.2</strong></td> <td><strong>10</strong></td> <td>59%</td> <td>39%</td> <td>2.3%</td> </tr> </tbody> </table> <p><strong>Observation 9: With few demonstrations the policy is worse than holding still.</strong> With 2 or 8 demonstrations it reproduces them almost perfectly and does worse than holding still on the six it never saw (Figure 8, left). This repeats Observation 6 on another task with other cameras.</p> <p><strong>Observation 10: Coverage anticipates the error.</strong> The coverage column was computed from the demonstrations alone, before any policy existed, and the error on unseen demonstrations follows it. Eight demonstrations covered the unseen ones no better than two, and the policy trained on eight did hardly better. The 58 include the demonstrations recorded just before the six unseen ones, which is probably why coverage improves so sharply at the end.</p> <p><strong>Observation 11: More demonstrations fill in what the policy draws on.</strong> At every size the policy’s predictions stay within 2.7 to 4.2 units of some training stretch. What changes with more demonstrations is that a training stretch exists close to what the new situation needs.</p> <p><strong>Observation 12: Longer training does not close the gap.</strong> Continuing the 58-demonstration run to 60,000 steps keeps reducing the error on the demonstrations it trained on and leaves the error on unseen ones where it was after about 30,000 steps (Table IX).</p> <div class="caption"> <strong>TABLE IX</strong><br>Toaster task, 58 demonstrations: longer training. </div> <table> <thead> <tr> <th>Steps</th> <th>Error, trained-on</th> <th>Error, unseen</th> </tr> </thead> <tbody> <tr> <td>10,000</td> <td>4.3</td> <td>7.8</td> </tr> <tr> <td>20,000</td> <td>3.2</td> <td>7.0</td> </tr> <tr> <td>30,000</td> <td>2.7</td> <td>6.7</td> </tr> <tr> <td>40,000</td> <td>2.3</td> <td><strong>6.6</strong></td> </tr> <tr> <td>50,000</td> <td>2.2</td> <td><strong>6.6</strong></td> </tr> <tr> <td>60,000</td> <td><strong>1.9</strong></td> <td><strong>6.6</strong></td> </tr> </tbody> </table> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/more-demonstrations-480.webp 480w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/more-demonstrations-800.webp 800w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/more-demonstrations-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/more-demonstrations.png" class="img-fluid" width="100%" height="auto" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> <div class="caption"> <strong>Figure 8.</strong> Toaster task. Left: the error on the demonstrations each policy trained on (blue) and on the six that none of them saw (red). Right: the error on those six as the picture is brightened, one line per policy. The dashed line is what holding still scores on the six. </div> <h3 id="the-inputs">The Inputs</h3> <p><strong>Observation 13: The cameras decide the answer.</strong> In the ball task the joint readings contribute less than 0.02 units to an answer that differs by up to 30 units between frames, at every stage of training (Table VI). In the toaster task they contribute 0.1 to 2.3% for every size of dataset (Tables VIII and X). These policies know where the arm is only through the picture. This explains how the 300-step policy of Observation 4 stays where the arm is: it reads the arm’s pose from the image. With more demonstrations the hand camera’s share rises from 24% to between 39 and 47%.</p> <div class="caption"> <strong>TABLE X</strong><br>Reliance on vision by three measures. Share denotes the cameras' exact Shapley share over pairs of recorded frames (M7). \(R_{\text{img}}\) denotes the visual importance ratio of Zhang et al., with an input replaced by zeros, as in their definition, or by its mean over the training data. </div> <table> <thead> <tr> <th>Policy</th> <th>Share</th> <th>\(R_{\text{img}}\), zeros</th> <th>\(R_{\text{img}}\), training mean</th> </tr> </thead> <tbody> <tr> <td>Ball task, 2 steps</td> <td>99.1%</td> <td>99.7%</td> <td>99.8%</td> </tr> <tr> <td>Ball task, 20,000 steps</td> <td>100.0%</td> <td>100.0%</td> <td>100.0%</td> </tr> <tr> <td>Toaster task, 2 demonstrations</td> <td>99.8%</td> <td>50.2%</td> <td>99.7%</td> </tr> <tr> <td>Toaster task, 8 demonstrations</td> <td>99.9%</td> <td>51.2%</td> <td>99.9%</td> </tr> <tr> <td>Toaster task, 29 demonstrations</td> <td>99.9%</td> <td>54.9%</td> <td>99.9%</td> </tr> <tr> <td>Toaster task, 58 demonstrations</td> <td>97.7%</td> <td>52.8%</td> <td>97.5%</td> </tr> </tbody> </table> <p>Table X sets our share beside the visual importance ratio of Zhang et al. <d-cite key="zhang2026idr"></d-cite>. On the ball task the measures agree. On the toaster task the ratio falls to about 50% when an input is replaced by zeros, and returns to between 97.5 and 99.9% when it is replaced by its mean over the training data. The reason is in the data. One joint of the arm that does not move sits at −98.1 with a standard deviation of 0.05, so a reading of zero is about 1,800 standard deviations from anything the policy has seen. The answer then changes because the input is impossible, not because the policy relies on it. Replacing an input with a value the policy has seen, another frame’s or the mean, avoids this.</p> <p><strong>Observation 14: A chunk starts away from where the arm is.</strong> On demonstrations it has not seen, each policy’s first action is 5.2 to 17.0 units from the arm’s position, where the demonstrator’s is 2.3 (Table VIII). On a robot that is a jump at the start of every chunk, the kind the recorded rollout shows at its chunk boundaries (Observation 3). It follows from Observation 13: a policy that does not listen to the joint readings has nothing but the picture to anchor the start of its chunk. Even the 58-demonstration policy is worse than holding still for the first 9 steps of a chunk and better only after that.</p> <h3 id="the-light">The Light</h3> <p>Table XI brightens the training frames of the ball task for the 20,000-step policy, and for a policy trained with LeRobot’s image augmentation, which varies brightness by a factor of 0.8 to 1.2 among other changes.</p> <div class="caption"> <strong>TABLE XI</strong><br>Ball task, brightness test on 113 training frames. "Lose their place": frames whose closest training stretch is more than 100 steps from the frame's own position. The change brought by augmentation is in parentheses. Bold marks the better of the two policies. </div> <table> <thead> <tr> <th>Gain</th> <th>Pixels at or near white</th> <th>Error, default training</th> <th>Error, with augmentation</th> <th>Closest stretch</th> <th>Frames that lose their place</th> <th>Picture distance</th> </tr> </thead> <tbody> <tr> <td>1.0</td> <td>1.9%</td> <td><strong>1.8</strong></td> <td>1.9 (+0.1)</td> <td>1.7</td> <td>0</td> <td> </td> </tr> <tr> <td>1.25</td> <td>11.6%</td> <td>3.2</td> <td> <strong>1.9</strong> (−1.3)</td> <td>2.4</td> <td>8</td> <td>0.5</td> </tr> <tr> <td>1.5</td> <td>29.5%</td> <td>9.9</td> <td> <strong>7.4</strong> (−2.5)</td> <td>4.6</td> <td>30</td> <td> </td> </tr> <tr> <td>2.0</td> <td>48.8%</td> <td>17.4</td> <td> <strong>16.0</strong> (−1.4)</td> <td>6.7</td> <td>55</td> <td>1.4</td> </tr> <tr> <td>3.0</td> <td>58.7%</td> <td><strong>20.4</strong></td> <td>25.4 (+5.0)</td> <td>6.8</td> <td>61</td> <td> </td> </tr> </tbody> </table> <p><strong>Observation 15: A brighter picture makes the policy lose its place.</strong> With the picture twice as bright the error is 17.4, more than nine times its value in the original light and worse than holding still (M9). The predictions do not turn into noise: they stay within 6.7 units of some stretch of the recordings, but for 55 of the 113 frames that stretch is more than 100 steps, 3.3 s, away from the right one (Figure 7, middle).</p> <p><strong>Observation 16: The real scene was further from training than its brightness suggests.</strong> The frames of the recorded rollout have 5 to 23% of their pixels at or near white, 12% on average, against 1.9% in training (Figure 9). A uniform brightening of that size raises the error to about 3 (Figure 10, left). Yet on the real frames, with the arm at rest, the trained policy’s answer is 48.5 units from the resting pose, against 4.6 in the light of the demonstrations. Picture distance resolves this (M10): the sunlit frames are 2.4 from the training pictures, where a picture made twice as bright is 1.4, and 24 of the 26 sunlit frames lie beyond every training frame. The real frames differ in more than brightness: the sun falls in hard-edged patches, objects have moved, and a person is partly in view.</p> <p><strong>Observation 17: Built-in augmentation protects inside its range.</strong> Up to the brightness it was trained for, the augmented policy’s error does not move: 1.9 where the default policy has 3.2. Twice as bright, it is as lost as the default policy, and at the brightest level it is worse. On the real rollout frames it helps where the table is not washed out (21.1 units from the resting pose against 35.3) and little where it is (55.0 against 64.8). It does not help with the unseen demonstration (60.9 against 45.8), whose problem is not the light.</p> <p><strong>Observation 18: The policy trained on more demonstrations is also less sensitive to brightness.</strong> On the toaster task, doubling the pixel values adds 8.6 units to the unseen error of the policy trained on 2 demonstrations and 0.6 to that of the policy trained on 58 (Table VIII; Figure 8, right).</p> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/lighting-480.webp 480w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/lighting-800.webp 800w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/lighting-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/lighting.png" class="img-fluid" width="100%" height="auto" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> <div class="caption"> <strong>Figure 9.</strong> The same camera during the demonstrations and during the rollout about two hours later, cropped to the table. The rollout frame is the brightest of those sampled. </div> <figure> <picture> <source class="responsive-img-srcset" srcset="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/light-test-480.webp 480w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/light-test-800.webp 800w,/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/light-test-1400.webp 1400w," type="image/webp" sizes="95vw"></source> <img src="/2027/assets/img/2027-04-30-toward-observability-in-physical-ai/light-test.png" class="img-fluid" width="100%" height="auto" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> </figure> <div class="caption"> <strong>Figure 10.</strong> Left: the error of the 20,000-step policy on its own training frames as they are brightened (green), and the same for the policy trained with image augmentation (purple). The shaded band is where the frames of the recorded rollout fall on the same scale, and the dotted line is their average. Right: with the arm in the same resting pose, what the policy predicts in the light of the demonstrations (blue circles) and on the frames of the rollout (red squares). </div> <h2 id="limitations">Limitations</h2> <ul> <li> <strong>Task success.</strong> Every number here is a distance between predicted and demonstrated actions. A large distance on its own demonstrations means a policy has not learned them. A small one does not prove that it works, and studies with real rollouts find that such distances do not rank policies by success <d-cite key="mandlekar2021matters,cowling2026validation"></d-cite>. The arms were not available for new trials.</li> <li> <strong>One seed, one arm, two tasks.</strong> Each configuration was trained once. The training subsets of the toaster task are the first 2, 8, 29 and 58 demonstrations, each contained in the next, and the unseen demonstrations are the last six.</li> <li> <strong>The light.</strong> The brightening is uniform. The real sun fell in patches, changed during the 55 seconds, and came with other changes in the picture. We show that the real frames are far from the training pictures, not which of their differences is responsible.</li> <li> <strong>Input shares.</strong> They are averaged over 60 pairs of frames for the ball task and 40 for the toaster task. Swapping an input with that of another frame produces combinations the policy never saw in training, as does replacing it with zeros.</li> <li> <strong>Mechanism.</strong> We report that the policies ignore their joint readings, not which part of the network is responsible.</li> </ul> <h2 id="conclusion">Conclusion</h2> <p>We have presented ten metrics that are computed from the files a training run leaves behind, and an order in which to check them. On two datasets from a low-cost arm they separate a policy that was never trained from one that memorised its demonstrations and from one that carries over, and they show where each policy’s answers come from: from the cameras, almost never from the joint readings, and from the neighbourhood of what it was shown. Table XII turns each result into a decision.</p> <div class="caption"> <strong>TABLE XII</strong><br>From the math, to a value in the files, to a decision. </div> <table> <thead> <tr> <th>What the math says</th> <th>The value in the files</th> <th>So do this</th> <th>And not this</th> </tr> </thead> <tbody> <tr> <td>Each step moves \(\theta\) by about \(\eta\) = 0.00001</td> <td>\(\theta\) was updated 2 times; no parameter moved by more than 0.000021</td> <td>Train first: 20,000 steps took 78 minutes</td> <td>Recalibrate the arms and record again</td> </tr> <tr> <td>With an L1 loss, the best constant answer is the median</td> <td>The policy answered 85.6 where the median is 54.4</td> <td>Read it as “nothing was learned”</td> <td>Look for what it learned wrong</td> </tr> <tr> <td>The loss is an average over the dataset \(\mathcal{D}\), and here \(N = 2\)</td> <td>Error 1.8 on those two demonstrations, 45.8 on a third; coverage 32.9</td> <td>Record more demonstrations, and compute coverage before training</td> <td>Train longer: on 58 demonstrations, tripling the steps moved the unseen error from 7.0 to 6.6</td> </tr> <tr> <td>The policy is a function of the observation \(o_t\), pictures and joint readings</td> <td>The joint readings account for 0 to 2% of the answer</td> <td>Treat the cameras as the policy’s only sense: fix them and light the scene evenly</td> <td>Count on the joint readings to tell the policy where the arm is</td> </tr> <tr> <td>\(p_{\text{deploy}}(o_t) \neq p_{\text{train}}(o_t)\)</td> <td>The sunlit frames lie beyond every training picture; the answer is 48.5 units from the arm</td> <td>Control the light, or put its variation in the data</td> <td>Blame the light before the first three checks pass</td> </tr> <tr> <td>A chunk of \(H = 100\) actions is played before the policy looks again</td> <td>17 decisions in 55 seconds; a chunk starts 5 to 17 units from the arm</td> <td>Expect a jump at the start of each chunk, and a reaction every 3.3 seconds</td> <td>Expect it to notice a ball that moves in the middle of a chunk</td> </tr> </tbody> </table> <p>What would we do differently? We would follow the math properly: record about 50 demonstrations, and check the number of training steps before running the policy. We would keep the same lighting. That would not have saved the first run, but it matters once a policy is trained.</p> <p>Two months after the first run, at a second hackathon, the recipe was followed: about sixty demonstrations per task, two cameras, full training runs. A vision-language-action model was tried first and did not work; SmolVLA <d-cite key="shukor2025smolvla"></d-cite> was used instead, with a vision-language model above it as a supervisor that decides which skill to run. On the arms those policies were jumpy on tight pick-and-place and not perfect, and the supervisor retried and asked for help. Those runs were not recorded, so this paragraph rests on notes from that weekend. Its demonstrations are the toaster dataset used here.</p> <p>The metrics do not predict whether a robot will complete its task. What they offer is observability: before the robot moves, the files already say whether a policy was trained, whether it fits, whether it carries over, and what it listens to.</p> <h2 id="reproducibility">Reproducibility</h2> <ul> <li> <strong>Code.</strong> LeRobot 0.4.5 as packaged in the fork that <code class="language-plaintext highlighter-rouge">solo-cli</code> installed on the day of the first run, pinned to its commit of 12 March 2026. All ACT settings at their defaults. Random seed 1000 for every run.</li> <li> <strong>Hardware and time.</strong> The first run used a cloud GPU. The re-runs used one desktop GPU with 32 GB of memory: 78 minutes for 20,000 steps on the ball task, 2 hours 20 minutes with image augmentation, which is computed on the processor, and about half an hour for every 20,000 steps on the toaster task.</li> <li> <strong>Data.</strong> The two training demonstrations of the ball task and the 64 demonstrations of the toaster task are public. The unseen demonstration and the recorded rollout will be published with the final version.</li> <li> <strong>Tests.</strong> The training curve of Table VI samples every 75th frame of the ball task (45 frames); all other tests sample every 30th. For the toaster task the trained-on error uses every 30th frame of all training demonstrations for 2 and 8 demonstrations, of every third for 29 and of every fifth for 58. The starting network is rebuilt from the recorded seed and compared with each saved policy parameter by parameter. Pairs of frames for the input shares are drawn with a fixed seed.</li> <li> <strong>Links</strong> to the datasets, the policies, the training curves and the analysis code are withheld for anonymous review.</li> </ul> <p><em>Acknowledgments. The analysis code was written with an AI assistant, which also helped draft and edit the text; every number comes from the recorded files. The names of the teammates are withheld for anonymous review.</em></p> <h2 id="appendix">Appendix</h2> <p><strong>Deriving the bound.</strong> This follows the tutorial of Capuano et al. <d-cite key="capuano2025robot"></d-cite> and keeps its equation numbers (19) to (26); Equations (19) and (26) are (5) and (6) of the main text. Training wants to make the recorded data as likely as possible (20). Putting (19) inside gives an integral over every value of the hidden variable (21), which cannot be computed. A second network, the encoder \(q_\phi\), estimates which \(z\) was behind a demonstration. Multiplying and dividing by its estimate changes nothing (22), but turns the integral into an average over the encoder’s estimates (23).<d-footnote>The tutorial writes Eqs. (20) to (23) with the logarithm outside the sum over datapoints. For independent datapoints the likelihood is a product, so the log-likelihood is a sum of logarithms, which is the form used here. The bound and Eq. (26) come out the same either way.</d-footnote></p> \[\log p_\theta(\mathcal{D}) = \sum_{i=1}^{N} \log p_\theta\bigl((o,a)_i\bigr) \tag{20}\] \[= \sum_{i=1}^{N} \log \int_{\text{supp}(Z)} p_\theta\bigl((o,a)_i \mid z\bigr)\,p(z)\; dz \tag{21}\] \[= \sum_{i=1}^{N} \log \int_{\text{supp}(Z)} \frac{q_\phi(z \mid (o,a)_i)}{q_\phi(z \mid (o,a)_i)} \cdot p_\theta\bigl((o,a)_i \mid z\bigr)\, p(z)\; dz \tag{22}\] \[= \sum_{i=1}^{N} \log\, \mathbb{E}_{z \sim q_\phi(\bullet \mid (o,a)_i)}\!\left[\frac{p(z)}{q_\phi(z \mid (o,a)_i)} \cdot p_\theta\bigl((o,a)_i \mid z\bigr)\right] \tag{23}\] <p>Jensen’s inequality then moves the logarithm inside the average. The equals sign becomes a “greater than or equal to”: what is computed is no longer the likelihood, only something guaranteed to lie below it.</p> \[\begin{aligned} \log p_\theta(\mathcal{D}) \geq \sum_{i=1}^{N} \Bigl( \; &amp; \mathbb{E}_{z \sim q_\phi(\bullet \mid (o,a)_i)}\bigl[\log p_\theta((o,a)_i \mid z)\bigr] \\ &amp; + \mathbb{E}_{z \sim q_\phi(\bullet \mid (o,a)_i)}\!\left[\log \frac{p(z)}{q_\phi(z \mid (o,a)_i)}\right] \Bigr) \end{aligned} \tag{24–25}\] <p>The second term is the negative of the KL divergence in (26). For demonstrations by people the hidden variable earns its place: without it, the ACT authors report “a significant drop from 35.3% to 2%” in success on human data <d-cite key="zhao2023act"></d-cite>.</p> </d-article> <d-appendix> <d-footnote-list></d-footnote-list> <d-citation-list></d-citation-list> </d-appendix> <d-bibliography src="/2027/assets/bibliography/2027-04-30-toward-observability-in-physical-ai.bib"></d-bibliography> <d-article> <br> <br> </d-article> </div> <footer class="sticky-bottom mt-5" role="contentinfo"> <div class="container"> © Copyright 2026 ICLR Blog. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. Photos from <a href="https://unsplash.com" target="_blank" rel="external nofollow noopener">Unsplash</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/2027/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script src="/2027/assets/js/distillpub/overrides.js"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/2027/assets/al_math/js/mathjax-setup.js"></script> <script src="/2027/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/2027/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/2027/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/2027/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/2027/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/2027/assets/al_img_tools/js/zoom.js"></script> <script defer src="/2027/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/2027/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/2027/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-home",
+    title: "home",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/2027/";
+    },
+  },{id: "nav-about",
+          title: "about",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/about/";
+          },
+        },{id: "nav-call-for-blogposts",
+          title: "call for blogposts",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/call/";
+          },
+        },{id: "nav-submitting",
+          title: "submitting",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/submitting/";
+          },
+        },{id: "nav-reviewing",
+          title: "reviewing",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/reviewing/";
+          },
+        },{id: "dropdown-lt-strong-gt-2027-lt-strong-gt",
+              title: "<strong>2027</strong>",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2027/";
+              },
+            },{id: "dropdown-2026",
+              title: "2026",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2026/";
+              },
+            },{id: "dropdown-2025",
+              title: "2025",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2025/";
+              },
+            },{id: "dropdown-2024",
+              title: "2024",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2024/";
+              },
+            },{id: "dropdown-2023",
+              title: "2023",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2023/";
+              },
+            },{id: "dropdown-2022",
+              title: "2022",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blog-track.github.io/home/";
+              },
+            },{id: "post-when-b-is-correct",
+        
+          title: "When B Is Correct",
+        
+        description: "On 72 multiple-choice questions, simply reversing the order of two answer lines changed whether activation steering helped either of two small language models. With the correct letters held fixed and 144 responses per layout, steering gave Qwen 11 more correct answers when A appeared first and 19 fewer when B appeared first. SmolLM2 showed the same reversal, yet all 16 of its changed answers went to the first printed line, compared with 13 of 34 for Qwen.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/when-b-is-correct/";
+          
+        },
+      },{id: "post-wrong-clips-right-categories-what-cross-modal-alignment-actually-learns",
+        
+          title: "Wrong Clips, Right Categories: What Cross-Modal Alignment Actually Learns",
+        
+        description: "Rotating audio and video embeddings into alignment boosts cross-modal event recognition from 36.7% to 90.5%. Yet shuffling almost every audio-video pair within its category gives nearly the same score (90.1%), while holding out categories breaks transfer completely.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/what-did-the-alignment-learn/";
+          
+        },
+      },{id: "post-two-fragments-or-silence",
+        
+          title: "Two Fragments, or Silence",
+        
+        description: "A personal agent that already holds memories a person chose to share should default to silence. The only other action returns two original fragments and one gap or causal constraint already written in those texts. Semantic nearness is not a trigger, a feeling of insight is not evidence, and whether an interruption is worth making is left open.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/two-fragments-or-silence/";
+          
+        },
+      },{id: "post-toward-observability-in-physical-ai-offline-diagnostics-for-imitation-learning-policies-in-robotics",
+        
+          title: "Toward Observability in Physical AI: Offline Diagnostics for Imitation-Learning Policies in Robotics",
+        
+        description: "When an imitation-learning policy fails on a robot, the failure looks the same whatever its cause. We turn the terms of the objective behind the Action Chunking Transformer into ten metrics that are computed from recorded demonstrations and saved policies, without a robot, each with a reference value and a place in a fixed order of checks. On two datasets from a low-cost arm they expose a policy that had been trained for 2 steps instead of 20,000, policies that take 98 to 100% of their output from the cameras and almost none from the joint readings, and a measure of the demonstrations alone that anticipates the error after training.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/toward-observability-in-physical-ai/";
+          
+        },
+      },{id: "post-getting-sac-to-work-on-a-massively-parallel-simulator-an-rl-journey-with-off-policy-algorithms",
+        
+          title: "Getting SAC to Work on a Massively Parallel Simulator: An RL Journey With...",
+        
+        description: "This post details how to get the Soft Actor-Critic (SAC) and other off-policy reinforcement learning algorithms to work on massively parallel simulators (e.g., Isaac Sim with thousands of robots simulated in parallel) for locomotion tasks. In addition to tuning SAC for speed, the post also explores why SAC fails where PPO succeeds, highlighting a common problem in task design that many codebases share.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/sac-massive-sim/";
+          
+        },
+      },{id: "post-do-rubrics-expand-what-rl-can-learn",
+        
+          title: "Do Rubrics Expand What RL Can Learn?",
+        
+        description: "We compare rubric-based reinforcement learning with supervised and on-policy distillation on four mathematical reasoning benchmarks. Across sampling budgets, the results depend on the benchmark, the model that generates and judges the rubrics, and the form of supervision.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/rubrics-and-rl/";
+          
+        },
+      },{id: "post-how-many-tasks-make-an-ai-evaluation-decision-repeatable",
+        
+          title: "How Many Tasks Make an AI Evaluation Decision Repeatable?",
+        
+        description: "An item count chosen for global score dependability need not achieve a specified level of repeat agreement at a pass/fail threshold. We compare the standard projected dependability coefficient Phi with exact finite-pool classification probabilities on matched response matrices from seven historical AI benchmark populations and three fixed synthetic cuts. On SWE-bench Verified, the projected count is 43 items, while 66 items are required for 90% mean agreement.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/repeatable-evaluation-decisions/";
+          
+        },
+      },{id: "post-why-llms-can-t-let-go",
+        
+          title: "Why LLMs Can’t Let Go",
+        
+        description: "Large Language Models now have access to more context than ever before. A natural concern in this setting has been their ability to retrieve information from that context. We shed light on other problems that arise with larger context windows, not because the model cannot locate the relevant context, but because it cannot ignore the irrelevant context. Through this blog, we aim to motivate the community to think beyond scaling the context window and retrieving the right context, toward the model's ability to ignore what it does not need.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/remembering-everything/";
+          
+        },
+      },{id: "post-what-are-we-actually-evolving-four-flaws-in-darwin-gödel-machine-s-polyglot-environment",
+        
+          title: "What Are We Actually Evolving? Four Flaws in Darwin Gödel Machine’s Polyglot Environment...",
+        
+        description: "Self-evolving coding agents such as Darwin Gödel Machine (DGM) use their scores on a coding benchmark to guide changes to their own harnesses, such as their tools and workflows. We find four flaws in DGM’s adaptation of Aider’s Polyglot benchmark that make these scores an unreliable signal of which harness changes improve a coding agent. Later systems such as Huxley-Gödel Machine reuse the same evaluation setup and inherit these flaws. In this misconfigured Polyglot environment, agents can access hidden tests and solutions, task contracts and supporting files are missing, and most Java tests are skipped. Repairing the environment shifts the score of the same gpt-5.4-mini agent by up to 12 percentage points. This sensitivity to the evaluation setup warrants revisiting DGM’s reported gains on Polyglot, and it shows that a correct environment is a precondition for reliable self-evolving systems.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/polyglot-dgm/";
+          
+        },
+      },{id: "post-does-a-verlet-like-orbit-transformer-respect-the-mirror",
+        
+          title: "Does a Verlet-Like Orbit Transformer Respect the Mirror?",
+        
+        description: "Small transformers trained only on counter-clockwise planetary orbits have been described as close to Verlet, a textbook integration rule. Reflecting held-out orbits about their major axes leaves the physics intact, yet all five noise-free baseline models, trained on counter-clockwise orbits only, fail the mirror test while their rotation-equivariance error stays small. Adding mirrored orbits at the same training budget narrows the gap in steps, and for the recipe with input noise the outcome at 50% mirrored data is undetermined by the criterion set in advance.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/mirror-test/";
+          
+        },
+      },{id: "post-one-kernel-two-transformers-what-a-text-llm-megakernel-teaches-us-about-streaming-tts",
+        
+          title: "One Kernel, Two Transformers - What a Text-LLM Megakernel Teaches Us About Streaming...",
+        
+        description: "Persistent megakernels have made batch-one LLM decoding fast by removing launch overhead. I take one written for a 0.6B text model and reuse it, almost unchanged, for both transformer stages of a streaming codec-language-model TTS system. The speedups are real. So are two quality problems: the model inserts extra words, and it does not stop on its own.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/megakernel-reuse-streaming-tts/";
+          
+        },
+      },{id: "post-halpern-iteration-accelerates-solving-high-order-monotone-variational-inequalities",
+        
+          title: "Halpern Iteration Accelerates Solving High-Order Monotone Variational Inequalities",
+        
+        description: "In this blog post, we revisit the classical Halpern iteration in 1967 and show its new applications in designing second- and higher-order methods for solving smooth monotone variational inequalities (MVI).  By using a large-step inexact Halpern iteration, we propose a novel pth-order method Halpern-ATM, that achieves a fast convergence rate of Õ(T⁻ᵖ). This improves the best-known results for p ≥ 2 since 2012 and matches the classical extragradient method for p = 1.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/halpern-npe/";
+          
+        },
+      },{id: "post-telling-a-small-misaligned-model-it-39-s-being-evaluated-barely-moves-its-misalignment",
+        
+          title: "Telling a small misaligned model it's being evaluated barely moves its misalignment",
+        
+        description: "We trained a small open model on bad medical advice, then told it that it was being evaluated. Its answers stayed about as misaligned as before. The AI judge that scores those answers made a far bigger difference, which affects anyone measuring emergent misalignment or comparing results across papers.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/emergent-misalignment-evaluation-cue/";
+          
+        },
+      },{id: "post-does-recursion-depth-mean-difficulty-a-token-level-test-of-mixture-of-recursions",
+        
+          title: "Does Recursion Depth Mean Difficulty? A Token-Level Test of Mixture-of-Recursions",
+        
+        description: "Mixture-of-Recursions gives each token a recursion depth, and the original paper reads depth as a sign of how easily the next token can be predicted. We test that reading on the released 360M checkpoints. Depth is low for easy tokens and stops rising near the median token, the hardest tokens gain least from depth, and token-choice depth is almost a fixed function of the token.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/does-recursion-depth-mean-difficulty/";
+          
+        },
+      },{id: "post-sample-blog-post",
+        
+          title: "Sample Blog Post",
+        
+        description: "Your blog post's abstract. Please add your abstract or summary here and not in the main body of your text. Do not include math/latex or hyperlinks.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/distill-example/";
+          
+        },
+      },{id: "post-from-strongly-adaptive-regret-to-discounted-regret",
+        
+          title: "From Strongly Adaptive Regret to Discounted Regret",
+        
+        description: "Discounted regret against a fixed comparator equals a convex combination of regrets over suffixes of the horizon. This post derives the identity, uses it to transfer strongly adaptive regret bounds to all nonincreasing discount sequences at once, and collects the resulting uniform bounds for convex, strongly convex, and exp-concave losses.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/discounted-regret-suffix-mixture/";
+          
+        },
+      },{id: "post-what-makes-a-good-toy-example-for-diffusion-models",
+        
+          title: "What Makes a Good Toy Example for Diffusion Models?",
+        
+        description: "Toys help us see diffusion algorithms at the level of distributions—but the moment we design a toy, we may also (without noticing) choose a side by baking in preferences. Using guidance in diffusion models, we examine how class separation and within-class branching shape what we conclude from a toy.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/diffusion-toy-design/";
+          
+        },
+      },{id: "post-consequence-persistence-admission-control-for-open-agent-meshes",
+        
+          title: "Consequence Persistence: Admission Control for Open Agent Meshes",
+        
+        description: "Open agent meshes can fail while every request stays valid. A consequence persistence layer checks a signed header before the payload, keeps a subjective viability score by identity and task, and makes viability fall much faster than it recovers. The price of a fresh identity, false isolation of long tasks, and the receiver's cost of holding a delay are left open.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/consequence-persistence/";
+          
+        },
+      },{id: "post-beyond-surface-alignment-belief-as-the-gateway-to-deep-alignment-in-llms",
+        
+          title: "Beyond Surface Alignment: Belief as the Gateway to Deep Alignment in LLMs",
+        
+        description: "Surface alignment changes what a model says, but whether the internal beliefs of a model are aligned with the real world still lacks effective, unified means of observation and intervention. On this basis, we argue that alignment research needs to attend more closely to the belief layer.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/beyond-surface-alignment/";
+          
+        },
+      },{id: "post-a-pass-is-not-a-guard",
+        
+          title: "A Pass Is Not a Guard",
+        
+        description: "A truncated tool call wrote a 16-line file while the agent reported success. Building a conformance suite around that case exposed a harder problem: nine ways our own measurement produced a confident wrong answer, and the rules we added to stop it.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/a-pass-is-not-a-guard/";
+          
+        },
+      },{id: "post-a-post-with-marimo-snippets",
+        
+          title: "a post with marimo snippets",
+        
+        description: "running Python in the browser with marimo",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/marimo/";
+          
+        },
+      },{id: "post-یک-نوشتهٔ-راست-چین",
+        
+          title: "یک نوشتهٔ راست‌چین",
+        
+        description: "نمونه‌ای از پشتیبانی زبان‌های راست‌چین",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/rtl/";
+          
+        },
+      },{id: "books-the-godfather",
+          title: 'The Godfather',
+          description: "",
+          section: "Books",handler: () => {
+              window.location.href = "/2027/books/the_godfather/";
+            },},{id: "news-a-simple-inline-announcement",
+          title: 'A simple inline announcement.',
+          description: "",
+          section: "News",},{id: "news-a-long-announcement-with-details",
+          title: 'A long announcement with details',
+          description: "",
+          section: "News",handler: () => {
+              window.location.href = "/2027/news/announcement_2/";
+            },},{id: "news-a-simple-inline-announcement-with-markdown-emoji-sparkles-smile",
+          title: 'A simple inline announcement with Markdown emoji! <img class="emoji" title=":sparkles:" alt=":sparkles:" src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png" height="20" width="20"> <img class="emoji" title=":smile:" alt=":smile:" src="https://github.githubassets.com/images/icons/emoji/unicode/1f604.png" height="20" width="20">',
+          description: "",
+          section: "News",},{id: "projects-project-1",
+          title: 'project 1',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/1_project/";
+            },},{id: "projects-project-2",
+          title: 'project 2',
+          description: "a project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/2_project/";
+            },},{id: "projects-project-3-with-very-long-name",
+          title: 'project 3 with very long name',
+          description: "a project that redirects to another website",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/3_project/";
+            },},{id: "projects-project-4",
+          title: 'project 4',
+          description: "another without an image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/4_project/";
+            },},{id: "projects-project-5",
+          title: 'project 5',
+          description: "a project with a background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/5_project/";
+            },},{id: "projects-project-6",
+          title: 'project 6',
+          description: "a project with no image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/6_project/";
+            },},{id: "projects-project-7",
+          title: 'project 7',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/7_project/";
+            },},{id: "projects-project-8",
+          title: 'project 8',
+          description: "an other project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/8_project/";
+            },},{id: "projects-project-9",
+          title: 'project 9',
+          description: "another project with an image 🎉",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/9_project/";
+            },},{id: "teachings-data-science-fundamentals",
+          title: 'Data Science Fundamentals',
+          description: "This course covers the foundational aspects of data science, including data collection, cleaning, analysis, and visualization. Students will learn practical skills for working with real-world datasets.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/data-science-fundamentals/";
+            },},{id: "teachings-introduction-to-machine-learning",
+          title: 'Introduction to Machine Learning',
+          description: "This course provides an introduction to machine learning concepts, algorithms, and applications. Students will learn about supervised and unsupervised learning, model evaluation, and practical implementations.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/introduction-to-machine-learning/";
+            },},{
+        id: 'social-cv',
+        title: 'CV',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/assets/pdf/example_pdf.pdf", "_blank");
+        },
+      },{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%79%6F%75@%65%78%61%6D%70%6C%65.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-inspire',
+        title: 'Inspire HEP',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://inspirehep.net/authors/1010907", "_blank");
+        },
+      },{
+        id: 'social-rss',
+        title: 'RSS Feed',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/feed.xml", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=qc6CJjYAAAAJ", "_blank");
+        },
+      },{
+        id: 'social-custom_social',
+        title: 'Custom_social',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.alberteinstein.com/", "_blank");
+        },
+      },{
+      id: 'light-theme',
+      title: 'Change theme to light',
+      description: 'Change the theme of the site to Light',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("light");
+      },
+    },
+    {
+      id: 'dark-theme',
+      title: 'Change theme to dark',
+      description: 'Change the theme of the site to Dark',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("dark");
+      },
+    },
+    {
+      id: 'system-theme',
+      title: 'Use system default theme',
+      description: 'Change the theme of the site to System Default',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("system");
+      },
+    },];
+
+</script> <script src="/2027/assets/al_search/js/shortcut-key.js"></script> </body> </html>

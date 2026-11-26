@@ -1,0 +1,515 @@
+<!DOCTYPE html> <html> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Do Rubrics Expand What RL Can Learn? | ICLR Blogposts 2027 </title> <meta name="author" content="ICLR Blog"> <meta name="description" content="We compare rubric-based reinforcement learning with supervised and on-policy distillation on four mathematical reasoning benchmarks. Across sampling budgets, the results depend on the benchmark, the model that generates and judges the rubrics, and the form of supervision."> <meta name="keywords" content="machine-learning, ml, deep-learning, reinforcement-learning, icl# add your own keywords or leave empty"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/2027/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="apple-touch-icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="stylesheet" href="/2027/assets/css/main.css?v=3116ba77db9ee1581d05bb3e86fbf7f1"> <link rel="canonical" href="https://iclr-blogposts.github.io/2027/blog/rubrics-and-rl/"> <script src="/2027/assets/js/theme.js?v=5286c3e4c334d0ecb8fc0c40ff4fa7ec"></script> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-native.css?v=5847e5ed4a4568527aa6cfab446049ca" media="none" id="highlight_theme_dark"> <script>
+    initTheme();
+  </script> <link rel="stylesheet" href="/2027/assets/css/al-folio-distill.css?v=fb7196ec07cb5299d51b2cbdc69c23d7"> <script>
+  window.alFolioDistill = window.alFolioDistill || {};
+  window.alFolioDistill.templateLoader = {"url":"/2027/assets/js/distillpub/template.v2.js","integrity":"sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo=","remote":false};
+</script> <script src="/2027/assets/js/distillpub/template.v2.js" integrity="sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo="></script> <script src="/2027/assets/js/distillpub/transforms.v2.js" integrity="sha256-XYVZD1ZSuRCrJBEBl0nIPvWlo/u5tzmtyStFV7a/PTk="></script> </head> <body> <d-front-matter> <script async type="text/json">
+      {
+            "title": "Do Rubrics Expand What RL Can Learn?",
+            "description": "We compare rubric-based reinforcement learning with supervised and on-policy distillation on four mathematical reasoning benchmarks. Across sampling budgets, the results depend on the benchmark, the model that generates and judges the rubrics, and the form of supervision.",
+            "published": "April 30, 2027",
+            "authors": [
+              
+              {
+                "author": "Anonymous",
+                "authorURL": "",
+                "affiliations": [
+                  {
+                    "name": "",
+                    "url": ""
+                  }
+                ]
+              }
+              
+            ],
+            "katex": {
+              "delimiters": [
+                {
+                  "left": "$",
+                  "right": "$",
+                  "display": false
+                },
+                {
+                  "left": "$$",
+                  "right": "$$",
+                  "display": true
+                }
+              ]
+            }
+          }
+    </script> </d-front-matter> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/2027/"> ICLR Blogposts 2027 </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/2027/about/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/call/">call for blogposts </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/submitting/">submitting </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/reviewing/">reviewing </a> </li> <li class="nav-item dropdown "> <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-nav-dropdown-toggle="true" aria-haspopup="true" aria-expanded="false">past iterations </a> <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown"> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2027/"><strong>2027</strong></a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2026/">2026</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2025/">2025</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2024/">2024</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2023/">2023</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blog-track.github.io/home/" rel="external nofollow noopener" target="_blank">2022</a> </div> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> <li class="toggle-container"> <button id="light-toggle" type="button" title="Change theme" aria-label="Change color theme"> <i class="fa-half-sun-moon" id="light-toggle-system"></i> <i class="fa-solid fa-moon" id="light-toggle-dark"></i> <i class="fa-solid fa-sun" id="light-toggle-light"></i> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="post distill"> <d-title> <h1>Do Rubrics Expand What RL Can Learn?</h1> <p>We compare rubric-based reinforcement learning with supervised and on-policy distillation on four mathematical reasoning benchmarks. Across sampling budgets, the results depend on the benchmark, the model that generates and judges the rubrics, and the form of supervision.</p> </d-title> <d-byline></d-byline> <d-article> <d-contents> <nav class="l-text figcaption"> <h3>Contents</h3> <div> <a href="#rubric-based-rewards-and-reasoning-capacity">Rubric-Based Rewards and Reasoning Capacity</a> </div> <ul> <li> <a href="#reasoning-capacity-beyond-the-base-model">Reasoning Capacity Beyond the Base Model</a> </li> <li> <a href="#pass-at-k-as-an-evaluation-metric">Pass at k as an Evaluation Metric</a> </li> </ul> <div> <a href="#experimental-setup">Experimental Setup</a> </div> <div> <a href="#the-judge-is-part-of-the-learning-signal">The judge is part of the learning signal</a> </div> <ul> <li> <a href="#does-using-the-same-model-for-both-roles-help">Does using the same model for both roles help?</a> </li> </ul> <div> <a href="#correctness-plus-a-rubric-is-not-a-guaranteed-win">Correctness plus a rubric is not a guaranteed win</a> </div> <div> <a href="#rubrics-distillation-and-self-generated-feedback">Rubrics, distillation, and self-generated feedback</a> </div> <ul> <li> <a href="#do-rubrics-help-without-a-stronger-teacher">Do Rubrics Help Without a Stronger Teacher?</a> </li> </ul> <div> <a href="#what-i-would-conclude">What I would conclude</a> </div> </nav> </d-contents> <h2 id="rubric-based-rewards-and-reasoning-capacity">Rubric-Based Rewards and Reasoning Capacity</h2> <p>A <strong>rubric</strong> is a structured set of criteria that specifies the requirements for a high-quality response. These criteria may address instruction adherence, constraint satisfaction, the validity of intermediate reasoning, and final-answer correctness. By decomposing response quality into explicit evaluation targets, rubrics support more fine-grained assessment than a single holistic judgment.</p> <p>In LLM post-training, rubric-based evaluations can serve as <strong>reward signals</strong>. An evaluator scores policy-generated responses against individual criteria, and the resulting judgments are aggregated into rewards for reinforcement learning. Such feedback can distinguish responses that receive the same outcome-based correctness score. However, greater detail in the evaluation criteria does not necessarily translate into more informative supervision. This raises a central question: <strong>can rubric-based rewards extend a model’s reasoning capacity, or do they primarily improve the likelihood of generating solutions already accessible to the model?</strong></p> <h3 id="reasoning-capacity-beyond-the-base-model">Reasoning Capacity Beyond the Base Model</h3> <p>Yue et al. (2025) <d-cite key="yue2025reasoning"></d-cite> examine this distinction in <strong>reinforcement learning with verifiable rewards (RLVR)</strong>. They use <strong>\(\mathrm{pass}@k\) across a range of sampling budgets, including large \(k\)</strong>, to compare RLVR-trained models with their base models. In the settings studied, RLVR frequently improves performance at small \(k\), whereas base models can outperform their RLVR-trained counterparts at larger \(k\). The authors interpret these findings as evidence that existing RLVR methods primarily improve sampling efficiency rather than introduce fundamentally new reasoning capabilities.</p> <h3 id="pass-at-k-as-an-evaluation-metric">Pass at k as an Evaluation Metric</h3> <p><strong>\(\mathrm{pass}@k\)</strong> measures the probability of obtaining <strong>at least one correct response among \(k\) sampled responses</strong>, averaged over evaluation problems. For example, if 60 out of 100 problems have at least one correct response within 16 samples each, the observed \(\mathrm{pass}@16\) is 60%. The metric assesses the availability of a correct solution within the sample set. It does not assess whether the model can select that solution.</p> <h2 id="experimental-setup">Experimental Setup</h2> <p>We follow the <strong>SimpleRLZoo-RL experimental setup</strong> <d-cite key="zeng2025simplerl"></d-cite> and adopt the \(\mathrm{pass}@k\) evaluation approach used by Yue et al. (2025) <d-cite key="yue2025reasoning"></d-cite>. We study a <strong>Qwen2.5-7B</strong> policy on four mathematical reasoning benchmarks: <strong>AIME24, MATH500, Minerva, and Olympiad</strong>. We evaluate \(\mathrm{pass}@k\) across increasing sampling budgets, up to <strong>\(k = 1024\) on AIME24</strong> and <strong>\(k = 128\) on the other three benchmarks</strong>.</p> <p>We investigate the effects of different <strong>rubric generators, judges, and reward designs</strong> on post-training performance. We further examine whether the benefits of rubric-based supervision arise from the rubric itself or from access to a stronger model. To investigate this distinction, we compare rubric-based training with <strong>conventional distillation and on-policy distillation (OPD)</strong>, using the same underlying model to provide supervision in each comparison.</p> <h2 id="the-judge-is-part-of-the-learning-signal">The judge is part of the learning signal</h2> <p>In this experiment, we keep the <strong>rubric generator fixed</strong> and vary the <strong>judge model</strong>. We use <code class="language-plaintext highlighter-rouge">qwen3.7-max</code> as the rubric generator. We then use two separately deployed judges, <strong>Qwen2.5-72B-Instruct</strong> and <strong>Llama-3.3-70B-Instruct</strong>, to evaluate policy responses against these rubrics and provide reward signals for training.</p> <figure> <picture> <img src="/2027/assets/img/2027-04-30-rubrics-and-rl/judge-comparison-instruct.png" class="img-fluid" width="100%" height="auto" alt="Fixed qwen3.7-max rubric generator, two judges" data-zoomable="" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> <figcaption class="caption">Figure 1. Fixed qwen3.7-max rubric generator, two judges. Top: Qwen2.5-72B-Instruct. Bottom: Llama-3.3-70B-Instruct. AIME24 separates strongly at large k, although the same separation is not uniform across benchmarks.</figcaption> </figure> <p>Figure 1 highlights two observations. First, <strong>rubric-based RL does not outperform Base overall with either judge model</strong>. Second, the choice of judge affects the results. With the <strong>Qwen2.5-72B-Instruct</strong> judge, the rubric curve remains relatively close to the reference RL curve on AIME24. With the <strong>Llama-3.3-70B-Instruct</strong> judge, it falls visibly below the reference RL curve at larger sampling budgets. This supports <em>judge dependence</em>. A plausible explanation is that differences in how judges interpret the rubric criteria affect which rollouts receive higher rewards.</p> <p>Because the rubric generator and judge are different models in this setup, their evaluation preferences may not align. We therefore investigate whether using the same model for both roles improves the results by reducing this potential mismatch.</p> <h3 id="does-using-the-same-model-for-both-roles-help">Does using the same model for both roles help?</h3> <figure> <picture> <img src="/2027/assets/img/2027-04-30-rubrics-and-rl/aligned-generator-judge.png" class="img-fluid" width="100%" height="auto" alt="Generator and judge both use Qwen3.5-35B-A3B" data-zoomable="" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> <figcaption class="caption">Figure 2. Generator and judge both use Qwen3.5-35B-A3B. This configuration outperforms Base and reference RL on AIME24, MATH500, and Olympiad, while high-budget coverage on Minerva remains below Base.</figcaption> </figure> <p>We use the same model, <strong>Qwen3.5-35B-A3B</strong>, for both rubric generation and judging. This yields encouraging results, with the resulting policy <strong>outperforming both Base and reference RL</strong> on AIME24, MATH500, and Olympiad. Yet Minerva still has lower high-budget coverage than Base. The result is promising on some tasks, not a universal recovery of coverage. My interpretation is that agreement between the generator and judge may help make criteria actionable.</p> <figure> <picture> <img src="/2027/assets/img/2027-04-30-rubrics-and-rl/aligned-generator-judge-qwen72.png" class="img-fluid" width="100%" height="auto" alt="Qwen2.5-72B-Instruct serves as both rubric generator and judge for the Qwen2.5-7B policy" data-zoomable="" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> <figcaption class="caption">Figure 3. Qwen2.5-72B-Instruct serves as both rubric generator and judge for the Qwen2.5-7B policy. Rubric-only RL is compared with Base and SimpleRLZoo-RL on the same four benchmarks.</figcaption> </figure> <p>We repeat the shared-generator-and-judge setup using <strong>Qwen2.5-72B-Instruct</strong>. At the largest evaluated sampling budgets, it exceeds both Base and reference RL on MATH500, matches reference RL on AIME24, and remains below Base on AIME24, Minerva, and Olympiad. These results show that the choice of model also matters.</p> <h2 id="correctness-plus-a-rubric-is-not-a-guaranteed-win">Correctness plus a rubric is not a guaranteed win</h2> <p>To investigate whether reward design affects the results, we introduce an alternative reward formulation that keeps correctness as the anchor and uses the rubric as an auxiliary signal. We test the following form:</p> \[r = r_{\mathrm{correct}} + 0.1 \cdot r_{\mathrm{rubric}}\] <p>If exact correctness is binary and the rubric score is normalized to \([0, 1]\), a correct answer always receives a higher total reward than an incorrect one.</p> <figure> <picture> <img src="/2027/assets/img/2027-04-30-rubrics-and-rl/hybrid-qwen35.png" class="img-fluid" width="100%" height="auto" alt="Qwen3.5-35B-A3B generator and judge" data-zoomable="" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> <figcaption class="caption">Figure 4. Qwen3.5-35B-A3B generator and judge. The rubric-only run is labeled legacy-v3, while the hybrid run is labeled answer-free-v4. This comparison changes more than the reward formula.</figcaption> </figure> <p>For the <strong>Qwen3.5-35B-A3B</strong> configuration, the <strong>hybrid reward underperforms the rubric-only reward on AIME24, MATH500, and Olympiad</strong>. On Minerva, the hybrid reward improves over rubric-only training, but its high-budget coverage remains below Base.</p> <p>One possible explanation is that the rubric already includes an answer-correctness criterion. Adding a separate correctness reward may therefore double-count this signal, while scaling the rubric score by 0.1 reduces the relative contribution of its other criteria. This could shift the learning signal toward final-answer correctness and weaken the influence of the broader feedback provided by the rubric.</p> <figure> <picture> <img src="/2027/assets/img/2027-04-30-rubrics-and-rl/hybrid-qwen25.png" class="img-fluid" width="100%" height="auto" alt="Qwen2.5-72B-Instruct generator and judge" data-zoomable="" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> <figcaption class="caption">Figure 5. Qwen2.5-72B-Instruct generator and judge. The hybrid reward is notably weaker on AIME24 at large k, whereas several other curves remain much closer.</figcaption> </figure> <p>To examine whether this finding holds with a different model, we use <strong>Qwen2.5-72B-Instruct for both rubric generation and judging</strong>. The results again show that the hybrid reward does not consistently improve over rubric-only training, with substantially lower coverage on AIME24 at large \(k\). This suggests that adding an apparently sensible auxiliary reward can still change exploration or credit assignment in an unfavorable way.</p> <p>Giving correct answers higher rewards is a useful scoring property. However, as these experiments illustrate, it does <strong>not</strong> guarantee that policy optimization will improve every benchmark or preserve every rare solution.</p> <blockquote> <p>The preceding experiments suggest that rubric-based rewards can expand the reasoning capability frontier of the RL-trained policy on some benchmarks. This raises a further question: do these gains arise from the rubric-based learning signal itself, or from the capabilities of a stronger rubric generator model? We investigate this question through two sets of comparisons. First, we compare rubric-based training with conventional distillation through supervised fine-tuning (SFT) and with on-policy distillation (OPD), using the same underlying supervisory model within each comparison. Second, we use the policy model itself for both rubric generation and judging, allowing these roles to evolve alongside the policy during training.</p> </blockquote> <h2 id="rubrics-distillation-and-self-generated-feedback">Rubrics, distillation, and self-generated feedback</h2> <p>We first compare rubric-based RL with <strong>conventional distillation through supervised fine-tuning (SFT)</strong>. In this baseline, a teacher model generates responses to the training problems, and the student model is fine-tuned on these teacher-generated responses. We use <strong>Qwen3.5-35B-A3B</strong> as the teacher for SFT and use the same model as both the <strong>rubric generator and judge</strong> in the rubric-based RL comparison. The results are shown below.</p> <figure> <picture> <img src="/2027/assets/img/2027-04-30-rubrics-and-rl/distillation.png" class="img-fluid" width="100%" height="auto" alt="Qwen3.5-35B-A3B traditional distillation versus rubric-only RL" data-zoomable="" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> <figcaption class="caption">Figure 6. Qwen3.5-35B-A3B traditional distillation versus rubric-only RL. Distillation fares better at high-budget Minerva, while rubric RL is stronger on AIME24 in this comparison.</figcaption> </figure> <p>Overall, these results suggest that conventional distillation can expand the model’s reasoning capability frontier. It outperforms both the Base model and rubric-based RL on MATH500, Minerva, and Olympiad.</p> <p>We also compare rubric-based training with <strong>on-policy distillation (OPD)</strong>. In standard token-level OPD, directly matching teacher and student distributions requires aligned tokenization and vocabulary indices. For this comparison, we use <strong>Qwen2.5-72B-Instruct</strong> as the teacher for the Qwen2.5-7B student, keeping both models within the Qwen2.5 family. The teacher provides token-level supervision on student-generated trajectories. A rubric describes what to value, whereas token-level distillation teaches a distribution over continuations.</p> <p>For a direct comparison using the same supervisory model, Figure 7 includes <strong>rubric-only RL with Qwen2.5-72B-Instruct as both generator and judge</strong>, alongside OPD with the same teacher, Base, and reference RL.</p> <figure> <picture> <img src="/2027/assets/img/2027-04-30-rubrics-and-rl/opd-rubric-qwen72.png" class="img-fluid" width="100%" height="auto" alt="Qwen2.5-7B with Qwen2.5-72B-Instruct supervision" data-zoomable="" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> <figcaption class="caption">Figure 7. Qwen2.5-7B with Qwen2.5-72B-Instruct supervision. Rubric-only RL and OPD are compared with Base and SimpleRLZoo-RL on four benchmarks. Curves are replotted from the project's aggregated evaluation metrics.</figcaption> </figure> <p>With the same supervisory model, the relative performance of rubric-only RL and OPD varies across benchmarks. At the largest evaluated sampling budgets, rubric-only RL achieves higher pass rates on AIME24 (73.3% versus 70.0%) and MATH500 (96.0% versus 94.2%). OPD performs better on Minerva (62.5% versus 58.5%), while both reach 73.5% on Olympiad. These results suggest that how a teacher provides supervision matters, even when the teacher model is held fixed.</p> <p>Overall, the experiments with Qwen3.5-35B-A3B as both rubric generator and judge show improvements over Base on most benchmarks, although conventional distillation through SFT performs better on three of the four benchmarks. Using Qwen2.5-72B-Instruct yields less favorable results overall, but rubric-only RL still outperforms OPD on AIME24 and MATH500 at the largest evaluated sampling budgets. My interpretation is that <strong>some of the capability gains from rubric-based RL may come from the capabilities of the model that generates and judges the rubrics.</strong></p> <h3 id="do-rubrics-help-without-a-stronger-teacher">Do Rubrics Help Without a Stronger Teacher?</h3> <p>This leaves an open question about the contribution of the rubrics themselves. To investigate it, we conduct a self-generated rubric experiment in which the <strong>policy model itself serves as both rubric generator and judge</strong>, with both roles evolving alongside the policy during training.</p> <figure> <picture> <img src="/2027/assets/img/2027-04-30-rubrics-and-rl/self-rubric.png" class="img-fluid" width="100%" height="auto" alt="Online self-rubric RL with Qwen2.5-7B" data-zoomable="" loading="lazy" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </picture> <figcaption class="caption">Figure 8. Online self-rubric RL with Qwen2.5-7B. Some benchmarks improve, but AIME24 and Minerva remain below Base at the largest shown budgets.</figcaption> </figure> <p>The online self-rubric experiment shows encouraging MATH500 and Olympiad trends.</p> <h2 id="what-i-would-conclude">What I would conclude</h2> <table> <thead> <tr> <th>Experiment</th> <th>Conclusion</th> </tr> </thead> <tbody> <tr> <td>Fixed rubric generator with different judges (Figure 1)</td> <td>Changing the judge changes the learned policy’s performance, showing that the judge is an important part of the reward signal.</td> </tr> <tr> <td>Qwen3.5-35B-A3B as both generator and judge (Figure 2)</td> <td>Using a shared generator and judge is promising, although this experiment also changes the model identity.</td> </tr> <tr> <td>Qwen2.5-72B-Instruct as both generator and judge (Figure 3)</td> <td>The shared-model setup performs less favorably overall than the Qwen3.5 configuration, indicating that model choice remains important.</td> </tr> <tr> <td>Rubric-only versus hybrid rewards (Figures 4–5)</td> <td>Adding answer correctness to the rubric reward does not consistently improve performance.</td> </tr> <tr> <td>Rubric-based RL versus SFT distillation (Figure 6)</td> <td>With Qwen3.5-35B-A3B supervision, SFT distillation exceeds both Base and rubric-based RL on MATH500, Minerva, and Olympiad.</td> </tr> <tr> <td>Rubric-based RL versus OPD with the same teacher (Figure 7)</td> <td>At the largest evaluated budgets, rubric-only RL leads on AIME24 and MATH500, OPD leads on Minerva, and they tie on Olympiad. The form of supervision matters even with a fixed teacher.</td> </tr> <tr> <td>Policy-generated rubrics and self-judging (Figure 8)</td> <td>The MATH500 and Olympiad trends suggest that self-generated rubric feedback can be useful without a stronger external teacher, motivating further work on jointly improving the policy and its feedback.</td> </tr> </tbody> </table> <p>My main takeaway is that <strong>both the capabilities of the supervisory model and the way its feedback is structured matter for the reasoning capability frontier reached through RL</strong>. The comparisons suggest that an external model contributes part of the learning signal, while rubric-based rewards can make that signal useful for learning and support capability gains on some tasks. The self-generated rubric results further motivate exploring whether a policy can improve the criteria it generates and applies as it learns. One direction is to jointly optimize rubric generation, judging, and policy learning over repeated iterations. This could inform future approaches to <strong>recursive self-improvement (RSI)</strong>.</p> <p>Text rubrics also offer a potential practical advantage. They can be reused across rollouts and obtained through text-only APIs, whereas logit-based OPD requires access to the teacher’s token distributions. This may reduce the cost of obtaining supervision, although the experiments here do not quantify that advantage. Together with their task-specific learning benefits, this flexibility makes rubric-based rewards a promising direction for post-training.</p> </d-article> <d-appendix> <d-footnote-list></d-footnote-list> <d-citation-list></d-citation-list> </d-appendix> <d-bibliography src="/2027/assets/bibliography/2027-04-30-rubrics-and-rl.bib"></d-bibliography> <d-article> <h2 class="text-3xl font-semibold mb-4 mt-12">Enjoy Reading This Article?</h2> <p class="mb-2">Here are some more articles you might like to read next:</p> <ul class="list-disc pl-7 my-3 space-y-2 marker:text-[var(--global-theme-color)]"> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/when-b-is-correct/">When B Is Correct</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/what-did-the-alignment-learn/">Wrong Clips, Right Categories: What Cross-Modal Alignment Actually Learns</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/two-fragments-or-silence/">Two Fragments, or Silence</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/toward-observability-in-physical-ai/">Toward Observability in Physical AI: Offline Diagnostics for Imitation-Learning Policies in Robotics</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/sac-massive-sim/">Getting SAC to Work on a Massively Parallel Simulator: An RL Journey With Off-Policy Algorithms</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/repeatable-evaluation-decisions/">How Many Tasks Make an AI Evaluation Decision Repeatable?</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/remembering-everything/">Why LLMs Can’t Let Go</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/polyglot-dgm/">What Are We Actually Evolving? Four Flaws in Darwin Gödel Machine’s Polyglot Environment</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/mirror-test/">Does a Verlet-Like Orbit Transformer Respect the Mirror?</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/megakernel-reuse-streaming-tts/">One Kernel, Two Transformers - What a Text-LLM Megakernel Teaches Us About Streaming TTS</a> </li> </ul> <br> <br> </d-article> </div> <footer class="sticky-bottom mt-5" role="contentinfo"> <div class="container"> © Copyright 2026 ICLR Blog. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. Photos from <a href="https://unsplash.com" target="_blank" rel="external nofollow noopener">Unsplash</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/2027/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script src="/2027/assets/js/distillpub/overrides.js"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/2027/assets/al_math/js/mathjax-setup.js"></script> <script src="/2027/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/2027/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/2027/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/2027/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/2027/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/2027/assets/al_img_tools/js/zoom.js"></script> <script defer src="/2027/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/2027/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/2027/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-home",
+    title: "home",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/2027/";
+    },
+  },{id: "nav-about",
+          title: "about",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/about/";
+          },
+        },{id: "nav-call-for-blogposts",
+          title: "call for blogposts",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/call/";
+          },
+        },{id: "nav-submitting",
+          title: "submitting",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/submitting/";
+          },
+        },{id: "nav-reviewing",
+          title: "reviewing",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/reviewing/";
+          },
+        },{id: "dropdown-lt-strong-gt-2027-lt-strong-gt",
+              title: "<strong>2027</strong>",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2027/";
+              },
+            },{id: "dropdown-2026",
+              title: "2026",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2026/";
+              },
+            },{id: "dropdown-2025",
+              title: "2025",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2025/";
+              },
+            },{id: "dropdown-2024",
+              title: "2024",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2024/";
+              },
+            },{id: "dropdown-2023",
+              title: "2023",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2023/";
+              },
+            },{id: "dropdown-2022",
+              title: "2022",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blog-track.github.io/home/";
+              },
+            },{id: "post-when-b-is-correct",
+        
+          title: "When B Is Correct",
+        
+        description: "On 72 multiple-choice questions, simply reversing the order of two answer lines changed whether activation steering helped either of two small language models. With the correct letters held fixed and 144 responses per layout, steering gave Qwen 11 more correct answers when A appeared first and 19 fewer when B appeared first. SmolLM2 showed the same reversal, yet all 16 of its changed answers went to the first printed line, compared with 13 of 34 for Qwen.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/when-b-is-correct/";
+          
+        },
+      },{id: "post-wrong-clips-right-categories-what-cross-modal-alignment-actually-learns",
+        
+          title: "Wrong Clips, Right Categories: What Cross-Modal Alignment Actually Learns",
+        
+        description: "Rotating audio and video embeddings into alignment boosts cross-modal event recognition from 36.7% to 90.5%. Yet shuffling almost every audio-video pair within its category gives nearly the same score (90.1%), while holding out categories breaks transfer completely.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/what-did-the-alignment-learn/";
+          
+        },
+      },{id: "post-two-fragments-or-silence",
+        
+          title: "Two Fragments, or Silence",
+        
+        description: "A personal agent that already holds memories a person chose to share should default to silence. The only other action returns two original fragments and one gap or causal constraint already written in those texts. Semantic nearness is not a trigger, a feeling of insight is not evidence, and whether an interruption is worth making is left open.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/two-fragments-or-silence/";
+          
+        },
+      },{id: "post-toward-observability-in-physical-ai-offline-diagnostics-for-imitation-learning-policies-in-robotics",
+        
+          title: "Toward Observability in Physical AI: Offline Diagnostics for Imitation-Learning Policies in Robotics",
+        
+        description: "When an imitation-learning policy fails on a robot, the failure looks the same whatever its cause. We turn the terms of the objective behind the Action Chunking Transformer into ten metrics that are computed from recorded demonstrations and saved policies, without a robot, each with a reference value and a place in a fixed order of checks. On two datasets from a low-cost arm they expose a policy that had been trained for 2 steps instead of 20,000, policies that take 98 to 100% of their output from the cameras and almost none from the joint readings, and a measure of the demonstrations alone that anticipates the error after training.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/toward-observability-in-physical-ai/";
+          
+        },
+      },{id: "post-getting-sac-to-work-on-a-massively-parallel-simulator-an-rl-journey-with-off-policy-algorithms",
+        
+          title: "Getting SAC to Work on a Massively Parallel Simulator: An RL Journey With...",
+        
+        description: "This post details how to get the Soft Actor-Critic (SAC) and other off-policy reinforcement learning algorithms to work on massively parallel simulators (e.g., Isaac Sim with thousands of robots simulated in parallel) for locomotion tasks. In addition to tuning SAC for speed, the post also explores why SAC fails where PPO succeeds, highlighting a common problem in task design that many codebases share.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/sac-massive-sim/";
+          
+        },
+      },{id: "post-do-rubrics-expand-what-rl-can-learn",
+        
+          title: "Do Rubrics Expand What RL Can Learn?",
+        
+        description: "We compare rubric-based reinforcement learning with supervised and on-policy distillation on four mathematical reasoning benchmarks. Across sampling budgets, the results depend on the benchmark, the model that generates and judges the rubrics, and the form of supervision.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/rubrics-and-rl/";
+          
+        },
+      },{id: "post-how-many-tasks-make-an-ai-evaluation-decision-repeatable",
+        
+          title: "How Many Tasks Make an AI Evaluation Decision Repeatable?",
+        
+        description: "An item count chosen for global score dependability need not achieve a specified level of repeat agreement at a pass/fail threshold. We compare the standard projected dependability coefficient Phi with exact finite-pool classification probabilities on matched response matrices from seven historical AI benchmark populations and three fixed synthetic cuts. On SWE-bench Verified, the projected count is 43 items, while 66 items are required for 90% mean agreement.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/repeatable-evaluation-decisions/";
+          
+        },
+      },{id: "post-why-llms-can-t-let-go",
+        
+          title: "Why LLMs Can’t Let Go",
+        
+        description: "Large Language Models now have access to more context than ever before. A natural concern in this setting has been their ability to retrieve information from that context. We shed light on other problems that arise with larger context windows, not because the model cannot locate the relevant context, but because it cannot ignore the irrelevant context. Through this blog, we aim to motivate the community to think beyond scaling the context window and retrieving the right context, toward the model's ability to ignore what it does not need.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/remembering-everything/";
+          
+        },
+      },{id: "post-what-are-we-actually-evolving-four-flaws-in-darwin-gödel-machine-s-polyglot-environment",
+        
+          title: "What Are We Actually Evolving? Four Flaws in Darwin Gödel Machine’s Polyglot Environment...",
+        
+        description: "Self-evolving coding agents such as Darwin Gödel Machine (DGM) use their scores on a coding benchmark to guide changes to their own harnesses, such as their tools and workflows. We find four flaws in DGM’s adaptation of Aider’s Polyglot benchmark that make these scores an unreliable signal of which harness changes improve a coding agent. Later systems such as Huxley-Gödel Machine reuse the same evaluation setup and inherit these flaws. In this misconfigured Polyglot environment, agents can access hidden tests and solutions, task contracts and supporting files are missing, and most Java tests are skipped. Repairing the environment shifts the score of the same gpt-5.4-mini agent by up to 12 percentage points. This sensitivity to the evaluation setup warrants revisiting DGM’s reported gains on Polyglot, and it shows that a correct environment is a precondition for reliable self-evolving systems.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/polyglot-dgm/";
+          
+        },
+      },{id: "post-does-a-verlet-like-orbit-transformer-respect-the-mirror",
+        
+          title: "Does a Verlet-Like Orbit Transformer Respect the Mirror?",
+        
+        description: "Small transformers trained only on counter-clockwise planetary orbits have been described as close to Verlet, a textbook integration rule. Reflecting held-out orbits about their major axes leaves the physics intact, yet all five noise-free baseline models, trained on counter-clockwise orbits only, fail the mirror test while their rotation-equivariance error stays small. Adding mirrored orbits at the same training budget narrows the gap in steps, and for the recipe with input noise the outcome at 50% mirrored data is undetermined by the criterion set in advance.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/mirror-test/";
+          
+        },
+      },{id: "post-one-kernel-two-transformers-what-a-text-llm-megakernel-teaches-us-about-streaming-tts",
+        
+          title: "One Kernel, Two Transformers - What a Text-LLM Megakernel Teaches Us About Streaming...",
+        
+        description: "Persistent megakernels have made batch-one LLM decoding fast by removing launch overhead. I take one written for a 0.6B text model and reuse it, almost unchanged, for both transformer stages of a streaming codec-language-model TTS system. The speedups are real. So are two quality problems: the model inserts extra words, and it does not stop on its own.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/megakernel-reuse-streaming-tts/";
+          
+        },
+      },{id: "post-halpern-iteration-accelerates-solving-high-order-monotone-variational-inequalities",
+        
+          title: "Halpern Iteration Accelerates Solving High-Order Monotone Variational Inequalities",
+        
+        description: "In this blog post, we revisit the classical Halpern iteration in 1967 and show its new applications in designing second- and higher-order methods for solving smooth monotone variational inequalities (MVI).  By using a large-step inexact Halpern iteration, we propose a novel pth-order method Halpern-ATM, that achieves a fast convergence rate of Õ(T⁻ᵖ). This improves the best-known results for p ≥ 2 since 2012 and matches the classical extragradient method for p = 1.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/halpern-npe/";
+          
+        },
+      },{id: "post-telling-a-small-misaligned-model-it-39-s-being-evaluated-barely-moves-its-misalignment",
+        
+          title: "Telling a small misaligned model it's being evaluated barely moves its misalignment",
+        
+        description: "We trained a small open model on bad medical advice, then told it that it was being evaluated. Its answers stayed about as misaligned as before. The AI judge that scores those answers made a far bigger difference, which affects anyone measuring emergent misalignment or comparing results across papers.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/emergent-misalignment-evaluation-cue/";
+          
+        },
+      },{id: "post-does-recursion-depth-mean-difficulty-a-token-level-test-of-mixture-of-recursions",
+        
+          title: "Does Recursion Depth Mean Difficulty? A Token-Level Test of Mixture-of-Recursions",
+        
+        description: "Mixture-of-Recursions gives each token a recursion depth, and the original paper reads depth as a sign of how easily the next token can be predicted. We test that reading on the released 360M checkpoints. Depth is low for easy tokens and stops rising near the median token, the hardest tokens gain least from depth, and token-choice depth is almost a fixed function of the token.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/does-recursion-depth-mean-difficulty/";
+          
+        },
+      },{id: "post-sample-blog-post",
+        
+          title: "Sample Blog Post",
+        
+        description: "Your blog post's abstract. Please add your abstract or summary here and not in the main body of your text. Do not include math/latex or hyperlinks.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/distill-example/";
+          
+        },
+      },{id: "post-from-strongly-adaptive-regret-to-discounted-regret",
+        
+          title: "From Strongly Adaptive Regret to Discounted Regret",
+        
+        description: "Discounted regret against a fixed comparator equals a convex combination of regrets over suffixes of the horizon. This post derives the identity, uses it to transfer strongly adaptive regret bounds to all nonincreasing discount sequences at once, and collects the resulting uniform bounds for convex, strongly convex, and exp-concave losses.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/discounted-regret-suffix-mixture/";
+          
+        },
+      },{id: "post-what-makes-a-good-toy-example-for-diffusion-models",
+        
+          title: "What Makes a Good Toy Example for Diffusion Models?",
+        
+        description: "Toys help us see diffusion algorithms at the level of distributions—but the moment we design a toy, we may also (without noticing) choose a side by baking in preferences. Using guidance in diffusion models, we examine how class separation and within-class branching shape what we conclude from a toy.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/diffusion-toy-design/";
+          
+        },
+      },{id: "post-consequence-persistence-admission-control-for-open-agent-meshes",
+        
+          title: "Consequence Persistence: Admission Control for Open Agent Meshes",
+        
+        description: "Open agent meshes can fail while every request stays valid. A consequence persistence layer checks a signed header before the payload, keeps a subjective viability score by identity and task, and makes viability fall much faster than it recovers. The price of a fresh identity, false isolation of long tasks, and the receiver's cost of holding a delay are left open.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/consequence-persistence/";
+          
+        },
+      },{id: "post-beyond-surface-alignment-belief-as-the-gateway-to-deep-alignment-in-llms",
+        
+          title: "Beyond Surface Alignment: Belief as the Gateway to Deep Alignment in LLMs",
+        
+        description: "Surface alignment changes what a model says, but whether the internal beliefs of a model are aligned with the real world still lacks effective, unified means of observation and intervention. On this basis, we argue that alignment research needs to attend more closely to the belief layer.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/beyond-surface-alignment/";
+          
+        },
+      },{id: "post-a-pass-is-not-a-guard",
+        
+          title: "A Pass Is Not a Guard",
+        
+        description: "A truncated tool call wrote a 16-line file while the agent reported success. Building a conformance suite around that case exposed a harder problem: nine ways our own measurement produced a confident wrong answer, and the rules we added to stop it.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/a-pass-is-not-a-guard/";
+          
+        },
+      },{id: "post-a-post-with-marimo-snippets",
+        
+          title: "a post with marimo snippets",
+        
+        description: "running Python in the browser with marimo",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/marimo/";
+          
+        },
+      },{id: "post-یک-نوشتهٔ-راست-چین",
+        
+          title: "یک نوشتهٔ راست‌چین",
+        
+        description: "نمونه‌ای از پشتیبانی زبان‌های راست‌چین",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/rtl/";
+          
+        },
+      },{id: "books-the-godfather",
+          title: 'The Godfather',
+          description: "",
+          section: "Books",handler: () => {
+              window.location.href = "/2027/books/the_godfather/";
+            },},{id: "news-a-simple-inline-announcement",
+          title: 'A simple inline announcement.',
+          description: "",
+          section: "News",},{id: "news-a-long-announcement-with-details",
+          title: 'A long announcement with details',
+          description: "",
+          section: "News",handler: () => {
+              window.location.href = "/2027/news/announcement_2/";
+            },},{id: "news-a-simple-inline-announcement-with-markdown-emoji-sparkles-smile",
+          title: 'A simple inline announcement with Markdown emoji! <img class="emoji" title=":sparkles:" alt=":sparkles:" src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png" height="20" width="20"> <img class="emoji" title=":smile:" alt=":smile:" src="https://github.githubassets.com/images/icons/emoji/unicode/1f604.png" height="20" width="20">',
+          description: "",
+          section: "News",},{id: "projects-project-1",
+          title: 'project 1',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/1_project/";
+            },},{id: "projects-project-2",
+          title: 'project 2',
+          description: "a project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/2_project/";
+            },},{id: "projects-project-3-with-very-long-name",
+          title: 'project 3 with very long name',
+          description: "a project that redirects to another website",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/3_project/";
+            },},{id: "projects-project-4",
+          title: 'project 4',
+          description: "another without an image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/4_project/";
+            },},{id: "projects-project-5",
+          title: 'project 5',
+          description: "a project with a background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/5_project/";
+            },},{id: "projects-project-6",
+          title: 'project 6',
+          description: "a project with no image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/6_project/";
+            },},{id: "projects-project-7",
+          title: 'project 7',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/7_project/";
+            },},{id: "projects-project-8",
+          title: 'project 8',
+          description: "an other project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/8_project/";
+            },},{id: "projects-project-9",
+          title: 'project 9',
+          description: "another project with an image 🎉",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/9_project/";
+            },},{id: "teachings-data-science-fundamentals",
+          title: 'Data Science Fundamentals',
+          description: "This course covers the foundational aspects of data science, including data collection, cleaning, analysis, and visualization. Students will learn practical skills for working with real-world datasets.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/data-science-fundamentals/";
+            },},{id: "teachings-introduction-to-machine-learning",
+          title: 'Introduction to Machine Learning',
+          description: "This course provides an introduction to machine learning concepts, algorithms, and applications. Students will learn about supervised and unsupervised learning, model evaluation, and practical implementations.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/introduction-to-machine-learning/";
+            },},{
+        id: 'social-cv',
+        title: 'CV',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/assets/pdf/example_pdf.pdf", "_blank");
+        },
+      },{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%79%6F%75@%65%78%61%6D%70%6C%65.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-inspire',
+        title: 'Inspire HEP',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://inspirehep.net/authors/1010907", "_blank");
+        },
+      },{
+        id: 'social-rss',
+        title: 'RSS Feed',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/feed.xml", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=qc6CJjYAAAAJ", "_blank");
+        },
+      },{
+        id: 'social-custom_social',
+        title: 'Custom_social',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.alberteinstein.com/", "_blank");
+        },
+      },{
+      id: 'light-theme',
+      title: 'Change theme to light',
+      description: 'Change the theme of the site to Light',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("light");
+      },
+    },
+    {
+      id: 'dark-theme',
+      title: 'Change theme to dark',
+      description: 'Change the theme of the site to Dark',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("dark");
+      },
+    },
+    {
+      id: 'system-theme',
+      title: 'Use system default theme',
+      description: 'Change the theme of the site to System Default',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("system");
+      },
+    },];
+
+</script> <script src="/2027/assets/al_search/js/shortcut-key.js"></script> </body> </html>
