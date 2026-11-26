@@ -90,6 +90,19 @@ $$
   <iframe title="Executed synthetic search study" src="{{ 'assets/html/2027-04-30-calculus-of-inference-time-scaling/budgeted-search.html' | relative_url }}" frameborder="0" height="800px" width="100%" loading="lazy"></iframe>
 </div>
 
+<d-cite key="kocsis2006,wang2023"></d-cite>
+
+$
+a^*=\arg\max_a\left[\widehat Q(s,a)+c\sqrt{\frac{\log N(s)}{N(s,a)}}\right].
+$
+
+<div class="l-page">
+  <iframe title="Executed finite-tree UCT, beam and sampling comparison" src="{{ 'assets/html/2027-04-30-calculus-of-inference-time-scaling/uct-search.html' | relative_url }}" frameborder="0" height="800px" width="100%" loading="lazy"></iframe>
+</div>
+
+<!-- Author: contrast the fixed-tree study with the previous synthetic revision model. Analyze coverage versus selected accuracy, solvability ceilings and verifier-cost asymmetry. The UCT method backs up proxy terminal scores, not true labels. Do not generalize rankings beyond the assumed environments. -->
+
+
 ## Verifier tail risk and over-optimization
 
 <d-cite key="gao2023"></d-cite>
@@ -107,7 +120,50 @@ $$
 
 ## Reference implementation and reproducibility
 
-<!-- The two stochastic figures contain the deterministic Node.js generators, parameters, and output tables. Add your own explanation of the tested PyTorch loss, masks, population-standard-deviation convention, fixed denominator and off-policy caveats. The reference implementation is supplied separately for author review. -->
+<!-- The three stochastic figures contain the deterministic Node.js generators, parameters, and output tables. Add your own explanation of the tested PyTorch loss, masks, population-standard-deviation convention, fixed denominator and off-policy caveats. The reference implementation is supplied separately for author review. -->
+
+```python
+import torch
+
+def grpo_loss(new, old, ref, rewards, mask, eps=.2, beta=.04,
+              mode='grpo', max_completion_length=None):
+    # [B,G,T] log-probabilities, [B,G] rewards.
+    if new.ndim != 3 or new.shape != old.shape or new.shape != ref.shape or new.shape != mask.shape or rewards.shape != new.shape[:2]:
+        raise ValueError('Incompatible shapes')
+    if mode not in ('grpo','fixed','token') or new.shape[1]<2 or not 0<=eps<1 or beta<0:
+        raise ValueError('Invalid configuration')
+    mask=mask.bool(); lengths=mask.sum(-1)
+    if (lengths==0).any(): raise ValueError('Each completion needs a valid token')
+    r=rewards.detach().float(); adv=r-r.mean(-1,keepdim=True)
+    if mode!='fixed': adv=adv/(r.std(-1,unbiased=False,keepdim=True)+1e-8)
+    n=torch.where(mask,new.float(),0.)
+    o=torch.where(mask,old.detach().float(),0.)
+    f=torch.where(mask,ref.detach().float(),0.)
+    ratio=(n-o).exp(); a=adv.unsqueeze(-1)
+    surrogate=torch.minimum(ratio*a,ratio.clamp(1-eps,1+eps)*a)
+    x=f-n
+    kl=torch.expm1(x)-x
+    loss=torch.where(mask,-surrogate+beta*kl,0.)
+    if mode=='grpo': return (loss.sum(-1)/lengths).mean()
+    if mode=='token': return loss.sum()/lengths.sum()
+    if max_completion_length is None or max_completion_length < lengths.max().item():
+        raise ValueError('Specify a fixed maximum completion length')
+    return loss.sum()/(new.shape[0]*new.shape[1]*max_completion_length)
+
+def process_scores(p, mask):
+    # Candidate-level aggregation; scores need not be calibrated.
+    mask=mask.bool()
+    if p.shape!=mask.shape or p.ndim!=2 or p.shape[1]==0 or (~mask.any(-1)).any():
+        raise ValueError('Invalid step mask')
+    if ((p[mask]<0)|(p[mask]>1)|~torch.isfinite(p[mask])).any():
+        raise ValueError('Invalid step score')
+    logp=torch.where(mask,p.clamp_min(1e-30).log(),0.)
+    last=(torch.arange(p.shape[1],device=p.device).expand_as(mask).masked_fill(~mask,-1)).max(-1).values
+    return {'log_product':logp.sum(-1),
+            'minimum':p.masked_fill(~mask,float('inf')).min(-1).values,
+            'last':p.gather(-1,last[:,None]).squeeze(-1),
+            'geometric_mean':(logp.sum(-1)/mask.sum(-1)).exp()}
+```
 
 ## Limitations and open questions
 
