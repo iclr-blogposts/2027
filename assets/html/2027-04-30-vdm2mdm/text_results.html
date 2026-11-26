@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TinyStories generation metrics</title>
+<style>
+:root{color-scheme:light;--global-bg-color: #ffffff;--global-code-bg-color: rgba(181, 9, 172, 0.05);--global-text-color: #000000;--global-text-color-light: #828282;--global-theme-color: #b509ac;--global-hover-color: #b509ac;--global-hover-text-color: #ffffff;--global-footer-bg-color: #1c1c1d;--global-footer-text-color: #e8e8e8;--global-footer-link-color: #ffffff;--global-distill-app-color: #828282;--global-divider-color: rgba(0, 0, 0, 0.1);--global-card-bg-color: #ffffff;--global-highlight-color: #b71c1c;--global-back-to-top-bg-color: rgba( 0, 0, 0, 0.4 );--global-back-to-top-text-color: #ffffff;--global-newsletter-bg-color: #ffffff;--global-newsletter-text-color: #000000;--global-tip-block: #42b983;--global-tip-block-bg: #e2f5ec;--global-tip-block-text: #215d42;--global-tip-block-title: #359469;--global-warning-block: #e7c000;--global-warning-block-bg: #fff8d8;--global-warning-block-text: #6b5900;--global-warning-block-title: #b29400;--global-danger-block: #c00;--global-danger-block-bg: #ffe0e0;--global-danger-block-text: #600;--global-danger-block-title: #c00}
+:root{--global-theme-color: #2698ba;--global-hover-color: #1688aa}
+html[data-theme=dark]{color-scheme:dark;--global-bg-color: #1c1c1d;--global-code-bg-color: #2c3237;--global-text-color: #e8e8e8;--global-text-color-light: #828282;--global-theme-color: #2698ba;--global-hover-color: #2698ba;--global-hover-text-color: #ffffff;--global-footer-bg-color: #e8e8e8;--global-footer-text-color: #1c1c1d;--global-footer-link-color: #000000;--global-distill-app-color: #e8e8e8;--global-divider-color: #424246;--global-card-bg-color: #212529;--global-back-to-top-bg-color: rgba( 255, 255, 255, 0.5 );--global-back-to-top-text-color: #000000;--global-newsletter-bg-color: #e8e8e8;--global-newsletter-text-color: #1c1c1d;--global-tip-block: #42b983;--global-tip-block-bg: #215d42;--global-tip-block-text: #beffe2;--global-tip-block-title: #e2f5ec;--global-warning-block: #e7c000;--global-warning-block-bg: #6b5900;--global-warning-block-text: #fff2af;--global-warning-block-title: #fff8d8;--global-danger-block: #c00;--global-danger-block-bg: #600;--global-danger-block-text: #ffb9b9;--global-danger-block-title: #ffe0e0}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&amp;display=swap">
+<link rel="stylesheet" href="../../css/tailwind.css">
+<link rel="stylesheet" href="../../css/main.css">
+<style>
+html{overflow:hidden}
+body{margin:0;padding:0;background:var(--global-bg-color);color:var(--global-text-color);font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Fira Sans","Droid Sans","Helvetica Neue",Arial,sans-serif}
+#frame-root{display:flow-root}
+details{color:var(--global-text-color);background-color:var(--global-code-bg-color);margin-top:0;padding:8px 12px;position:relative;border-radius:6px;display:block;margin-bottom:20px;overflow:auto;max-width:100%}
+details summary{color:var(--global-theme-color)}
+li{margin-bottom:1em;margin-left:0;padding-left:0}
+li:last-child{margin-bottom:0}
+ul,ol{margin:0 0 1em 0;padding-left:24px}
+details p{margin-top:.5rem;margin-bottom:.5rem}
+#frame-root > section, #frame-root > figure, #frame-root > div {margin-top:0 !important;margin-bottom:0 !important}
+</style>
+<script>(function () {
+  var root = document.documentElement, parentDoc = null;
+  try { if (window.parent && window.parent !== window) parentDoc = window.parent.document; } catch (e) {}
+  function applyTheme() {
+    var t = parentDoc ? parentDoc.documentElement.getAttribute("data-theme") : null;
+    if (t !== "dark" && t !== "light") {
+      t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    if (root.getAttribute("data-theme") !== t) root.setAttribute("data-theme", t);
+  }
+  function applyType() {
+    if (!parentDoc) return;
+    var view = parentDoc.defaultView;
+    var article = parentDoc.querySelector("d-article") || parentDoc.body;
+    var a = view.getComputedStyle(article), r = view.getComputedStyle(parentDoc.documentElement);
+    root.style.fontSize = r.fontSize;
+    root.style.fontFamily = a.fontFamily;
+    document.body.style.fontSize = a.fontSize;
+    document.body.style.lineHeight = a.lineHeight;
+    document.body.style.fontWeight = a.fontWeight;
+    document.body.style.fontFamily = a.fontFamily;
+    document.body.style.color = "var(--global-text-color)";
+  }
+  applyTheme();
+  document.addEventListener("DOMContentLoaded", function () {
+    applyType();
+    if (parentDoc) {
+      new MutationObserver(function () { applyTheme(); setTimeout(applyType, 0); })
+        .observe(parentDoc.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
+    }
+    var holder = document.getElementById("frame-root");
+    function fit() {
+      var h = Math.ceil(holder.getBoundingClientRect().height);
+      if (window.frameElement && h > 0) window.frameElement.style.height = h + "px";
+    }
+    if (window.ResizeObserver) new ResizeObserver(fit).observe(holder);
+    window.addEventListener("load", fit);
+    window.addEventListener("resize", fit);
+    fit();
+  });
+})();</script>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js@3.0.1/dist/plotly.min.js" integrity="sha256-oy6Be7Eh6eiQFs5M7oXuPxxm9qbJXEtTpfSI93dW16Q=" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="frame-root">
+<style>
+  #text-results { margin: 1.5rem 0 2rem; min-width: 0; container-type: inline-size; scroll-margin-top: 5rem; }
+  #text-results [hidden] { display: none !important; }
+  #text-results .schedule-key { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 0.5rem 1.5rem; margin-top: 1.25rem; font-size: 0.85rem; color: var(--global-text-color, #17181a); }
+  #text-results .key-row { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: start; gap: 0.5rem; }
+  #text-results .key-label { color: var(--global-text-color, #17181a); font-weight: 700; }
+  #text-results .key-items { display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; }
+  #text-results .key-item { display: inline-flex; align-items: center; gap: 0.35rem; }
+  #text-results .swatch { width: 10px; height: 10px; flex: 0 0 10px; border-radius: 2px; }
+  #text-results .metric-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
+  #text-results .chart-panel { min-width: 0; }
+  #text-results .chart-title { margin: 0 0 0.35rem; text-align: center; font-size: 1.05rem; font-weight: 700; color: var(--global-text-color, #17181a); }
+  #text-results .chart { width: 100%; height: 280px; }
+  #text-results .load-status { margin: 0.75rem 0 0; font-size: 0.8rem; color: var(--global-text-color-light, #6b7280); }
+  #text-results .load-status:empty { display: none; }
+  #text-results .retry { margin-top: 0.5rem; }
+  #text-results details { margin-top: 1.5rem; padding-top: 0.85rem; border-top: 1px solid var(--global-divider-color, #d1d5db); }
+  #text-results summary { width: fit-content; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
+  #text-results .full-table { overflow-x: auto; margin-top: 1rem; }
+  #text-results table { width: 100%; margin: 0; border-collapse: collapse; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+  #text-results th, #text-results td { padding: 0.55rem 0.65rem; text-align: left; white-space: nowrap; }
+  #text-results thead th { border-top: 3px solid currentColor; border-bottom: 3px solid currentColor !important; }
+  #text-results tbody td { border-top: 0; border-bottom: 0; }
+  #text-results .model-group-start:not(:first-child) td { border-top: 2px solid currentColor; }
+  #text-results tbody tr:last-child td { border-bottom: 2px solid currentColor !important; }
+  #text-results .metric-cell { text-align: right; }
+  #text-results summary:focus-visible, #text-results .full-table:focus-visible, #text-results .retry:focus-visible { outline: 2px solid var(--global-theme-color, #2f5d50); outline-offset: 2px; }
+  @media (max-width: 652px) { #text-results .metric-charts { grid-template-columns: minmax(0, 1fr); } }
+  @container (max-width: 620px) { #text-results .metric-charts { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+
+<section id="text-results" aria-label="TinyStories generation metric comparison" aria-busy="false">
+  <div class="interactive-metrics" hidden>
+    <div class="metric-charts">
+      <div class="chart-panel">
+        <div class="chart-title">GPT-2 Perplexity</div>
+        <div class="chart" data-metric="ppl" role="img" aria-label="GPT-2 perplexity by model, with three evaluation schedules per group; lower is better"></div>
+      </div>
+      <div class="chart-panel">
+        <div class="chart-title">MAUVE</div>
+        <div class="chart" data-metric="mauve" role="img" aria-label="MAUVE by model, with three evaluation schedules per group; higher is better"></div>
+      </div>
+    </div>
+    <div class="schedule-key" role="group" aria-label="Evaluation schedule colours"></div>
+  </div>
+  <p class="load-status" role="status"></p>
+  <button class="retry" type="button" hidden>Retry</button>
+  <details open>
+    <summary>Full results table</summary>
+    <div class="full-table" tabindex="0" role="region" aria-label="All TinyStories generation metrics">
+      <table>
+        <thead><tr><th scope="col">Model</th><th scope="col">Evaluation Schedule</th><th scope="col" class="metric-cell">GPT-2 PPL &darr;</th><th scope="col" class="metric-cell">MAUVE &uarr;</th></tr></thead>
+        <tbody>
+          
+          
+          
+          
+          
+          
+          
+          
+          <tr class="model-group-start">
+            <td>BERT-DiT</td><td>Log-linear</td>
+            <td class="metric-cell">28.30</td>
+            <td class="metric-cell"><u>0.9218</u></td>
+          </tr>
+          
+          
+          
+          
+          
+          
+          
+          
+          <tr>
+            <td>BERT-DiT</td><td>Cosine</td>
+            <td class="metric-cell"><strong>27.93</strong></td>
+            <td class="metric-cell"><strong>0.9281</strong></td>
+          </tr>
+          
+          
+          
+          
+          
+          
+          
+          
+          <tr>
+            <td>BERT-DiT</td><td>Cosine (DUO)</td>
+            <td class="metric-cell"><u>28.03</u></td>
+            <td class="metric-cell">0.9202</td>
+          </tr>
+          
+          
+          
+          
+          
+          
+          
+          
+          <tr class="model-group-start">
+            <td>DDiT</td><td>Log-linear</td>
+            <td class="metric-cell"><u>26.82</u></td>
+            <td class="metric-cell"><strong>0.9407</strong></td>
+          </tr>
+          
+          
+          
+          
+          
+          
+          
+          
+          <tr>
+            <td>DDiT</td><td>Cosine</td>
+            <td class="metric-cell"><strong>26.79</strong></td>
+            <td class="metric-cell">0.9254</td>
+          </tr>
+          
+          
+          
+          
+          
+          
+          
+          
+          <tr>
+            <td>DDiT</td><td>Cosine (DUO)</td>
+            <td class="metric-cell">27.71</td>
+            <td class="metric-cell"><u>0.9338</u></td>
+          </tr>
+          
+          
+        </tbody>
+      </table>
+    </div>
+  </details>
+  <script type="application/json" class="metrics-data">[{"model":"BERT-DiT","schedule":"Log-linear","sampler":"MDM","ppl":"28.30","mauve":"0.9218"},{"model":"BERT-DiT","schedule":"Cosine","sampler":"MDM","ppl":"27.93","mauve":"0.9281"},{"model":"BERT-DiT","schedule":"Cosine (DUO)","sampler":"MDM","ppl":"28.03","mauve":"0.9202"},{"model":"DDiT","schedule":"Log-linear","sampler":"MDM","ppl":"26.82","mauve":"0.9407"},{"model":"DDiT","schedule":"Cosine","sampler":"MDM","ppl":"26.79","mauve":"0.9254"},{"model":"DDiT","schedule":"Cosine (DUO)","sampler":"MDM","ppl":"27.71","mauve":"0.9338"}]</script>
+</section>
+
+<script>
+  (() => {
+    const root = document.getElementById("text-results");
+    const results = JSON.parse(root.querySelector(".metrics-data").textContent);
+    const interactive = root.querySelector(".interactive-metrics");
+    const charts = Array.from(root.querySelectorAll(".chart"));
+    const status = root.querySelector(".load-status");
+    const retry = root.querySelector(".retry");
+    const details = root.querySelector("details");
+    const schedules = ["Log-linear", "Cosine", "Cosine (DUO)"];
+    const colors = { "Log-linear": "#e69f00", Cosine: "#a855f7", "Cosine (DUO)": "#0f9e9e" };
+    const models = [...new Set(results.map((row) => row.model))];
+    let renderQueue = Promise.resolve();
+    let observersReady = false;
+
+    const legend = root.querySelector(".schedule-key");
+    const row = document.createElement("div");
+    row.className = "key-row";
+    const label = document.createElement("span");
+    label.className = "key-label";
+    label.textContent = "Evaluation Schedule:";
+    const items = document.createElement("div");
+    items.className = "key-items";
+    schedules.forEach((schedule) => {
+      const item = document.createElement("span");
+      item.className = "key-item";
+      const swatch = document.createElement("span");
+      swatch.className = "swatch";
+      swatch.style.backgroundColor = colors[schedule];
+      swatch.setAttribute("aria-hidden", "true");
+      item.append(swatch, schedule);
+      items.appendChild(item);
+    });
+    row.append(label, items);
+    legend.appendChild(row);
+
+    function render() {
+      const job = renderQueue.then(async () => {
+        const style = getComputedStyle(root);
+        const color = style.getPropertyValue("--global-text-color").trim() || "#17181a";
+        const grid = style.getPropertyValue("--global-divider-color").trim() || "#d1d5db";
+        const background = style.getPropertyValue("--global-bg-color").trim() || "#fff";
+        for (const chart of charts) {
+          const metric = chart.dataset.metric;
+          const metricLabel = metric === "ppl" ? "GPT-2 PPL" : "MAUVE";
+          const precision = metric === "ppl" ? 2 : 4;
+          const traces = schedules.map((schedule) => {
+            const rows = models.map((model) => results.find((result) => result.model === model && result.schedule === schedule));
+            return {
+              type: "bar", name: schedule, x: models.map((_, index) => index), y: rows.map((result) => Number(result[metric])),
+              marker: { color: colors[schedule] },
+              customdata: rows.map((result) => [result.model, result.schedule]),
+              hovertemplate: "%{y}<extra></extra>",
+            };
+          });
+          const size = chart.getBoundingClientRect();
+          const maximum = Math.max(...results.map((result) => Number(result[metric])));
+          await Plotly.react(chart, traces, {
+            width: Math.round(size.width), height: Math.round(size.height), margin: { l: 50, r: 6, t: 8, b: 52 },
+            font: { family: style.fontFamily, size: 11, color },
+            paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
+            barmode: "group", bargap: 0.25, bargroupgap: 0.08, showlegend: false, hovermode: "closest", dragmode: false,
+            hoverlabel: { bgcolor: background, bordercolor: grid, font: { size: 13, color } },
+            xaxis: {
+              range: [-0.5, models.length - 0.5], tickvals: models.map((_, index) => index), ticktext: models,
+              fixedrange: true, showgrid: false, zeroline: false, tickangle: 0, tickfont: { size: 11 }, automargin: true,
+              title: { text: "Model", standoff: 10, font: { size: 11 } },
+            },
+            yaxis: {
+              range: [0, metric === "mauve" ? 1 : maximum * 1.12], fixedrange: true, gridcolor: grid, zerolinecolor: grid, nticks: 5, automargin: true,
+              title: { text: metric === "ppl" ? "GPT-2 perplexity (PPL) \u2193" : "MAUVE \u2191", standoff: 8, font: { size: 11 } },
+            },
+          }, { displayModeBar: false, displaylogo: false, scrollZoom: false });
+        }
+      });
+      renderQueue = job.catch(() => {});
+      return job;
+    }
+
+    function fail() {
+      root.setAttribute("aria-busy", "false");
+      interactive.hidden = true;
+      details.open = true;
+      status.textContent = "Charts unavailable. Full results are shown in the table below.";
+      retry.hidden = false;
+    }
+
+    async function ensurePlotly() {
+      if (window.Plotly) return;
+      const library = document.querySelector('script[src*="plotly.js@"]');
+      if (!library) throw new Error("Plotly is unavailable");
+      await new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = library.src;
+        script.integrity = library.integrity;
+        script.crossOrigin = library.crossOrigin;
+        script.async = true;
+        script.addEventListener("load", resolve, { once: true });
+        script.addEventListener("error", reject, { once: true });
+        document.head.appendChild(script);
+      });
+    }
+
+    async function initialize() {
+      retry.hidden = true;
+      root.setAttribute("aria-busy", "true");
+      status.textContent = "Loading charts...";
+      try {
+        await ensurePlotly();
+        interactive.hidden = false;
+        await render();
+        root.setAttribute("aria-busy", "false");
+        status.textContent = "";
+        details.open = false;
+        if (observersReady) return;
+        const resizeObserver = new ResizeObserver((entries) => {
+          entries.forEach(({ target, contentRect }) => {
+            const width = Math.round(contentRect.width);
+            const height = Math.round(contentRect.height);
+            if (target.layout && width > 0 && height > 0 && (target.layout.width !== width || target.layout.height !== height)) {
+              Plotly.relayout(target, { width, height }).catch(fail);
+            }
+          });
+        });
+        charts.forEach((chart) => resizeObserver.observe(chart));
+        new MutationObserver(() => render().catch(fail)).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
+        observersReady = true;
+      } catch (error) {
+        fail();
+      }
+    }
+
+    retry.addEventListener("click", initialize);
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialize, { once: true });
+    else initialize();
+  })();
+</script>
+
+
+</div>
+</body>
+</html>
