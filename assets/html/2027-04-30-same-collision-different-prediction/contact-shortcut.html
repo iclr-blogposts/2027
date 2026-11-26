@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Can the lamp predict motion?</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f7f8f5;
+      --ink: #1d2824;
+      --muted: #4b5852;
+      --line: #c9d3cc;
+      --contact: #075d48;
+      --contact-bg: #e2f0e9;
+      --lamp: #744509;
+      --lamp-bg: #f8ecd4;
+      font-family: system-ui, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #17221e;
+        --ink: #edf6f0;
+        --muted: #c0d0c6;
+        --line: #52665b;
+        --contact: #a5edd0;
+        --contact-bg: #203c33;
+        --lamp: #ffd998;
+        --lamp-bg: #49381f;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; background: transparent; color: var(--ink); }
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: clamp(14px, 4vw, 28px);
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.25rem, 4vw, 1.65rem);
+      font-weight: 670;
+      line-height: 1.2;
+    }
+    p { margin: 0.55rem 0 0; line-height: 1.5; }
+    .setup, .source { color: var(--muted); font-size: 0.875rem; }
+    fieldset { margin: 1rem 0 0; border: 0; padding: 0; min-inline-size: 0; }
+    legend { font-weight: 620; margin-bottom: 0.45rem; }
+    .choice {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.5rem 0.65rem;
+      margin: 0 0.35rem 0.35rem 0;
+      gap: 0.4rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    input { margin: 0; accent-color: var(--contact); }
+    .choice:has(:checked) { border-color: var(--contact); background: var(--contact-bg); }
+    .choice:has(:focus-visible) { outline: 2px solid var(--contact); outline-offset: 2px; }
+
+    .dataset { display: none; }
+    fieldset:has(#coupled:checked) #coupled-results,
+    fieldset:has(#independent:checked) #independent-results { display: block; }
+    table { width: 100%; margin-top: 0.55rem; border-collapse: collapse; }
+    caption {
+      color: var(--muted);
+      font-size: 0.875rem;
+      text-align: left;
+      padding-bottom: 0.35rem;
+    }
+    th, td {
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      padding: 0.45rem 0.25rem;
+      font-size: 0.875rem;
+    }
+    th { font-weight: 650; }
+    .scores {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+      margin: 0.8rem 0 0;
+    }
+    .scores div { padding: 0.55rem 0.65rem; border-radius: 6px; }
+    .scores dt { font-size: 0.875rem; font-weight: 650; }
+    .scores dd { margin: 0.1rem 0 0; font-variant-numeric: tabular-nums; }
+    .contact { color: var(--contact); background: var(--contact-bg); }
+    .lamp { color: var(--lamp); background: var(--lamp-bg); }
+
+    @media (max-width: 440px) {
+      main { padding: 12px; }
+      fieldset { margin-top: 0.65rem; }
+      .choice { padding: 0.35rem 0.45rem; }
+      th, td { padding-block: 0.3rem; }
+      .scores { margin-top: 0.6rem; }
+      .scores div { padding: 0.45rem; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Can the lamp predict motion?</h1>
+    <p class="setup">Predict whether a hidden puck moves. Contact with a second object makes it move. The lamp is visible and has no effect on the puck.</p>
+
+    <fieldset>
+      <legend>Choose a dataset</legend>
+      <label class="choice"><input type="radio" name="dataset" id="coupled" checked> Lamp follows contact</label>
+      <label class="choice"><input type="radio" name="dataset" id="independent"> Lamp varies independently</label>
+
+      <section class="dataset" id="coupled-results" aria-label="Results when the lamp follows contact">
+        <table>
+          <caption>Four equally weighted trials</caption>
+          <thead>
+            <tr><th scope="col">Trial</th><th scope="col">Contact</th><th scope="col">Lamp</th><th scope="col">Puck moves</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">1</th><td>No</td><td>Off</td><td>No</td></tr>
+            <tr><th scope="row">2</th><td>No</td><td>Off</td><td>No</td></tr>
+            <tr><th scope="row">3</th><td>Yes</td><td>On</td><td>Yes</td></tr>
+            <tr><th scope="row">4</th><td>Yes</td><td>On</td><td>Yes</td></tr>
+          </tbody>
+        </table>
+        <dl class="scores">
+          <div class="contact"><dt>Predict from contact</dt><dd>4 of 4 correct</dd></div>
+          <div class="lamp"><dt>Predict from lamp</dt><dd>4 of 4 correct</dd></div>
+        </dl>
+      </section>
+
+      <section class="dataset" id="independent-results" aria-label="Results when the lamp varies independently">
+        <table>
+          <caption>Four equally weighted trials</caption>
+          <thead>
+            <tr><th scope="col">Trial</th><th scope="col">Contact</th><th scope="col">Lamp</th><th scope="col">Puck moves</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">1</th><td>No</td><td>Off</td><td>No</td></tr>
+            <tr><th scope="row">2</th><td>No</td><td>On</td><td>No</td></tr>
+            <tr><th scope="row">3</th><td>Yes</td><td>Off</td><td>Yes</td></tr>
+            <tr><th scope="row">4</th><td>Yes</td><td>On</td><td>Yes</td></tr>
+          </tbody>
+        </table>
+        <dl class="scores">
+          <div class="contact"><dt>Predict from contact</dt><dd>4 of 4 correct</dd></div>
+          <div class="lamp"><dt>Predict from lamp</dt><dd>2 of 4 correct</dd></div>
+        </dl>
+      </section>
+    </fieldset>
+
+    <p class="source">Illustrative example with deterministic rules.</p>
+  </main>
+</body>
+</html>
