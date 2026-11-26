@@ -48,7 +48,7 @@ $$\mathbf{S}_t = \mathbf{S}_{t-1} \mathbf{A}_t + \beta_t \mathbf{v}_t \mathbf{k}
 
 *(Note: Depending on whether the transition matrix acts on the left $$\mathbf{A}_t \mathbf{S}_{t-1}$$ or right $$\mathbf{S}_{t-1} \mathbf{A}_t$$, it modulates either value channels $$d_v$$ or key channels $$d_k$$. Right-multiplication $$\mathbf{S}_{t-1}\mathbf{A}_t$$ acts directly in key space $$\mathbb{R}^{d_k \times d_k}$$, which is where key-collision erasure happens.)*
 
-| Architecture | Key-Space Transition $$\mathbf{A}_t \in \mathbb{R}^{d_k \times d_k}$$ | Write Gate $$\beta_t$$ | Chunkwise Tensor-Core Form? |
+| Architecture | Key-Space Transition $$\mathbf{A}_t \in \mathbb{R}^{d_k \times d_k}$$ | Write coefficient $\beta_t$ | Chunkwise Tensor-Core Form? |
 | :--- | :--- | :--- | :--- |
 | **Unnormalized linear attention** <d-cite key="katharopoulos2020"></d-cite> | $$\mathbf{I}_{d_k}$$ (No forgetting) | $$1$$ | Yes ($$\mathbf{Q}\mathbf{K}^\top$$ causal mask) |
 | **Scalar retention (illustrative)** | $$\gamma \mathbf{I}_{d_k}$$ (Static scalar decay) | $$1$$ | Yes (Static Toeplitz mask) |
@@ -68,13 +68,13 @@ Taking the gradient with respect to $$\mathbf{S}$$ gives $$\nabla_{\mathbf{S}} \
 
 $$\begin{aligned} \mathbf{S}_t &= \mathbf{S}_{t-1} - \eta_t \nabla_{\mathbf{S}} \mathcal{L}_t(\mathbf{S}_{t-1}) \\ &= \mathbf{S}_{t-1} - \eta_t \big(\mathbf{S}_{t-1}\mathbf{k}_t - \mathbf{v}_t\big)\mathbf{k}_t^\top \\ &= \mathbf{S}_{t-1}\big(\mathbf{I}_{d_k} - \eta_t \mathbf{k}_t \mathbf{k}_t^\top\big) + \eta_t \mathbf{v}_t \mathbf{k}_t^\top \end{aligned}$$
 
-For normalized positive-feature kernel attention, an additional state $z_t=\sum_{s\leq t}\phi(k_s)$ is needed, with output $o_t=S_t\phi(q_t)/(z_t^\top\phi(q_t))$ when the denominator is nonzero. Here the memory-state keys are the feature-mapped vectors, not necessarily raw keys.
+For normalized positive-feature kernel attention, an additional state $$z_t=\sum_{s\leq t}\phi(k_s)$$ is needed, with output $$o_t=S_t\phi(q_t)/(z_t^\top\phi(q_t))$$ when the denominator is nonzero. Here the memory-state keys are the feature-mapped vectors, not necessarily raw keys.
 
 <!-- Author: distinguish full Mamba-2 and TTT layers from the simplified recurrences, and explain the relationship in your own words. -->
 
 ## Structured state-space duality
 
-Why does restricting $$\mathbf{A}_t$$ to a scalar $$\alpha_t \in (0, 1]$$ permit a structured dual formulation? Unroll the recurrence $$\mathbf{S}_t = \alpha_t \mathbf{S}_{t-1} + \beta_t \mathbf{v}_t \mathbf{k}_t^\top$$ from $$s = 1$$ to $$t$$ with zero initial state:
+Why does restricting $$\mathbf{A}_t$$ to a scalar multiple of the identity $\alpha_t I$, with $\alpha_t \in (0, 1]$ permit a structured dual formulation? Unroll the recurrence $$\mathbf{S}_t = \alpha_t \mathbf{S}_{t-1} + \beta_t \mathbf{v}_t \mathbf{k}_t^\top$$ from $$s = 1$$ to $$t$$ with zero initial state:
 
 $$\mathbf{S}_t = \sum_{s=1}^{t} \left( \prod_{r=s+1}^{t} \alpha_r \right) \beta_s \mathbf{v}_s \mathbf{k}_s^\top$$
 
@@ -98,7 +98,7 @@ $$L_{t,s} = \left(\prod_{r=m+1}^t \alpha_r\right) \cdot \left(\prod_{r=s+1}^m \a
 
 <d-cite key="dao2024"></d-cite>
 
-For nonzero initial state, add $c_t S_0q_t$ to the readout, where $c_t=\prod_{r=1}^{t}\alpha_r$. Materializing the full $T\times T$ matrix would still be quadratic in sequence length; the semiseparable structure is useful because the off-diagonal blocks can be handled using boundary states.
+For nonzero initial state, add $$c_t S_0q_t$$ to the readout, where $$c_t=\prod_{r=1}^{t}\alpha_r$$. Materializing the full $$T\times T$$ matrix would still be quadratic in sequence length; the semiseparable structure is useful because the off-diagonal blocks can be handled using boundary states.
 
 <!-- Author: provide your own discussion of chunk size, memory traffic and dense matrix multiplication. -->
 
@@ -111,7 +111,7 @@ $$\mathbf{o}_T = \mathbf{S}_T \mathbf{k}_{s^*} = \underbrace{\gamma_{T, s^*} \|\
 
 This separates the desired signal from interference.
 
-For independent random unit keys, the off-target dot products have mean zero and variance exactly $1/d_k$ under the uniform spherical distribution. If the values and keys are independent and the values have unit norm, the expected squared cross-talk norm for the unweighted additive rule (unit write and retention gates) is $$(M-1)/d_k$$. This is a mean-square statement under the stated random-key assumptions, not a universal accuracy bound.
+For independent random unit keys, the off-target dot products have mean zero and variance exactly $$1/d_k$$ under the uniform spherical distribution. If the values and keys are independent and the values have unit norm, the expected squared cross-talk norm for the unweighted additive rule (unit write and retention gates) is $$(M-1)/d_k$$. This is a mean-square statement under the stated random-key assumptions, not a universal accuracy bound.
 
 Exact representability of a set of key-value bindings requires $$SK=V$$, where the columns of $$K$$ and $$V$$ are keys and target values. A linear solution exists if and only if $$\ker K\subseteq\ker V$$. 
 
@@ -140,13 +140,17 @@ $$
 
 <d-cite key="yang2025gated"></d-cite>
 
+<div class="l-page">
+  <iframe title="Exact two-key directional interference counterexample" src="{{ 'assets/html/2027-04-30-duality-of-sequence-models/two-key-geometry.html' | relative_url }}" frameborder="0" height="610px" width="100%" loading="lazy"></iframe>
+</div>
+
 <!-- Author: explain overlap-induced interference and distinguish exact overwrite from aggregate retrieval. -->
 
 ## Chunkwise parallelization
 
 At first glance, DeltaNet's non-diagonal transition matrix $$\mathbf{A}_t = \alpha_t(\mathbf{I} - \beta_t \mathbf{k}_t \mathbf{k}_t^\top)$$ requires care in parallel training: unlike Mamba-2's scalar $$\alpha_t$$, rank-one transition factors **generally do not commute** ($$\mathbf{A}_2 \mathbf{A}_1 \neq \mathbf{A}_1 \mathbf{A}_2$$).
 
-A useful factorization is the WY representation. Over a chunk of $$B$$ tokens with keys $$\mathbf{K}_{[b]} \in \mathbb{R}^{B \times d_k}$$ and write gates $$\boldsymbol{\beta}_{[b]} \in \mathbb{R}^B$$, the product of $$B$$ sequential rank-one transition factors can be factored into a single update of rank at most $B$:
+A useful factorization is the WY representation. Over a chunk of $$B$$ tokens with keys $$\mathbf{K}_{[b]} \in \mathbb{R}^{B \times d_k}$$ and write gates $$\boldsymbol{\beta}_{[b]} \in \mathbb{R}^B$$, the product of $$B$$ sequential rank-one transition factors can be factored into a single update of rank at most $$B$$:
 
 $$\prod_{r=1}^{B} \big(\mathbf{I}_{d_k} - \beta_r \mathbf{k}_r \mathbf{k}_r^\top\big) = \mathbf{I}_{d_k} - \mathbf{K}_{[b]}^\top \mathbf{T}_{[b]} \mathbf{K}_{[b]}$$
 
@@ -218,7 +222,7 @@ Total: 36 conditions, 1,152 independent episodes and 4,608 episode-rule evaluati
 | Delta step sizes | 0.25, 0.50, 1.00, 1.50 |
 | Additive write step | 1.00 |
 
-Each key is sampled by normalizing $\sqrt{1-\rho}\epsilon_i+\sqrt{\rho}u$, where $u$ is shared within an episode and $\epsilon_i$ is independent standard Gaussian noise. There are nine paired conditions, 576 independent episodes and 8,640 episode-configuration evaluations. The observed average pairwise cosine in the nine conditions is displayed in the figure.
+Each key is sampled by normalizing $$\sqrt{1-\rho}\epsilon_i+\sqrt{\rho}u$$, where $$u$$ is shared within an episode and $$\epsilon_i$$ is independent standard Gaussian noise. There are nine paired conditions, 576 independent episodes and 8,640 episode-configuration evaluations. The observed average pairwise cosine in the nine conditions is displayed in the figure.
 
 <div class="l-page">
   <iframe title="Measured gate sensitivity and key correlation" src="{{ 'assets/html/2027-04-30-duality-of-sequence-models/gate-sensitivity.html' | relative_url }}" frameborder="0" height="650px" width="100%" loading="lazy"></iframe>
@@ -318,7 +322,9 @@ def episode_scores(d, m, fraction, alpha, beta, delta, rho=None):
 # Sensitivity: d=32, m=64, rho in (0,.25,.65),
 # fraction in (0,.25,.75), alpha in (.9,.98,1),
 # additive beta=1 or delta beta in (.25,.5,1,1.5).
-print(episode_scores(32,64,.75,1,.25,True,rho=0))
+mean, se = episode_scores(32,64,.75,1,.25,True,rho=0)
+np.testing.assert_allclose(mean, 0.63330078125, atol=1e-12)
+print(mean, se)
 ```
 
 ## Limitations and next steps
