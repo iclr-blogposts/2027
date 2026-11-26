@@ -97,9 +97,9 @@ $$
 
 <d-cite key="kocsis2006,wang2023"></d-cite>
 
-$
+$$
 a^*=\arg\max_a\left[\widehat Q(s,a)+c\sqrt{\frac{\log N(s)}{N(s,a)}}\right].
-$
+$$
 
 <div class="l-page">
   <iframe title="Executed finite-tree UCT, beam and sampling comparison" src="{{ 'assets/html/2027-04-30-calculus-of-inference-time-scaling/uct-search.html' | relative_url }}" frameborder="0" height="800px" width="100%" loading="lazy"></iframe>
