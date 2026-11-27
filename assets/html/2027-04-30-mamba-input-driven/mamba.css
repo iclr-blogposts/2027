@@ -1,0 +1,288 @@
+/* Styles of the post page. Each interactive figure is a self-contained HTML file in this directory, shown in an
+   iframe inside a figure card (.fig); the figure files carry their own styles. */
+:root {
+  --paper: var(--global-bg-color, #eef1f4);
+  --panel: #fafbfc;
+  --ink: #1a2430;
+  --muted: #586675;
+  --rule: #bfc9d3;
+  --real: #2767ad;
+  --cplx: #cc6608;
+  --faint: #a7b3bf;
+  --k0: #0f8275;
+  --k1: #a87200;
+  --k2: #be3a78;
+}
+:root[data-theme="dark"] {
+  --paper: var(--global-bg-color, #11171e);
+  --panel: #172029;
+  --ink: #e1e7ed;
+  --muted: #93a1af;
+  --rule: #33404d;
+  --real: #74aae4;
+  --cplx: #f2a04e;
+  --faint: #4e5b68;
+  --k0: #4fc6b6;
+  --k1: #e6b64c;
+  --k2: #ef7bae;
+}
+/* Prose uses Distill's typography; figures (.fig) keep their own look and span the l-page column. */
+d-article .fig.l-page,
+d-article .fig.l-body {
+  margin: 32px 0;
+}
+d-article .fig a {
+  border-bottom: none;
+}
+/* Display equations are bare $$ blocks in the post, so MathJax's container is styled directly. */
+d-article mjx-container[display="true"] {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.6em 0;
+  margin: 18px 0 20px !important;
+}
+d-article .fig {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 18px;
+  font-family: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  font-size: 15px;
+  line-height: 1.4;
+}
+d-article .fig-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 0 0 4px;
+}
+d-article .fig-sub {
+  color: var(--muted);
+  margin: 0 0 14px;
+  font-size: 0.95rem;
+}
+/* The figure sets the height of its own iframe once it has loaded; the inline height is only the first guess. */
+d-article .fig iframe.fig-frame {
+  display: block;
+  width: 100%;
+  border: 0;
+  margin: 0;
+  overflow: hidden;
+}
+d-article .compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin: 24px 0;
+}
+d-article .compare > div {
+  border-left: 3px solid;
+  padding: 2px 0 2px 14px;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+d-article .compare p {
+  margin: 0;
+}
+d-article .compare .r {
+  border-color: var(--real);
+}
+d-article .compare .c {
+  border-color: var(--cplx);
+}
+d-article .compare h4 {
+  margin: 0 0 4px;
+  font-family: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+}
+d-article .compare .r h4 {
+  color: var(--real);
+}
+d-article .compare .c h4 {
+  color: var(--cplx);
+}
+d-article svg.arch {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 8px 0 24px;
+  font-family: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+}
+d-article svg.arch .lb {
+  font-size: 14px;
+  fill: var(--ink);
+}
+d-article svg.arch .bt {
+  font-size: 14px;
+  font-weight: 600;
+  fill: var(--ink);
+}
+d-article svg.arch .bs {
+  font-size: 12.5px;
+  fill: var(--muted);
+}
+d-article svg.arch .bx {
+  fill: var(--panel);
+  stroke: var(--rule);
+  stroke-width: 1.5;
+}
+d-article svg.arch .bx.c {
+  stroke: var(--cplx);
+}
+d-article svg.arch .ln {
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  fill: none;
+}
+d-article svg.arch .rs {
+  stroke: var(--faint);
+  stroke-width: 4;
+}
+d-article svg.arch .ahf {
+  fill: var(--muted);
+}
+d-article svg.arch .bx.dash {
+  stroke-dasharray: 5 4;
+  fill: transparent;
+}
+d-article svg.arch .sc {
+  font-size: 12px;
+  fill: var(--cplx);
+  font-weight: 600;
+}
+d-article svg.arch9 .lb,
+d-article svg.arch9 .bt {
+  font-size: 18px;
+}
+d-article svg.arch9 .bs {
+  font-size: 16px;
+}
+d-article svg.arch17 {
+  margin: 4px 0 0;
+}
+d-article .keychip {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: 0;
+}
+d-article ul.rules {
+  margin: 0 0 18px;
+  padding-left: 1.2em;
+}
+d-article ul.rules li {
+  margin-bottom: 4px;
+}
+d-article details.aside {
+  border-left: 3px solid var(--rule);
+  padding: 2px 0 2px 14px;
+  margin: -6px 0 20px;
+  font-size: 0.96rem;
+}
+d-article details.aside > summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-family: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  font-size: 0.92rem;
+  list-style-position: outside;
+}
+d-article details.aside > summary:hover {
+  color: var(--ink);
+}
+d-article details.aside[open] > summary {
+  margin-bottom: 6px;
+}
+d-article details.aside p:last-child {
+  margin-bottom: 4px;
+}
+/* Static snapshot of each figure (made by snapshots.py in the figure sources), shown only when printing. */
+d-article .fig img.fig-print {
+  display: none;
+}
+/* Print: the iframes cannot break across pages and print whatever state they are in, so each figure is replaced
+   by its snapshot and kept on one page with its title and caption. Site chrome is dropped. Print from the
+   light theme: the snapshots are light, and the page itself prints in whatever theme the reader has on. */
+@page {
+  size: A4;
+  margin: 16mm 14mm;
+}
+@media print {
+  #navbar,
+  header,
+  footer,
+  #back-to-top,
+  ninja-keys,
+  .progress,
+  d-appendix ~ d-article {
+    /* the last one is the "Enjoy Reading This Article?" list of other posts */
+    display: none !important;
+  }
+  body {
+    padding-top: 0 !important;
+  }
+  /* Distill's desktop grid leaves the text a narrow column on paper; use its one-column (mobile) grid instead. */
+  d-title,
+  d-byline,
+  d-article,
+  d-appendix,
+  d-footnote-list,
+  d-citation-list {
+    grid-template-columns:
+      [screen-start] 0 [page-start kicker-start text-start gutter-start middle-start] 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr
+      [text-end page-end gutter-end kicker-end middle-end] 0 [screen-end] !important;
+    column-gap: 0 !important;
+  }
+  d-article d-contents {
+    grid-column: text !important;
+    grid-row: auto !important;
+    justify-self: stretch !important;
+    width: auto !important;
+    margin: 0 0 1.5em !important;
+    padding: 0.5em 1em !important;
+    border: 1px solid var(--rule) !important;
+  }
+  d-article .fig {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin: 18px 0;
+    padding: 12px;
+  }
+  d-article .fig iframe.fig-frame {
+    display: none;
+  }
+  d-article .fig img.fig-print {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 225mm;
+    object-fit: contain;
+  }
+  d-article .fig:has(img.fig-print) .fig-title::after {
+    content: " (static snapshot of an interactive figure)";
+    font-weight: 400;
+    color: var(--muted);
+  }
+  d-article h2,
+  d-article h3,
+  d-article h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  d-article mjx-container[display="true"],
+  d-article .compare > div,
+  d-article svg.arch {
+    break-inside: avoid;
+  }
+}
+@media (max-width: 820px) {
+  d-article .compare {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 480px) {
+  d-article .fig {
+    padding: 12px;
+  }
+}
