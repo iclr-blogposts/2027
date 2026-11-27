@@ -176,7 +176,7 @@ ninja.data = [{
         
           title: "Do Rubrics Expand What RL Can Learn?",
         
-        description: "We compare rubric-based reinforcement learning with supervised and on-policy distillation on four mathematical reasoning benchmarks. Across sampling budgets, the results depend on the benchmark, the model that generates and judges the rubrics, and the form of supervision.",
+        description: "In reinforcement learning, reward signals not only tell a model whether its response is correct but also shape what it can learn from feedback. By evaluating responses against explicit criteria, rubrics provide more fine-grained feedback than conventional outcome-based rewards. This raises a natural question: can rubric-based rewards push the reasoning capabilities of a model beyond those of its base model, rather than simply increasing the likelihood of generating solutions it can already produce? In this blog post, we explore this question across four mathematical reasoning benchmarks, examining pass@k under different sampling budgets to understand how reasoning capability boundaries evolve. We further investigate the roles of rubric generation models, judge models, and reward design, and compare rubric-based reinforcement learning with supervised fine-tuning distillation and on-policy distillation. Through these experiments, we aim to better understand whether, and under what conditions, rubric-based rewards can expand a model’s reasoning capabilities.",
         section: "Posts",
         handler: () => {
           
