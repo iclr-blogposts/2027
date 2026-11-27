@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Guess a car’s speed</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --fg: #1b1d22;
+        --dim: #555c69;
+        --line: #c8ccd3;
+        --road: #e4e6ea;
+        --mark: #8c939d;
+        --field: #fff;
+        --focus: #1c6ed0;
+      }
+      :root[data-fig-theme="dark"] {
+        color-scheme: dark;
+        --fg: #e7e9ee;
+        --dim: #adb3bf;
+        --line: #3a3f4b;
+        --road: #272b34;
+        --mark: #727986;
+        --field: #1e2128;
+        --focus: #5ab0ff;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--fg);
+        font: 16px/1.35 Inter, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        font-variant-numeric: tabular-nums;
+      }
+      main { max-width: 620px; margin: auto; padding: 3px; }
+      .road { overflow: hidden; background: var(--road); border: 1px solid var(--line); border-radius: 8px; }
+      .lane {
+        display: grid;
+        grid-template-columns: 6.4em minmax(0, 1fr);
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+      }
+      .lane + .lane { border-top: 2px dashed var(--mark); }
+      .lane strong, .lane small { display: block; }
+      .lane small { font-size: 13px; color: var(--dim); }
+      .cars { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); justify-items: center; gap: 3px; }
+      .car {
+        position: relative;
+        width: 100%;
+        max-width: 33px;
+        aspect-ratio: 2 / 1;
+        border-radius: 25% / 35%;
+        background: var(--paint);
+        border: 1px solid #3a3f4b;
+      }
+      .car::after {
+        content: "";
+        position: absolute;
+        inset: 15% 19%;
+        border-inline: max(2px, 0.18em) solid #36485b;
+        border-radius: 22%;
+      }
+      .fast { --paint: #f2b134; }
+      .slow { --paint: #5ab0ff; }
+      .slow .car:first-child { grid-column: 3; }
+      .slow .car:last-child { grid-column: 7; }
+      .average { margin: 8px 0 10px; text-align: center; color: var(--dim); }
+      .average strong { margin-left: 0.3em; color: var(--fg); }
+      table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+      th, td { padding: 4px 8px; text-align: center; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+      thead th:first-child { width: 26%; }
+      thead th:nth-child(2) { width: 35%; }
+      thead th { font-size: 14px; color: var(--dim); }
+      tbody th { font-weight: 400; }
+      tbody tr:last-child > * { border-bottom: 0; }
+      input {
+        width: 4.5em;
+        min-height: 36px;
+        padding: 3px;
+        border: 1px solid var(--mark);
+        border-radius: 4px;
+        background: var(--field);
+        color: var(--fg);
+        font: inherit;
+        text-align: center;
+      }
+      input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+      .sr-only { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; white-space: nowrap; }
+      @media (max-width: 390px) {
+        .lane { grid-template-columns: 5.2em minmax(0, 1fr); padding-inline: 7px; }
+        th, td { padding-inline: 2px; }
+        input { width: 3.7em; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="road">
+        <div class="lane fast">
+          <div><strong>8 cars</strong><small>100 km/h</small></div>
+          <div class="cars" aria-hidden="true">
+            <i class="car"></i><i class="car"></i><i class="car"></i><i class="car"></i>
+            <i class="car"></i><i class="car"></i><i class="car"></i><i class="car"></i>
+          </div>
+        </div>
+        <div class="lane slow">
+          <div><strong>2 cars</strong><small>50 km/h</small></div>
+          <div class="cars" aria-hidden="true"><i class="car"></i><i class="car"></i></div>
+        </div>
+      </div>
+      <p class="average">Average speed here <strong>90 km/h</strong></p>
+      <table aria-label="Two ways to score each speed guess">
+        <thead>
+          <tr>
+            <th scope="col">Guess (km/h)</th>
+            <th scope="col" aria-label="Against the average: squared error against the local average speed">Against the average</th>
+            <th scope="col" aria-label="Against individual cars: average squared error across all ten cars">Against individual cars</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">100</th><td>100</td><td>500</td></tr>
+          <tr>
+            <th scope="row"><input type="number" inputmode="decimal" min="0" step="any" aria-label="First guess in km/h"></th>
+            <td>—</td><td>—</td>
+          </tr>
+          <tr>
+            <th scope="row"><input type="number" inputmode="decimal" min="0" step="any" aria-label="Second guess in km/h"></th>
+            <td>—</td><td>—</td>
+          </tr>
+          <tr>
+            <th scope="row"><input type="number" inputmode="decimal" min="0" step="any" aria-label="Third guess in km/h"></th>
+            <td>—</td><td>—</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="sr-only" role="status" id="score-status"></div>
+    </main>
+    <script>
+      const systemTheme = matchMedia("(prefers-color-scheme: dark)");
+      const query = new URLSearchParams(location.search);
+      let parentRoot;
+      try {
+        if (parent !== window) parentRoot = parent.document.documentElement;
+      } catch { /* Cross-origin embeds use the browser's theme. */ }
+      function updateTheme() {
+        const candidates = [
+          query.get("theme"),
+          query.has("light") || query.has("print-pdf") ? "light" : null,
+          parentRoot?.dataset.theme,
+          parentRoot?.dataset.themeSetting,
+          systemTheme.matches ? "dark" : "light",
+        ];
+        document.documentElement.dataset.figTheme = candidates.find(value => value === "dark" || value === "light");
+      }
+      updateTheme();
+      systemTheme.addEventListener("change", updateTheme);
+      if (parentRoot) new MutationObserver(updateTheme).observe(parentRoot, { attributes: true, attributeFilter: ["data-theme", "data-theme-setting"] });
+
+      function formatScore(score) {
+        const rounded = Number(score.toFixed(2));
+        return (rounded === score ? "" : "≈ ") + rounded;
+      }
+      const status = document.getElementById("score-status");
+      document.querySelector("tbody").addEventListener("input", event => {
+        const guess = event.target;
+        const [, averageCell, carsCell] = guess.closest("tr").cells;
+        const speed = guess.valueAsNumber;
+        const againstAverage = (speed - 90) ** 2;
+        const againstCars = (8 * (speed - 100) ** 2 + 2 * (speed - 50) ** 2) / 10;
+        const invalid = !guess.validity.valid || (guess.value !== "" && !Number.isFinite(againstCars));
+        guess.setAttribute("aria-invalid", String(invalid));
+        if (invalid || guess.value === "") {
+          averageCell.textContent = invalid ? "Invalid guess" : "—";
+          carsCell.textContent = "—";
+          status.textContent = invalid ? "Enter a nonnegative, finite speed." : "Guess cleared.";
+          return;
+        }
+        averageCell.textContent = formatScore(againstAverage);
+        carsCell.textContent = formatScore(againstCars);
+        status.textContent = "Against the average: " + averageCell.textContent + ". Against individual cars: " + carsCell.textContent + ".";
+      });
+    </script>
+  </body>
+</html>

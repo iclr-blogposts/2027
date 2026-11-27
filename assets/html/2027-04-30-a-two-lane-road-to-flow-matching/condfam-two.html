@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One distribution per prompt</title>
+<style>
+/* Styles of a figure page. The palette and the widget rules are those of the lecture deck (shared/deck.css there);
+   the colours are the dark ones, and theme.js maps them to the light ones when the page URL has ?light. */
+:root {
+  --bg: #15171c;
+  --bg-2: #1e2128;
+  --bg-3: #272b34;
+  --fg: #e7e9ee;
+  --fg-dim: #9aa1ae;
+  --accent: #f2b134;
+  --blue: #5ab0ff;
+  --red: #ff6b6b;
+  --green: #5fd38d;
+  --purple: #b28dff;
+  --line: #3a3f4b;
+  --mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  --sans: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; -webkit-text-size-adjust: 100%; }
+#stage { position: absolute; top: 0; left: 0; transform-origin: 0 0; width: max-content; }   /* its own width, whatever the width of the frame: the figure is scaled, not laid out again */
+.reveal { display: inline-block; font-family: var(--sans); font-size: 23px; color: var(--fg); line-height: 1.3; text-align: left; }
+.reveal section { display: block; }
+.reveal p { margin: 0.4em 0; line-height: 1.4; }
+.reveal strong, .reveal b { color: var(--accent); font-weight: 600; }
+.reveal small, .reveal .small { font-size: 0.7em; color: var(--fg-dim); }
+.reveal .dim { color: var(--fg-dim); }
+.reveal .red { color: var(--red); }
+.reveal .green { color: var(--green); }
+.reveal .blue { color: var(--blue); }
+.reveal .accent { color: var(--accent); }
+.box { background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 0.5em 0.8em; }
+
+/* widgets */
+.widget { font-size: 0.7em; color: var(--fg); }
+.widget canvas { display: block; background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; }
+.widget .wctl { display: flex; flex-wrap: wrap; gap: 0.35em; align-items: center; margin-top: 0.4em; }
+.widget button {
+  font: inherit; color: var(--fg); background: var(--bg-3);
+  border: 1px solid var(--line); border-radius: 6px; padding: 0.2em 0.6em; cursor: pointer;
+}
+.widget button:hover { border-color: var(--accent); }
+.widget button.active { border-color: var(--accent); color: var(--accent); }
+.widget input[type=number] {
+  font: inherit; font-family: var(--mono); width: 4.2em; color: var(--fg);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 0.1em 0.25em; text-align: right;
+}
+.widget input[type=range] { accent-color: var(--accent); width: 11em; }
+.widget label { color: var(--fg-dim); }
+.widget .readout { font-family: var(--mono); color: var(--fg-dim); }
+
+/* the three steps of numerical integration, highlighted in turn */
+[data-integration-step] { opacity: 0.45; border-color: var(--line); transition: opacity 0.15s, border-color 0.15s; }
+[data-integration-step].active { opacity: 1; border-color: var(--blue); }
+[data-integration-step="2"].active { border-color: var(--accent); }
+
+/* the chain A⁰ → A^τ → A¹ next to the action-chunk figure */
+.pichain [data-pi] { padding: 0.1em 0.7em; border-radius: 10px; border: 2px solid transparent; transition: background 0.15s, border-color 0.15s; }
+.pichain [data-pi].on { border-color: var(--accent); background: rgba(242, 177, 52, 0.14); }
+
+/* the four ingredients of a training step, highlighted in turn by the training picture */
+[data-train-step] { opacity: 0.45; transition: opacity 0.15s, border-color 0.15s; }
+[data-train-step].active { opacity: 1; border-color: var(--fg-dim); }
+[data-train-step="2"].active { border-color: var(--blue); }
+[data-train-step="3"].active { border-color: var(--accent); }
+
+/* layout helpers of the deck that figure pages use */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2em; align-items: start; }
+.cols > * { min-width: 0; }
+
+/* steps: an element of the class `fragment` is there once the step bar has reached it */
+.reveal .fragment { opacity: 0; visibility: hidden; transition: opacity 0.25s; }
+.reveal .fragment.visible { opacity: 1; visibility: inherit; }
+.stepbar { display: flex; align-items: center; gap: 0.6em; margin-top: 0.55em; font-size: 0.7em; min-height: 1.9em; box-sizing: border-box; line-height: 1.25; }
+.stepbar button { font: inherit; color: var(--fg); background: var(--bg-3); border: 1px solid var(--line); border-radius: 6px; padding: 0.2em 0.7em; cursor: pointer; white-space: nowrap; }
+.stepbar button:hover:not(:disabled) { border-color: var(--accent); }
+.stepbar button.go { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.stepbar button:disabled { opacity: 0.4; cursor: default; }
+.stepbar .count { color: var(--fg-dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.stepbar .label { color: var(--fg); }
+
+/* diagrams drawn as SVG */
+.diagram svg { display: block; }
+</style>
+</head>
+<body>
+<div id="stage"><div class="reveal"><section><div id="w0"></div></section></div></div>
+<script>(()=>{var J=Object.create;var C=Object.defineProperty;var K=Object.getOwnPropertyDescriptor;var Q=Object.getOwnPropertyNames;var Y=Object.getPrototypeOf,Z=Object.prototype.hasOwnProperty;var H=(t=>typeof require<"u"?require:typeof Proxy<"u"?new Proxy(t,{get:(e,n)=>(typeof require<"u"?require:e)[n]}):t)(function(t){if(typeof require<"u")return require.apply(this,arguments);throw Error('Dynamic require of "'+t+'" is not supported')});var tt=(t,e,n,r)=>{if(e&&typeof e=="object"||typeof e=="function")for(let o of Q(e))!Z.call(t,o)&&o!==n&&C(t,o,{get:()=>e[o],enumerable:!(r=K(e,o))||r.enumerable});return t};var et=(t,e,n)=>(n=t!=null?J(Y(t)):{},tt(e||!t||!t.__esModule?C(n,"default",{value:t,enumerable:!0}):n,t));var F=new URLSearchParams(location.search),E=F.get("theme");if(!E)try{if(parent!==window){let t=parent.document.documentElement,e=t.getAttribute("data-theme-setting");E=t.getAttribute("data-theme")||(e==="dark"||e==="light"?e:null)}}catch{}E||(E=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");var S=E!=="dark";if(S!==F.has("light")){let t=new URL(location.href);S?t.searchParams.set("light","1"):t.searchParams.delete("light");try{history.replaceState(null,"",t)}catch{}}document.documentElement.style.colorScheme=S?"light":"dark";document.documentElement.dataset.figTheme=S?"light":"dark";function j(){try{if(parent===window)return null;let t=parent.document.documentElement,e=t.getAttribute("data-theme-setting");return t.getAttribute("data-theme")||(e==="dark"||e==="light"?e:null)}catch{return null}}var nt=new URLSearchParams(location.search),ot=nt.has("light")||/print-pdf/i.test(location.search),I={"#15171c":"#ffffff","#1b1d22":"#f7f8fa","#1e2128":"#f3f4f6","#262a33":"#eceef1","#272b34":"#e8eaee","#2a2e36":"#e4e6ea","#2d313a":"#e1e4e8","#30343d":"#dcdfe4","#3a3f4b":"#c8ccd3","#4a505c":"#b4b9c2","#5a606c":"#9ea4ae","#5f6673":"#98a0ab","#6b7280":"#7b8290","#7d8594":"#6a7180","#8a93a6":"#5f6778","#9aa1ae":"#555c69","#c9ccd4":"#3f4450","#e7e9ee":"#1b1d22","#f2b134":"#b27a00","#5ab0ff":"#1c6ed0","#ff6b6b":"#d23c3c","#5fd38d":"#17914a","#b28dff":"#7546d6","#ffd34d":"#c99a00","#a9cbe8":"#3f7fb5","#e9dcc0":"#d9c7a0"},P=t=>[1,3,5].map(e=>parseInt(t.slice(e,e+2),16)),$=t=>"#"+t.map(e=>Math.round(e).toString(16).padStart(2,"0")).join(""),rt=Object.fromEntries(Object.entries(I).map(([t,e])=>[P(t).join(","),P(e)]));function O(t){let[e,n,r]=P(t).map(l=>l/255),o=Math.max(e,n,r),s=Math.min(e,n,r),c=(o+s)/2,d=o-s;if(c>.97||c<.03)return t;let h=d===0?0:d/(1-Math.abs(2*c-1)),y;if(h<.2)y=1-c;else if(c>.6)y=Math.max(.35,c-.25);else return t;let g=0;d&&(g=o===e?(n-r)/d%6:o===n?(r-e)/d+2:(e-n)/d+4);let f=(1-Math.abs(2*y-1))*h,b=f*(1-Math.abs(g%2-1)),a=y-f/2,[p,x,m]=g<1?[f,b,0]:g<2?[b,f,0]:g<3?[0,f,b]:g<4?[0,b,f]:g<5?[b,0,f]:[f,0,b];return $([p+a,x+a,m+a].map(l=>(l<0?0:l)*255))}function N(t){return t=t.toLowerCase(),t.length===4&&(t="#"+[...t.slice(1)].map(e=>e+e).join("")),I[t]||O(t)}function A(t,e=!1){return typeof t!="string"?t:t.replace(/#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g,N).replace(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(,\s*[\d.]+\s*)?\)/g,(n,r,o,s,c)=>{let d=`${r},${o},${s}`,h=rt[d];return!h&&d==="255,255,255"&&c&&(h=[0,0,0]),!h&&e&&(h=P(O($([+r,+o,+s])))),h?c?`rgba(${h.join(",")}${c})`:`rgb(${h.join(",")})`:n})}var G=["fill","stroke","stop-color","flood-color","color","style","bgcolor"],L=new WeakMap;function W(t){if(!(t.nodeType!==1||t.tagName==="IMG"))for(let e of G){let n=t.getAttribute(e);if(!n||!/#|rgb/.test(n))continue;let r=L.get(t);if(r&&r[e]===n)continue;let o=A(n);o!==n&&((r||L.set(t,{}).get(t))[e]=o,t.setAttribute(e,o))}}function q(t){W(t),t.querySelectorAll?.("*").forEach(W)}function st(){let t=CanvasRenderingContext2D.prototype;for(let n of["fillStyle","strokeStyle","shadowColor"]){let r=Object.getOwnPropertyDescriptor(t,n);Object.defineProperty(t,n,{...r,set(o){r.set.call(this,A(o))}})}let e=CanvasGradient.prototype.addColorStop;CanvasGradient.prototype.addColorStop=function(n,r){return e.call(this,n,A(r))}}async function at(){if(!document.querySelector('script[type="importmap"]')?.textContent.includes('"three"'))return;let e=(await import("three")).Color.prototype,n=e.setHex,r=e.setStyle;e.setHex=function(o,...s){return n.call(this,parseInt(N("#"+(o>>>0).toString(16).padStart(6,"0")).slice(1),16),...s)},e.setStyle=function(o,...s){return r.call(this,A(o),...s)}}function lt(){let t=e=>{for(let n of e){n.cssRules&&t(n.cssRules);let r=n.style;if(r)for(let o=0;o<r.length;o++){let s=r[o],c=r.getPropertyValue(s);if(/#|rgb/.test(c)){let d=A(c,!0);d!==c&&r.setProperty(s,d,r.getPropertyPriority(s))}}}};for(let e of document.styleSheets)try{t(e.cssRules)}catch{}}async function z(){ot&&(document.documentElement.classList.add("light"),lt(),st(),await at(),q(document.body),new MutationObserver(t=>{for(let e of t)e.type==="attributes"?W(e.target):e.addedNodes.forEach(n=>n.nodeType===1&&q(n))}).observe(document.body,{subtree:!0,childList:!0,attributes:!0,attributeFilter:G}))}var U={bg:"#15171c",bg2:"#1e2128",bg3:"#272b34",fg:"#e7e9ee",dim:"#9aa1ae",accent:"#f2b134",blue:"#5ab0ff",red:"#ff6b6b",green:"#5fd38d",purple:"#b28dff",line:"#3a3f4b"},v=1,_=t=>{v=t};function it(t){let e=t.width,n=t.height,r=t.getContext,o=!1;t.style.width||(t.style.width=e+"px"),t.style.height||(t.style.height=n+"px"),t.width=Math.round(e*v),t.height=Math.round(n*v),t.getContext=function(s,c){let d=r.call(this,s,c);return d&&s==="2d"&&!o&&(o=!0,d.scale(v,v)),d}}function R(t,e={},...n){let r=document.createElement(t);for(let[o,s]of Object.entries(e))o==="class"?r.className=s:o==="style"?r.style.cssText=s:o.startsWith("on")?r.addEventListener(o.slice(2),s):r.setAttribute(o,s);for(let o of n.flat())r.append(o instanceof Node?o:document.createTextNode(o));return t==="canvas"&&v!==1&&it(r),r}function ct(t,e,n=[]){let r=[...e.querySelectorAll(".fragment")];if(!r.length)return null;let o=new Map,s=[];for(let i of r)if(i.hasAttribute("data-fragment-index")){let u=+i.getAttribute("data-fragment-index");o.has(u)||o.set(u,[]),o.get(u).push(i)}else s.push([i]);let c=[...[...o.keys()].sort((i,u)=>i-u).map(i=>o.get(i)),...s],d=c.length,h=(i,u,M)=>{let T=document.createElement(i);return u&&(T.className=u),M&&(T.textContent=M),T},y=h("button","","◀ back"),g=h("button","go","next ▶"),f=h("span","count"),b=h("span","label"),a=h("div","stepbar");a.append(y,g,f,b);let p=0,x=(i,u)=>t.dispatchEvent(Object.assign(new Event(i),{fragment:u.find(M=>M.dataset.stage)||u[0],fragments:u})),m=()=>{y.disabled=p===0,g.disabled=p===d,g.classList.toggle("go",p<d),f.textContent=`step ${p} of ${d}`,b.textContent=n[p]||"",r.forEach(i=>i.classList.remove("current-fragment")),p&&c[p-1].forEach(i=>i.classList.add("current-fragment"))},l=i=>{for(i=Math.max(0,Math.min(d,i));p<i;){let u=c[p++];u.forEach(M=>M.classList.add("visible")),m(),x("fragmentshown",u)}for(;p>i;){let u=c[--p];u.forEach(M=>M.classList.remove("visible")),m(),x("fragmenthidden",u)}};return y.onclick=()=>l(p-1),g.onclick=()=>l(p+1),m(),a.settle=i=>{a.style.width=i+"px";let u=0;for(let M of n)b.textContent=M||"",u=Math.max(u,a.offsetHeight);a.style.minHeight=u+"px",m()},a}async function B({font:t=23,widgets:e=[],nets:n={},steps:r=null}){let o=document.getElementById("stage"),s=o.querySelector(".reveal"),c=s.querySelector("section");s.style.fontSize=t+"px",await z(),_(Math.min(3,Math.max(1,Math.ceil(window.devicePixelRatio||1))));let d=window.fetch?window.fetch.bind(window):null;window.fetch=(l,i)=>{let u=/flow_\w+\.json/.exec(String(l));return u&&n[u[0]]?Promise.resolve({ok:!0,json:async()=>n[u[0]]}):d(l,i)};for(let l of e)await l.mount(document.querySelector(l.sel),l.cfg);let h=l=>Math.ceil(parseFloat(getComputedStyle(l).width)),y=ct(s,c,r||[]);if(y){let l=h(c);s.append(y),y.settle(l)}let g=0,f=0,b=()=>{g=h(s),f=Math.ceil(parseFloat(getComputedStyle(s).height));let l=Math.min(1,window.innerWidth/g,window.innerHeight>40?window.innerHeight/f:1);return o.style.transform=`scale(${l})`,o.style.left=Math.max(0,(window.innerWidth-g*l)/2)+"px",l},a=b();addEventListener("resize",()=>{a=b()});let p=l=>{c.classList.toggle("present",l),s.dispatchEvent(Object.assign(new Event("slidechanged"),{currentSlide:l?c:null}))},x=!1,m=!1;new IntersectionObserver(l=>{let i=l[l.length-1].intersectionRatio;if(!x&&i>=.2){if(m){location.reload();return}x=!0,p(!0)}else x&&i<.05&&(x=!1,p(!1))},{threshold:[0,.05,.2,.5]}).observe(o);try{parent!==window&&new MutationObserver(()=>{let l=j();l&&l!=="dark"!==S&&(x?location.reload():m=!0)}).observe(parent.document.documentElement,{attributes:!0,attributeFilter:["data-theme","data-theme-setting"]})}catch{}window.__fig={ready:!0,get W(){return g},get H(){return f},get scale(){return a},get on(){return x}}}function D(t){let e=t>>>0||1;return()=>(e=e*16807%2147483647)/2147483647}function w(t){let e=Math.max(1e-9,t()),n=t();return Math.sqrt(-2*Math.log(e))*Math.cos(2*Math.PI*n)}var ft={gauss:t=>[w(t),w(t)],gauss8:t=>{let e=Math.floor(t()*8),n=e*Math.PI/4;return[2.4*Math.cos(n)+.25*w(t),2.4*Math.sin(n)+.25*w(t)]}},xt={moons:t=>{let e=t()<.5,n=Math.PI*t();return e?[2*Math.cos(n)-1,2*Math.sin(n)-.6+.15*w(t)]:[2*Math.cos(n)+1,-2*Math.sin(n)+.6+.15*w(t)]},spiral:t=>{let e=.4+2.6*Math.sqrt(t()),n=2.2*e;return[e*Math.cos(n)+.12*w(t),e*Math.sin(n)+.12*w(t)]},rings:t=>{let e=t()<.4?.9:2.3,n=2*Math.PI*t();return[e*Math.cos(n)+.1*w(t),e*Math.sin(n)+.1*w(t)]},gauss8:ft.gauss8};var V=[{name:"dog",color:"#f2b134",mean:[-1.5,.9],sd:[.55,.45]},{name:"cat",color:"#5ab0ff",mean:[1.4,1.1],sd:[.45,.5]},{name:"landscape",color:"#5fd38d",mean:[.1,-1.4],sd:[.9,.4]}],k=3.2;function X(t,e){let n=e.size||240,r=e.gap??24,o=e.n||110,s=e.groups?V.filter(f=>e.groups.includes(f.name)):V,c=D(21),d=[];s.forEach((f,b)=>{for(let a=0;a<o;a++)d.push([f.mean[0]+f.sd[0]*w(c),f.mean[1]+f.sd[1]*w(c),b])});for(let f=0;f<90;f++)d.push([2.2*(c()-.5)*2.4,2.2*(c()-.5)*2.4,-1]);let h=f=>(f+k)/(2*k)*n,y=f=>n-(f+k)/(2*k)*n,g=[-1,...s.keys()].map(()=>R("canvas",{width:n,height:n,style:`width:${n}px; height:${n}px; flex:none`}));g.forEach((f,b)=>{let a=f.getContext("2d"),p=b-1;a.fillStyle=U.bg2,a.fillRect(0,0,n,n);for(let[m,l,i]of d){let u=p<0||i===p;a.fillStyle=u?i<0?"#7d8594":s[i].color:"rgba(125,133,148,0.18)",a.beginPath(),a.arc(h(m),y(l),u?3:2.2,0,7),a.fill()}let x=n<180;if(a.font=`${x?10:13}px Inter, Arial`,a.textAlign="center",p<0)x?(a.fillStyle="#9aa1ae",a.fillText("all images",n/2,n-8)):(s.forEach(m=>{a.fillStyle=m.color,a.fillText(m.name+"s",h(m.mean[0]),y(m.mean[1]+1.1*m.sd[1]+.35))}),a.fillStyle="#7d8594",a.fillText("other images",h(-1.4),y(-2.6)));else{let m=s[p];a.fillStyle=m.color,a.font=x?"10px Inter, Arial":"bold 16px Inter, Arial",a.fillText(`y = "${m.name}"`,n/2,n-(x?8:12))}}),t.classList.add("widget"),t.append(R("div",{style:`display:flex; gap:${r}px; justify-content:center`},...g))}B({font:23,widgets:[{sel:"#w0",mount:X,cfg:{size:210,gap:14,groups:["dog","cat"]}}],nets:{},steps:null});})();
+</script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Samples from a standard Gaussian</title>
+<style>
+/* Styles of a figure page. The palette and the widget rules are those of the lecture deck (shared/deck.css there);
+   the colours are the dark ones, and theme.js maps them to the light ones when the page URL has ?light. */
+:root {
+  --bg: #15171c;
+  --bg-2: #1e2128;
+  --bg-3: #272b34;
+  --fg: #e7e9ee;
+  --fg-dim: #9aa1ae;
+  --accent: #f2b134;
+  --blue: #5ab0ff;
+  --red: #ff6b6b;
+  --green: #5fd38d;
+  --purple: #b28dff;
+  --line: #3a3f4b;
+  --mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  --sans: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; -webkit-text-size-adjust: 100%; }
+#stage { position: absolute; top: 0; left: 0; transform-origin: 0 0; width: max-content; }   /* its own width, whatever the width of the frame: the figure is scaled, not laid out again */
+.reveal { display: inline-block; font-family: var(--sans); font-size: 23px; color: var(--fg); line-height: 1.3; text-align: left; }
+.reveal section { display: block; }
+.reveal p { margin: 0.4em 0; line-height: 1.4; }
+.reveal strong, .reveal b { color: var(--accent); font-weight: 600; }
+.reveal small, .reveal .small { font-size: 0.7em; color: var(--fg-dim); }
+.reveal .dim { color: var(--fg-dim); }
+.reveal .red { color: var(--red); }
+.reveal .green { color: var(--green); }
+.reveal .blue { color: var(--blue); }
+.reveal .accent { color: var(--accent); }
+.box { background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 0.5em 0.8em; }
+
+/* widgets */
+.widget { font-size: 0.7em; color: var(--fg); }
+.widget canvas { display: block; background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; }
+.widget .wctl { display: flex; flex-wrap: wrap; gap: 0.35em; align-items: center; margin-top: 0.4em; }
+.widget button {
+  font: inherit; color: var(--fg); background: var(--bg-3);
+  border: 1px solid var(--line); border-radius: 6px; padding: 0.2em 0.6em; cursor: pointer;
+}
+.widget button:hover { border-color: var(--accent); }
+.widget button.active { border-color: var(--accent); color: var(--accent); }
+.widget input[type=number] {
+  font: inherit; font-family: var(--mono); width: 4.2em; color: var(--fg);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 0.1em 0.25em; text-align: right;
+}
+.widget input[type=range] { accent-color: var(--accent); width: 11em; }
+.widget label { color: var(--fg-dim); }
+.widget .readout { font-family: var(--mono); color: var(--fg-dim); }
+
+/* the three steps of numerical integration, highlighted in turn */
+[data-integration-step] { opacity: 0.45; border-color: var(--line); transition: opacity 0.15s, border-color 0.15s; }
+[data-integration-step].active { opacity: 1; border-color: var(--blue); }
+[data-integration-step="2"].active { border-color: var(--accent); }
+
+/* the chain A⁰ → A^τ → A¹ next to the action-chunk figure */
+.pichain [data-pi] { padding: 0.1em 0.7em; border-radius: 10px; border: 2px solid transparent; transition: background 0.15s, border-color 0.15s; }
+.pichain [data-pi].on { border-color: var(--accent); background: rgba(242, 177, 52, 0.14); }
+
+/* the four ingredients of a training step, highlighted in turn by the training picture */
+[data-train-step] { opacity: 0.45; transition: opacity 0.15s, border-color 0.15s; }
+[data-train-step].active { opacity: 1; border-color: var(--fg-dim); }
+[data-train-step="2"].active { border-color: var(--blue); }
+[data-train-step="3"].active { border-color: var(--accent); }
+
+/* layout helpers of the deck that figure pages use */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2em; align-items: start; }
+.cols > * { min-width: 0; }
+
+/* steps: an element of the class `fragment` is there once the step bar has reached it */
+.reveal .fragment { opacity: 0; visibility: hidden; transition: opacity 0.25s; }
+.reveal .fragment.visible { opacity: 1; visibility: inherit; }
+.stepbar { display: flex; align-items: center; gap: 0.6em; margin-top: 0.55em; font-size: 0.7em; min-height: 1.9em; box-sizing: border-box; line-height: 1.25; }
+.stepbar button { font: inherit; color: var(--fg); background: var(--bg-3); border: 1px solid var(--line); border-radius: 6px; padding: 0.2em 0.7em; cursor: pointer; white-space: nowrap; }
+.stepbar button:hover:not(:disabled) { border-color: var(--accent); }
+.stepbar button.go { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.stepbar button:disabled { opacity: 0.4; cursor: default; }
+.stepbar .count { color: var(--fg-dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.stepbar .label { color: var(--fg); }
+
+/* diagrams drawn as SVG */
+.diagram svg { display: block; }
+</style>
+</head>
+<body>
+<div id="stage"><div class="reveal"><section><div id="w0"></div></section></div></div>
+<script>(()=>{var rt=Object.create;var G=Object.defineProperty;var st=Object.getOwnPropertyDescriptor;var at=Object.getOwnPropertyNames;var it=Object.getPrototypeOf,lt=Object.prototype.hasOwnProperty;var ct=(t=>typeof require<"u"?require:typeof Proxy<"u"?new Proxy(t,{get:(e,n)=>(typeof require<"u"?require:e)[n]}):t)(function(t){if(typeof require<"u")return require.apply(this,arguments);throw Error('Dynamic require of "'+t+'" is not supported')});var ft=(t,e,n,s)=>{if(e&&typeof e=="object"||typeof e=="function")for(let r of at(e))!lt.call(t,r)&&r!==n&&G(t,r,{get:()=>e[r],enumerable:!(s=st(e,r))||s.enumerable});return t};var ht=(t,e,n)=>(n=t!=null?rt(it(t)):{},ft(e||!t||!t.__esModule?G(n,"default",{value:t,enumerable:!0}):n,t));var z=new URLSearchParams(location.search),R=z.get("theme");if(!R)try{if(parent!==window){let t=parent.document.documentElement,e=t.getAttribute("data-theme-setting");R=t.getAttribute("data-theme")||(e==="dark"||e==="light"?e:null)}}catch{}R||(R=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");var A=R!=="dark";if(A!==z.has("light")){let t=new URL(location.href);A?t.searchParams.set("light","1"):t.searchParams.delete("light");try{history.replaceState(null,"",t)}catch{}}document.documentElement.style.colorScheme=A?"light":"dark";document.documentElement.dataset.figTheme=A?"light":"dark";function _(){try{if(parent===window)return null;let t=parent.document.documentElement,e=t.getAttribute("data-theme-setting");return t.getAttribute("data-theme")||(e==="dark"||e==="light"?e:null)}catch{return null}}var ut=new URLSearchParams(location.search),dt=ut.has("light")||/print-pdf/i.test(location.search),V={"#15171c":"#ffffff","#1b1d22":"#f7f8fa","#1e2128":"#f3f4f6","#262a33":"#eceef1","#272b34":"#e8eaee","#2a2e36":"#e4e6ea","#2d313a":"#e1e4e8","#30343d":"#dcdfe4","#3a3f4b":"#c8ccd3","#4a505c":"#b4b9c2","#5a606c":"#9ea4ae","#5f6673":"#98a0ab","#6b7280":"#7b8290","#7d8594":"#6a7180","#8a93a6":"#5f6778","#9aa1ae":"#555c69","#c9ccd4":"#3f4450","#e7e9ee":"#1b1d22","#f2b134":"#b27a00","#5ab0ff":"#1c6ed0","#ff6b6b":"#d23c3c","#5fd38d":"#17914a","#b28dff":"#7546d6","#ffd34d":"#c99a00","#a9cbe8":"#3f7fb5","#e9dcc0":"#d9c7a0"},F=t=>[1,3,5].map(e=>parseInt(t.slice(e,e+2),16)),X=t=>"#"+t.map(e=>Math.round(e).toString(16).padStart(2,"0")).join(""),pt=Object.fromEntries(Object.entries(V).map(([t,e])=>[F(t).join(","),F(e)]));function J(t){let[e,n,s]=F(t).map(i=>i/255),r=Math.max(e,n,s),l=Math.min(e,n,s),a=(r+l)/2,c=r-l;if(a>.97||a<.03)return t;let o=c===0?0:c/(1-Math.abs(2*a-1)),w;if(o<.2)w=1-a;else if(a>.6)w=Math.max(.35,a-.25);else return t;let g=0;c&&(g=r===e?(n-s)/c%6:r===n?(s-e)/c+2:(e-n)/c+4);let d=(1-Math.abs(2*w-1))*o,f=d*(1-Math.abs(g%2-1)),m=w-d/2,[p,y,b]=g<1?[d,f,0]:g<2?[f,d,0]:g<3?[0,d,f]:g<4?[0,f,d]:g<5?[f,0,d]:[d,0,f];return X([p+m,y+m,b+m].map(i=>(i<0?0:i)*255))}function K(t){return t=t.toLowerCase(),t.length===4&&(t="#"+[...t.slice(1)].map(e=>e+e).join("")),V[t]||J(t)}function L(t,e=!1){return typeof t!="string"?t:t.replace(/#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g,K).replace(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(,\s*[\d.]+\s*)?\)/g,(n,s,r,l,a)=>{let c=`${s},${r},${l}`,o=pt[c];return!o&&c==="255,255,255"&&a&&(o=[0,0,0]),!o&&e&&(o=F(J(X([+s,+r,+l])))),o?a?`rgba(${o.join(",")}${a})`:`rgb(${o.join(",")})`:n})}var Q=["fill","stroke","stop-color","flood-color","color","style","bgcolor"],U=new WeakMap;function O(t){if(!(t.nodeType!==1||t.tagName==="IMG"))for(let e of Q){let n=t.getAttribute(e);if(!n||!/#|rgb/.test(n))continue;let s=U.get(t);if(s&&s[e]===n)continue;let r=L(n);r!==n&&((s||U.set(t,{}).get(t))[e]=r,t.setAttribute(e,r))}}function D(t){O(t),t.querySelectorAll?.("*").forEach(O)}function gt(){let t=CanvasRenderingContext2D.prototype;for(let n of["fillStyle","strokeStyle","shadowColor"]){let s=Object.getOwnPropertyDescriptor(t,n);Object.defineProperty(t,n,{...s,set(r){s.set.call(this,L(r))}})}let e=CanvasGradient.prototype.addColorStop;CanvasGradient.prototype.addColorStop=function(n,s){return e.call(this,n,L(s))}}async function bt(){if(!document.querySelector('script[type="importmap"]')?.textContent.includes('"three"'))return;let e=(await import("three")).Color.prototype,n=e.setHex,s=e.setStyle;e.setHex=function(r,...l){return n.call(this,parseInt(K("#"+(r>>>0).toString(16).padStart(6,"0")).slice(1),16),...l)},e.setStyle=function(r,...l){return s.call(this,L(r),...l)}}function mt(){let t=e=>{for(let n of e){n.cssRules&&t(n.cssRules);let s=n.style;if(s)for(let r=0;r<s.length;r++){let l=s[r],a=s.getPropertyValue(l);if(/#|rgb/.test(a)){let c=L(a,!0);c!==a&&s.setProperty(l,c,s.getPropertyPriority(l))}}}};for(let e of document.styleSheets)try{t(e.cssRules)}catch{}}async function Y(){dt&&(document.documentElement.classList.add("light"),mt(),gt(),await bt(),D(document.body),new MutationObserver(t=>{for(let e of t)e.type==="attributes"?O(e.target):e.addedNodes.forEach(n=>n.nodeType===1&&D(n))}).observe(document.body,{subtree:!0,childList:!0,attributes:!0,attributeFilter:Q}))}var k={bg:"#15171c",bg2:"#1e2128",bg3:"#272b34",fg:"#e7e9ee",dim:"#9aa1ae",accent:"#f2b134",blue:"#5ab0ff",red:"#ff6b6b",green:"#5fd38d",purple:"#b28dff",line:"#3a3f4b"},W=1,Z=t=>{W=t};function yt(t){let e=t.width,n=t.height,s=t.getContext,r=!1;t.style.width||(t.style.width=e+"px"),t.style.height||(t.style.height=n+"px"),t.width=Math.round(e*W),t.height=Math.round(n*W),t.getContext=function(l,a){let c=s.call(this,l,a);return c&&l==="2d"&&!r&&(r=!0,c.scale(W,W)),c}}function C(t,e={},...n){let s=document.createElement(t);for(let[r,l]of Object.entries(e))r==="class"?s.className=l:r==="style"?s.style.cssText=l:r.startsWith("on")?s.addEventListener(r.slice(2),l):s.setAttribute(r,l);for(let r of n.flat())s.append(r instanceof Node?r:document.createTextNode(r));return t==="canvas"&&W!==1&&yt(s),s}function j(){return document.documentElement.classList.contains("reveal-print")}function H({dur:t,hold:e=1500,hold0:n=500,alive:s=()=>!0,step:r,once:l=!1,onEnd:a}){let c=!1,o=0,w=()=>{c=!1,cancelAnimationFrame(o)};return{start:(d=0)=>{w(),c=!0;let f=d,m=d>=1?e:0,p=performance.now(),y=b=>{if(!c)return;if(!s()){c=!1;return}let i=Math.max(0,Math.min(100,b-p));if(p=b,m>0)m-=i,m<=0&&f>=1&&(f=0,m=n,r(f));else if(f=Math.min(1,f+i/t),r(f),f>=1){if(l){c=!1,a?.();return}m=e}o=requestAnimationFrame(y)};o=requestAnimationFrame(y)},stop:w,get playing(){return c}}}function xt(t,e,n=[]){let s=[...e.querySelectorAll(".fragment")];if(!s.length)return null;let r=new Map,l=[];for(let h of s)if(h.hasAttribute("data-fragment-index")){let u=+h.getAttribute("data-fragment-index");r.has(u)||r.set(u,[]),r.get(u).push(h)}else l.push([h]);let a=[...[...r.keys()].sort((h,u)=>h-u).map(h=>r.get(h)),...l],c=a.length,o=(h,u,v)=>{let T=document.createElement(h);return u&&(T.className=u),v&&(T.textContent=v),T},w=o("button","","◀ back"),g=o("button","go","next ▶"),d=o("span","count"),f=o("span","label"),m=o("div","stepbar");m.append(w,g,d,f);let p=0,y=(h,u)=>t.dispatchEvent(Object.assign(new Event(h),{fragment:u.find(v=>v.dataset.stage)||u[0],fragments:u})),b=()=>{w.disabled=p===0,g.disabled=p===c,g.classList.toggle("go",p<c),d.textContent=`step ${p} of ${c}`,f.textContent=n[p]||"",s.forEach(h=>h.classList.remove("current-fragment")),p&&a[p-1].forEach(h=>h.classList.add("current-fragment"))},i=h=>{for(h=Math.max(0,Math.min(c,h));p<h;){let u=a[p++];u.forEach(v=>v.classList.add("visible")),b(),y("fragmentshown",u)}for(;p>h;){let u=a[--p];u.forEach(v=>v.classList.remove("visible")),b(),y("fragmenthidden",u)}};return w.onclick=()=>i(p-1),g.onclick=()=>i(p+1),b(),m.settle=h=>{m.style.width=h+"px";let u=0;for(let v of n)f.textContent=v||"",u=Math.max(u,m.offsetHeight);m.style.minHeight=u+"px",b()},m}async function tt({font:t=23,widgets:e=[],nets:n={},steps:s=null}){let r=document.getElementById("stage"),l=r.querySelector(".reveal"),a=l.querySelector("section");l.style.fontSize=t+"px",await Y(),Z(Math.min(3,Math.max(1,Math.ceil(window.devicePixelRatio||1))));let c=window.fetch?window.fetch.bind(window):null;window.fetch=(i,h)=>{let u=/flow_\w+\.json/.exec(String(i));return u&&n[u[0]]?Promise.resolve({ok:!0,json:async()=>n[u[0]]}):c(i,h)};for(let i of e)await i.mount(document.querySelector(i.sel),i.cfg);let o=i=>Math.ceil(parseFloat(getComputedStyle(i).width)),w=xt(l,a,s||[]);if(w){let i=o(a);l.append(w),w.settle(i)}let g=0,d=0,f=()=>{g=o(l),d=Math.ceil(parseFloat(getComputedStyle(l).height));let i=Math.min(1,window.innerWidth/g,window.innerHeight>40?window.innerHeight/d:1);return r.style.transform=`scale(${i})`,r.style.left=Math.max(0,(window.innerWidth-g*i)/2)+"px",i},m=f();addEventListener("resize",()=>{m=f()});let p=i=>{a.classList.toggle("present",i),l.dispatchEvent(Object.assign(new Event("slidechanged"),{currentSlide:i?a:null}))},y=!1,b=!1;new IntersectionObserver(i=>{let h=i[i.length-1].intersectionRatio;if(!y&&h>=.2){if(b){location.reload();return}y=!0,p(!0)}else y&&h<.05&&(y=!1,p(!1))},{threshold:[0,.05,.2,.5]}).observe(r);try{parent!==window&&new MutationObserver(()=>{let i=_();i&&i!=="dark"!==A&&(y?location.reload():b=!0)}).observe(parent.document.documentElement,{attributes:!0,attributeFilter:["data-theme","data-theme-setting"]})}catch{}window.__fig={ready:!0,get W(){return g},get H(){return d},get scale(){return m},get on(){return y}}}function et(t){let e=t>>>0||1;return()=>(e=e*16807%2147483647)/2147483647}function S(t){let e=Math.max(1e-9,t()),n=t();return Math.sqrt(-2*Math.log(e))*Math.cos(2*Math.PI*n)}var wt={gauss:t=>[S(t),S(t)],gauss8:t=>{let e=Math.floor(t()*8),n=e*Math.PI/4;return[2.4*Math.cos(n)+.25*S(t),2.4*Math.sin(n)+.25*S(t)]}},Wt={moons:t=>{let e=t()<.5,n=Math.PI*t();return e?[2*Math.cos(n)-1,2*Math.sin(n)-.6+.15*S(t)]:[2*Math.cos(n)+1,-2*Math.sin(n)+.6+.15*S(t)]},spiral:t=>{let e=.4+2.6*Math.sqrt(t()),n=2.2*e;return[e*Math.cos(n)+.12*S(t),e*Math.sin(n)+.12*S(t)]},rings:t=>{let e=t()<.4?.9:2.3,n=2*Math.PI*t();return[e*Math.cos(n)+.1*S(t),e*Math.sin(n)+.1*S(t)]},gauss8:wt.gauss8};var P=3.4,N=.15,q=2.6,nt=2*q+.8;function ot(t,e){let n=e.width||328,s=e.height||200,r=e.n||300,l=e.controls==="overlay",a={t:e.t??0},c=C("canvas",{width:n,height:s,style:`width:${n}px; height:${s}px`}),o=c.getContext("2d"),w=et(5),g=[];for(;g.length<r;){let x=Math.sqrt(-2*Math.log(Math.max(w(),1e-12)))*Math.cos(2*Math.PI*w());Math.abs(x)<P&&g.push(x)}let d=x=>(x+P)/(2*P)*n,f=s-30,m=x=>Math.exp(-x*x/2)/Math.sqrt(2*Math.PI),p=r*N*nt;function y(){let x=Math.round(a.t*r);o.fillStyle=k.bg2,o.fillRect(0,0,n,s),o.strokeStyle="#5a606c",o.lineWidth=1,o.beginPath(),o.moveTo(0,f),o.lineTo(n,f),o.stroke(),o.font="12px Inter, Arial",o.fillStyle=k.dim,o.textAlign="center";for(let M=-3;M<=3;M++)o.beginPath(),o.moveTo(d(M),f),o.lineTo(d(M),f+4),o.stroke(),o.fillText(String(M),d(M),f+17);o.beginPath(),o.moveTo(d(-P),f);for(let M=-P;M<=P;M+=.02)o.lineTo(d(M),f-m(M)*p);o.lineTo(d(P),f),o.closePath(),o.fillStyle="rgba(90,176,255,0.12)",o.fill(),o.strokeStyle=k.blue,o.lineWidth=2,o.stroke();let $=new Map,E=null;o.fillStyle=k.blue;for(let M=0;M<x;M++){let I=Math.floor((g[M]+P)/N),B=$.get(I)||0;$.set(I,B+1),E=[d((I+.5)*N-P),f-q-1-B*nt],o.beginPath(),o.arc(E[0],E[1],q,0,7),o.fill()}E&&(o.fillStyle=k.accent,o.beginPath(),o.arc(E[0],E[1],q+1,0,7),o.fill()),o.font="13px Inter, Arial",o.textAlign="left",o.fillStyle=k.blue,o.fillText("x ~ N(0, 1)",8,17),o.fillStyle=k.dim,o.fillText(`${x} samples`,8,34)}let b=H({dur:6e3,hold:2e3,hold0:400,alive:()=>c.isConnected,step:x=>{a.t=x,T.value=x,y()}}),i=()=>{v.textContent=b.playing?"⏸":"▶"},h=()=>{b.playing?b.stop():b.start(a.t),i()},u=(x=e.loop!==!1)=>{b.stop(),a.t=e.t??0,T.value=a.t,x&&!j()&&b.start(a.t),i()},v=C("button",{onclick:h,style:l?"min-width:2.4em; position:absolute; top:6px; right:6px; opacity:0.85":"min-width:2.4em"},"▶"),T=C("input",{type:"range",min:0,max:1,step:.005,value:a.t,style:"width:10em",oninput:x=>{b.stop(),i(),a.t=+x.target.value,y()}});t.classList.add("widget"),l?(t.style.position="relative",t.append(c,C("span",{class:"interactive-only"},v))):t.append(c,C("div",{class:"wctl interactive-only",style:"gap:0.5em; margin-top:0.3em"},T,v)),t.closest(".reveal")?.addEventListener("slidechanged",x=>{c.isConnected&&(x.currentSlide?.contains(t)?(u(),y()):b.playing&&(b.stop(),i()))}),j()&&(a.t=e.print_t??1,T.value=a.t),y(),!j()&&t.closest("section")?.classList.contains("present")&&u()}tt({font:23,widgets:[{sel:"#w0",mount:ot,cfg:{width:680,height:230,controls:"overlay",t:0}}],nets:{},steps:null});})();
+</script>
+</body>
+</html>

@@ -1,0 +1,629 @@
+<!DOCTYPE html> <html> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> A Two-Lane Road to Flow Matching | ICLR Blogposts 2027 </title> <meta name="author" content="ICLR Blog"> <meta name="description" content="Imagine you're taking part in a somewhat bizarre competition. You're standing next to a two-lane road, and your goal is to guess the average speed of cars. Two judges score your guess. The first is fond of gadgets. He uses one to measure the average speed of all cars, then scores your guess against that number. The second prefers to keep things simple. He scores the same guess against some individual cars in turn, then averages those scores. Both judges use squared error. Will they rank the contestants in the same order? It turns out that the answer to this bizarre puzzle, together with many additional interactive visualisations, will help us learn how flow matching works: how we can use a velocity field to carry us from noise to beautiful images and beyond. Along the way, we see how empirical flow matching builds a target by averaging velocities and why conditional flow matching can train on one sampled velocity at a time."> <meta name="keywords" content="machine-learning, ml, deep-learning, reinforcement-learning, icl# add your own keywords or leave empty"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/2027/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="apple-touch-icon" href="/2027/assets/img/iclr_favicon.ico?v=0a8a3afdb0dbe139723b24dba3052a4f"> <link rel="stylesheet" href="/2027/assets/css/main.css?v=3116ba77db9ee1581d05bb3e86fbf7f1"> <link rel="canonical" href="https://iclr-blogposts.github.io/2027/blog/a-two-lane-road-to-flow-matching/"> <script src="/2027/assets/js/theme.js?v=5286c3e4c334d0ecb8fc0c40ff4fa7ec"></script> <link defer rel="stylesheet" href="/2027/assets/css/jekyll-pygments-themes-native.css?v=5847e5ed4a4568527aa6cfab446049ca" media="none" id="highlight_theme_dark"> <script>
+    initTheme();
+  </script> <link rel="stylesheet" href="/2027/assets/css/al-folio-distill.css?v=fb7196ec07cb5299d51b2cbdc69c23d7"> <script>
+  window.alFolioDistill = window.alFolioDistill || {};
+  window.alFolioDistill.templateLoader = {"url":"/2027/assets/js/distillpub/template.v2.js","integrity":"sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo=","remote":false};
+</script> <script src="/2027/assets/js/distillpub/template.v2.js" integrity="sha256-R5CDHO0C98TyAJss32l4ztqDUfAGDTtZ3Zs6qxMuJxo="></script> <script src="/2027/assets/js/distillpub/transforms.v2.js" integrity="sha256-XYVZD1ZSuRCrJBEBl0nIPvWlo/u5tzmtyStFV7a/PTk="></script> <style type="text/css">
+        .fm-fig { margin-top: 1.4rem; } .fm-fig iframe { display: block; width: 100%; margin: 0 auto; border: 0; } .fm-cap { margin-bottom: 1.6rem; } d-article details { border-left: 3px solid rgba(128, 128, 128, 0.45); padding: 0.1rem 0 0.1rem 1rem; margin: 1.2rem 0; } d-article details > summary { cursor: pointer; font-weight: 600; margin-bottom: 0.6rem; } mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; } @media (max-width: 1024px) { d-article > :is(d-contents, #what-we-will-cover, #what-we-will-cover ~ *) { order: 1; } } @media (min-width: 1025px) { d-article d-contents { grid-row: auto / span 9; } } .fm-skip { font-style: italic; color: var(--global-text-color-light); } .fm-skip p { margin-bottom: 0.4rem; } .fm-question { border-left: 4px solid var(--global-theme-color); background: rgba(128, 128, 128, 0.08); padding: 0.6rem 1rem; margin: 1.2rem 0; } .fm-question p { margin: 0; } .fm-question p:first-child::before { content: "Question  "; font-weight: 600; color: var(--global-theme-color); }
+
+      </style> </head> <body> <d-front-matter> <script async type="text/json">
+      {
+            "title": "A Two-Lane Road to Flow Matching",
+            "description": "Imagine you're taking part in a somewhat bizarre competition. You're standing next to a two-lane road, and your goal is to guess the average speed of cars. Two judges score your guess. The first is fond of gadgets. He uses one to measure the average speed of all cars, then scores your guess against that number. The second prefers to keep things simple. He scores the same guess against some individual cars in turn, then averages those scores. Both judges use squared error. Will they rank the contestants in the same order? It turns out that the answer to this bizarre puzzle, together with many additional interactive visualisations, will help us learn how flow matching works: how we can use a velocity field to carry us from noise to beautiful images and beyond. Along the way, we see how empirical flow matching builds a target by averaging velocities and why conditional flow matching can train on one sampled velocity at a time.",
+            "published": "April 30, 2027",
+            "authors": [
+              
+              {
+                "author": "Anonymous",
+                "authorURL": "",
+                "affiliations": [
+                  {
+                    "name": "",
+                    "url": ""
+                  }
+                ]
+              }
+              
+            ],
+            "katex": {
+              "delimiters": [
+                {
+                  "left": "$",
+                  "right": "$",
+                  "display": false
+                },
+                {
+                  "left": "$$",
+                  "right": "$$",
+                  "display": true
+                }
+              ]
+            }
+          }
+    </script> </d-front-matter> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/2027/"> ICLR Blogposts 2027 </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/2027/about/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/call/">call for blogposts </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/submitting/">submitting </a> </li> <li class="nav-item "> <a class="nav-link" href="/2027/reviewing/">reviewing </a> </li> <li class="nav-item dropdown "> <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-nav-dropdown-toggle="true" aria-haspopup="true" aria-expanded="false">past iterations </a> <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown"> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2027/"><strong>2027</strong></a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2026/">2026</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2025/">2025</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2024/">2024</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blogposts.github.io/2023/">2023</a> <div class="dropdown-divider"></div> <a class="dropdown-item " href="https://iclr-blog-track.github.io/home/" rel="external nofollow noopener" target="_blank">2022</a> </div> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> <li class="toggle-container"> <button id="light-toggle" type="button" title="Change theme" aria-label="Change color theme"> <i class="fa-half-sun-moon" id="light-toggle-system"></i> <i class="fa-solid fa-moon" id="light-toggle-dark"></i> <i class="fa-solid fa-sun" id="light-toggle-light"></i> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="post distill"> <d-title> <h1>A Two-Lane Road to Flow Matching</h1> <p>Imagine you're taking part in a somewhat bizarre competition. You're standing next to a two-lane road, and your goal is to guess the average speed of cars. Two judges score your guess. The first is fond of gadgets. He uses one to measure the average speed of all cars, then scores your guess against that number. The second prefers to keep things simple. He scores the same guess against some individual cars in turn, then averages those scores. Both judges use squared error. Will they rank the contestants in the same order? It turns out that the answer to this bizarre puzzle, together with many additional interactive visualisations, will help us learn how flow matching works: how we can use a velocity field to carry us from noise to beautiful images and beyond. Along the way, we see how empirical flow matching builds a target by averaging velocities and why conditional flow matching can train on one sampled velocity at a time.</p> </d-title> <d-byline></d-byline> <d-article> <d-contents> <nav class="l-text figcaption"> <h3>Contents</h3> <div> <a href="#what-we-will-cover">What we will cover</a> </div> <div> <a href="#preliminaries">Preliminaries</a> </div> <ul> <li> <a href="#numerical-integration">Numerical integration</a> </li> <li> <a href="#fitting-probability-distributions">Fitting probability distributions</a> </li> <li> <a href="#why-a-mixture-of-gaussians-is-not-the-end-of-the-story">Why a mixture of Gaussians is not the end of the story</a> </li> </ul> <div> <a href="#learning-probability-distributions">Learning probability distributions</a> </div> <ul> <li> <a href="#a-network-that-learns-a-probability-distribution">A network that learns a probability distribution</a> </li> <li> <a href="#deforming-probability">Deforming probability</a> </li> <li> <a href="#computing-the-output-density-of-the-network">Computing the output density of the network</a> </li> <li> <a href="#residual-flows">Residual flows</a> </li> <li> <a href="#understanding-the-meaning-of-a-residual-block">Understanding the meaning of a residual block</a> </li> </ul> <div> <a href="#learning-flows">Learning flows</a> </div> <ul> <li> <a href="#if-we-knew-the-velocity-field">If we knew the velocity field</a> </li> <li> <a href="#what-we-get">What we get</a> </li> </ul> <div> <a href="#flow-matching">Flow matching</a> </div> <ul> <li> <a href="#the-problem">The problem</a> </li> <li> <a href="#one-data-point">One data point</a> </li> <li> <a href="#many-data-points">Many data points</a> </li> <li> <a href="#let-s-hit-the-road">Let's hit the road</a> </li> <li> <a href="#the-velocity-of-the-mixture">The velocity of the mixture</a> </li> <li> <a href="#training-on-the-weighted-averages">Training on the weighted averages</a> </li> <li> <a href="#scoring-a-guess">Scoring a guess</a> </li> <li> <a href="#from-one-place-to-the-whole-road">From one place to the whole road</a> </li> <li> <a href="#conditional-vs-empirical-flow-matching-at-a-fixed-moment">Conditional vs Empirical Flow Matching at a fixed moment</a> </li> <li> <a href="#conditional-vs-empirical-flow-matching-over-the-entire-time-axis">Conditional vs Empirical Flow Matching over the entire time axis</a> </li> <li> <a href="#back-to-the-arrows">Back to the arrows</a> </li> <li> <a href="#the-algorithm">The algorithm</a> </li> </ul> <div> <a href="#extensions-and-applications">Extensions and applications</a> </div> <ul> <li> <a href="#diffusion-models">Diffusion models</a> </li> <li> <a href="#learning-families-of-distributions">Learning families of distributions</a> </li> <li> <a href="#robot-actions">Robot actions</a> </li> </ul> <div> <a href="#summary">Summary</a> </div> <div> <a href="#exercises">Exercises</a> </div> <ul> <li> <a href="#hitting-the-data-exactly">Hitting the data exactly</a> </li> <li> <a href="#the-proofs">The proofs</a> </li> </ul> </nav> </d-contents> <p>Let’s start with the puzzle. Here are ten cars on a two-lane road. Eight are doing 100 km/h and two are doing 50 km/h. Let’s see how the two judges score multiple guesses. In the first score column, we compare a guess with 90 km/h, the true average speed, and square the error. In the second, we compare it with each car separately, square each error, and average those ten scores. Lower is better. Fill in a few guesses.</p> <div class="l-body fm-fig" id="road-puzzle"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/road-puzzle.html" title="Compare speed guesses against the average and against individual cars" style="width: 100%; max-width: 620px; height: 370px"></iframe> </div> <p><strong>Do you see any pattern between the columns?</strong> Pick two rows. If one guess beats the other in the first score column, which guess wins in the second? By how many points?</p> <p>Keep the puzzle in mind. We’ll expand it along the road (pun intended) to understand how exactly the flow matching loss works. But let’s not get ahead of ourselves and start from the beginning: with numerical integration and the basics of learning probabilities. If you’re comfortable with numerical integration and probability distributions, you can jump ahead to <a href="#learning-flows">Learning flows</a>.</p> <h1 id="what-we-will-cover">What we will cover</h1> <p>The goal of a generative model is to learn to sample from a distribution \(p_{\text{target}}\) given examples from that distribution. For an image generator, each new sample is a picture.</p> <div class="l-body fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/genimg.html" title="A picture generated from a prompt" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 642 / 480; max-width: 642px"></iframe> </div> <div class="caption fm-cap"> An example behaviour of generative models: a prompt goes in, and a picture comes out. Under the hood, a sample is drawn from a distribution of pictures. (The picture is a fixed image and the animation is a cartoon of sampling, not a model.) </div> <p>Flow matching <d-cite key="lipman2022flow,liu2022flow,albergo2023building"></d-cite> builds such a generator by combining two ideas. First, we can efficiently sample from known distributions, such as Gaussians:</p> <div class="l-body fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/gauss1d.html" title="Samples from a standard Gaussian" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 682 / 234; max-width: 682px"></iframe> </div> <div class="caption fm-cap"> We can easily sample from known distributions: samples of a standard Gaussian, stacked under its density. </div> <p>Second, we have many techniques to simulate deformation. For example, in particle methods such as the material point method <d-cite key="stomakhin2013material"></d-cite>, we consider many particles and we move them around to see deformation:</p> <div class="l-body fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/coffee-stir.html" title="Milk stirred into a cup of coffee, as a body of particles" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 682 / 370; max-width: 682px"></iframe> </div> <div class="caption fm-cap"> An example of a deformable simulation: milk stirred into a cup of coffee, seen from above. </div> <p>The goal is simple: combine the two ideas. Treat probability as a deformable substance, start from a distribution we can sample, deform it into the distribution of interest, and carry the samples along.</p> <div class="l-body fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/melt-density.html" title="A density deformed into another density" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 682 / 294; max-width: 682px"></iframe> </div> <div class="caption fm-cap"> Probability as a deformable substance. A standard Gaussian (bottom) is deformed into a density with two bumps (top). The grey lines show where the deformation sends equally spaced points, and the dots are samples carried along. </div> <p>Note that other introductions explore this construction visually <d-cite key="gagneux2025visual,hawley2025flow,fjelde2024introduction"></d-cite>. Much of this work has been inspired by this great work.</p> <h1 id="preliminaries">Preliminaries</h1> <p>Before we dive into flow matching, let’s make sure we understand the two underlying concepts well:</p> <ol> <li>Numerical integration, which is the core component of any simulation.</li> <li>Learning probability distributions, where we cover intuitions for things useful during the rest of the post (feel free to skip the ones you are already familiar with): <ul> <li>Mixture of Gaussians</li> <li>KL-divergence</li> <li>How idealised expectations are actually approximated in practice.</li> </ul> </li> </ol> <h2 id="numerical-integration">Numerical integration</h2> <p>If we look again at the stirring animation, the milk did not magically jump from a heart to streaks. It was deformed gradually. At every moment milk and coffee particles had a velocity. A deformation in time is described by a <strong>velocity field</strong> \(u_t(x)\): the velocity of whatever is at the position \(x\) at the time \(t\). In the cup the field is a swirl around the spoon: every particle follows it. Note that because the spoon moves, the field changes with time!</p> <div class="l-body fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/coffee-flow.html" title="The stirring as a continuous flow" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 680 / 404; max-width: 680px"></iframe> </div> <div class="caption fm-cap"> The stirring as a continuous flow. The lines are the flow lines of the velocity field as it is at this moment, coloured by speed. They turn with the spoon, and the milk is carried along. </div> <p>The path \(x(t)\) of a particle solves a differential equation, \(\dot x(t) = u_t\big(x(t)\big)\) (for more on differential equations, see the series <a href="https://www.youtube.com/playlist?list=PLZHQObOWTQDNPOjrT6KVlfJuKtYTftqH6" rel="external nofollow noopener" target="_blank">Differential equations</a> by 3Blue1Brown). In general there is no formula for the solution, and a computer cannot follow a flow line exactly: it takes discrete steps. The simplest scheme is the explicit Euler method. Start from the current state, check the velocity, follow the arrow for a small time \(\Delta t\), and repeat from the next state. The update comes from replacing the derivative by a difference quotient:</p> \[u_t\big(x(t)\big) = \dot x(t) \approx \frac{x(t + \Delta t) - x(t)}{\Delta t} \quad\Longrightarrow\quad x(t + \Delta t) \approx x(t) + \Delta t\, u_t\big(x(t)\big).\] <p>Apply this update to every particle of the milk. Each particle reads the velocity at its own position, and together the particles carry the whole pattern along.</p> <div class="l-body fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/coffee-steps.html" title="Explicit Euler integration of a four-second stir" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 680 / 529; max-width: 680px"></iframe> </div> <div class="caption fm-cap"> One stir lasts four seconds. For each highlighted particle, the long arrow shows how far it would travel in one second at its current velocity. Step through to see the arrow shrink to the displacement for the selected time step, then watch the particle move to its tip. </div> <p>The step size matters because Euler uses the velocity at the start of each step. Try half-second steps and watch the milk drift towards the rim. Then try \(\Delta t = 1/64\) of a second. The particles update their velocities more often as the spoon turns, so the milk follows the dashed reference outline more closely. The price is more evaluations of \(u\).</p> <h2 id="fitting-probability-distributions">Fitting probability distributions</h2> <p>Before deforming anything, here is the most direct way to learn a distribution: choose a family of densities \(p_\theta\) with parameters \(\theta\) and fit it to the data. A mixture of Gaussians is the classical example,</p> \[p_\theta(x) = \sum_{k=1}^K \pi_k\, \mathcal N(x;\, \mu_k, \Sigma_k), \qquad \theta = \{\pi_k, \mu_k, \Sigma_k\}_{k=1}^K .\] <div class="l-body fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/gmmfit.html" title="Fitting a mixture of Gaussians" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 682 / 369; max-width: 682px"></iframe> </div> <div class="caption fm-cap"> Fitting a mixture of Gaussians to samples: collect the samples, start with Gaussians at random places, then adapt weights, means and covariances. The number shown is the loss introduced below. </div> <p>Two questions come up. What does “fit” mean exactly? And is a mixture of Gaussians the best choice?</p> <h3 id="one-way-to-measure-a-fit-kl-divergence">One way to measure a fit: KL-divergence</h3> <div class="fm-skip"> <p>Below we explain the intuition behind the KL divergence. If you are already familiar with the topic, feel free to skip to the next section.</p> </div> <details> <summary>The intuition behind the KL divergence</summary> <p>Intuitively, to fit the data means to make the model distribution \(p_\theta\) close to the unknown \(p_{\text{target}}\) (in this section we write it \(q\), to keep the formulas short). But how do we measure distance between two distributions? Let’s understand the intuition behind the Kullback–Leibler divergence, the standard measure of choice:</p> \[D_{\mathrm{KL}}(q \,\Vert\, p_\theta) = \int q(x)\,\log\frac{q(x)}{p_\theta(x)}\,dx = \mathbb E_{x \sim q}\Big[\log\frac{q(x)}{p_\theta(x)}\Big] .\] <p>Why does this measure make sense? The example below follows the video <a href="https://www.youtube.com/watch?v=SxGYPqCgJWM" rel="external nofollow noopener" target="_blank">Intuitively Understanding the KL Divergence</a> by Adian Liusie. Take the simplest data there is: flips of a coin,</p> \[\text{H}\;\text{H}\;\text{T}\;\text{H}\;\text{T}\;\text{T}\;\text{H}\;\dots \qquad N_H \text{ heads},\; N_T \text{ tails},\; N = N_H + N_T .\] <p>Here \(q\) is the true distribution of the coin, which gives heads with probability \(q_H\) and tails with probability \(q_T\), and \(p\) is a model of it, with \(p_H\) and \(p_T\). How much more likely is the sequence we saw under the true distribution than under the model? The flips are independent, so the probability of the whole sequence is a product, and the ratio of the two probabilities is a product of ratios. Each flip contributes another factor, so we look at a geometric mean (i.e., “per flip”), with the \(N\)-th root:</p> \[\Big(\prod_{i=1}^N \frac{q(x_i)}{p(x_i)}\Big)^{1/N} = \Big(\frac{q_H^{N_H}\, q_T^{N_T}}{p_H^{N_H}\, p_T^{N_T}}\Big)^{1/N} .\] <p>Take the logarithm, which turns the products into sums, and let the number of flips grow. The share of heads, \(N_H/N\), approaches \(q_H\), and the share of tails approaches \(q_T\):</p> \[\frac{N_H}{N}\log\frac{q_H}{p_H} + \frac{N_T}{N}\log\frac{q_T}{p_T} \;\longrightarrow\; \sum_x q(x)\log\frac{q(x)}{p(x)} .\] <p>This is the KL divergence of the coin; for a continuous variable the sum becomes the integral above. So the KL divergence measures how much better, per sample and in the long run, the true distribution explains data drawn from it than the model does, on a logarithmic scale. If the model is the true distribution, every ratio is 1 and the divergence is 0. Otherwise it is positive: on average, no model explains the data better than the distribution that produced them. A textbook treatment is in <d-cite key="murphy2022probabilistic"></d-cite>.</p> <p>Do we have to minimise the KL divergence directly? Split the logarithm:</p> \[D_{\mathrm{KL}}(q \,\Vert\, p_\theta) = \underbrace{\mathbb E_{x\sim q}\big[\log q(x)\big]}_{\text{does not depend on } \theta} \;\underbrace{-\;\mathbb E_{x\sim q}\big[\log p_\theta(x)\big]}_{\text{cross-entropy}} .\] <p>The first term is a property of the data alone (its entropy, up to the sign): unknown, but the same for every \(\theta\). Only the second term moves when we change the model, so minimising the divergence is the same as minimising the cross-entropy</p> \[\mathcal L(\theta) = -\,\mathbb E_{x \sim q}\big[\log p_\theta(x)\big].\] </details> <h3 id="from-idealised-expectations-to-monte-carlo-estimates">From idealised expectations to Monte-Carlo estimates</h3> <div class="fm-skip"> <p>Below we explain how such expectations are estimated in practice: Monte Carlo estimates. If you are already familiar with the topic, feel free to skip to the next section.</p> </div> <details> <summary>Monte Carlo estimates</summary> <p>The loss \(\mathcal L(\theta)\) is an expectation over \(p_{\text{target}}\), which we do not know. How can we compute it during training? We cannot, but we can estimate it. An expectation is an average, and an average can be estimated from samples drawn according to the distribution:</p> \[\mathbb E_{x \sim p_{\text{target}}}\big[f(x)\big] \approx \frac{1}{N}\sum_{i=1}^N f(x_i), \qquad x_i \sim p_{\text{target}} .\] <p>This is the Monte Carlo method, and the samples are exactly what we have: the training set is a sample from \(p_{\text{target}}\). So \(\mathcal L(\theta) \approx -\frac1N \sum_i \log p_\theta(x_i)\), a quantity we can compute and differentiate. Keep this move in mind. Every loss below is an expectation, and every one of them is used through samples.</p> </details> <h3 id="why-a-mixture-of-gaussians-is-not-the-end-of-the-story">Why a mixture of Gaussians is not the end of the story</h3> <p>A mixture of Gaussians does not scale to images. A Gaussian in \(d\) dimensions needs at least \(d\) numbers, for its mean alone, and a vector representing, e.g., a photograph has thousands or even millions of dimensions. The parameter budget of 7 billion parameters buys only a couple of thousand such Gaussians, for a training set of a billion images:</p> <div class="l-page fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/paramcost.html" title="How many Gaussians does a parameter budget buy" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 751 / 202; max-width: 751px"></iframe> </div> <div class="caption fm-cap"> How many Gaussians does a fixed 7B parameter budget buy? The count depends on the size of a data point and on how much of the covariance is modelled. </div> <p>But there is also a second problem. We are usually interested in a whole family of distributions \(p_\theta(\,\cdot \mid y)\). For example, one for every prompt \(y\). A mixture has no natural input through which a condition could enter.</p> <div class="l-body fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/condfam-two.html" title="One distribution per prompt" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 664 / 214; max-width: 664px"></iframe> </div> <div class="caption fm-cap"> One distribution per prompt: all the images, and the images that fit each of two prompts. </div> <h2 id="learning-probability-distributions">Learning probability distributions</h2> <h3 id="a-network-that-learns-a-probability-distribution">A network that learns a probability distribution</h3> <p>A neural network has both properties Gaussian mixtures lack. First, its parameters are shared across the whole space. This allows us to avoid the problem of a decreasing number of Gaussians in higher dimensions. Second, a network accepts extra inputs, so learning a whole family of distributions is natural.</p> <p>One might try to do the following: select a random point in the space of interest (e.g., the space of images), input it into the network and ask it to output a reasonable image. The underlying idea here is that the network will learn how to convert the initial sampling distribution (think of a Gaussian) into the distribution of interest $p_{\text{target}}$.</p> <div class="l-page fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/net-whole.html" title="A network that turns samples of a Gaussian into samples of the data" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 982 / 344; max-width: 982px"></iframe> </div> <div class="caption fm-cap"> A network that turns samples of a Gaussian into samples of the data. The inputs, drawn from \(p_0\) (left), are converted using the network \(\Phi_\theta\) to a data distribution (right, the target distribution displayed faintly). The first inputs go through one at a time, then in growing batches. </div> <p>Let’s figure out what it means mathematically. The network takes an input \(X_0 \sim p_0\) and returns \(X = \Phi_\theta(X_0)\). Its outputs follow a distribution determined by the model parameters. When this distribution has a density \(p_\theta\), we can use the cross-entropy loss from earlier, \(\mathcal L(\theta) = -\,\mathbb E_{x \sim p_{\text{target}}}\big[\log p_\theta(x)\big]\). How do we evaluate \(p_\theta(x)\) at a training point?</p> <h3 id="deforming-probability">Deforming probability</h3> <p>Passing a random input through a network always produces a probability distribution. To train by likelihood, we also need to evaluate the output density at each training point. A smooth, invertible map with a smooth inverse gives us a way to do this. We can trace each output back to its input and account for how much the map stretched or compressed the volume around it.</p> <p>Take a region \(A\) of inputs and its image \(B = \Phi_\theta(A)\). An output lands in \(B\) exactly when its input lies in \(A\), so</p> \[\mathbb P[X \in B] = \mathbb P[X_0 \in A] \quad\Longleftrightarrow\quad \int_B p_\theta(x)\,dx = \int_A p_0(x_0)\,dx_0 .\] <p>Changing variables from \(x_0\) to \(x = \Phi_\theta(x_0)\) in the integral on the right gives</p> \[\int_B p_\theta(x)\,dx = \int_B p_0\big(\Phi_\theta^{-1}(x)\big)\,\big\vert \det D\Phi_\theta^{-1}(x) \big\vert \,dx .\] <p>Since this holds for every region \(B\), we get:</p> \[p_\theta(x) = p_0\big(\Phi_\theta^{-1}(x)\big)\,\big\vert \det D\Phi_\theta^{-1}(x) \big\vert .\] <p>The Jacobian \(D\Phi_\theta\) is the linear map that approximates \(\Phi_\theta\) near a point, and its determinant is therefore the local change of volume (for more intuitions on the determinant, see the video <a href="https://www.youtube.com/watch?v=Ip3X9LOh2dk" rel="external nofollow noopener" target="_blank">The determinant</a> by 3Blue1Brown):</p> <div class="l-body fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/jacdet.html" title="How a map changes area locally" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 562 / 409; max-width: 562px"></iframe> </div> <div class="caption fm-cap"> How a map changes area locally. The grid is carried by the map, and each cell is coloured by its change of area. For the highlighted cell the two arrows are the images of its sides, and the number is the area they span divided by the area of the cell. Click a cell to check the behaviour at other points. </div> <div class="fm-question"> <p>A deformation can change the shape of a density completely. Below, a density with a single mode becomes a density with several. How is this possible, when no mass is created?</p> </div> <details> <summary>The answer</summary> <p>This is the result of the $\big\vert \det D\Phi_\theta^{-1}(x) \big\vert$ part: the mass at the target point $y$ is squeezed or stretched depending on the derivative value (Jacobian in higher dimensions) \(p_{\theta}(x) = p_0(x_0) / \vert\varphi'(x_0)\vert\).</p> </details> <div class="l-page fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/warp1d.html" title="A unimodal density deformed into a multimodal one" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 682 / 390; max-width: 682px"></iframe> </div> <div class="caption fm-cap"> A unimodal density becomes multimodal. Bottom: the density of \(X\). Top: the density of \(Y = \varphi(X)\) for \(\varphi(x) = x + s \sin(t x)\). The grey lines show where points are sent. </div> <h3 id="computing-the-output-density-of-the-network">Computing the output density of the network</h3> <p>We can build such a map by composing invertible layers. Let’s follow a Gaussian sample \(X_0 \sim p_0\) through the network. Layer \(k\) sends \(X_{k-1}\) to \(X_k = \varphi_k(X_{k-1})\). After the last layer we have \(X_N = \Phi_\theta(X_0) \sim p_\theta\), where \(\Phi_\theta = \varphi_N \circ \dots \circ \varphi_1\).</p> <div class="l-page fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/net-layers.html" title="The same network, layer by layer" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 982 / 344; max-width: 982px"></iframe> </div> <div class="caption fm-cap"> The network of the first figure, layer by layer. The layer that is lit is the one at work. Right: the samples on their way through the network; they take the colour of the layer that moves them, and after the last layer they lie on the data, shown faintly. </div> <p>If each layer is smooth and has a smooth inverse, we can apply the same density calculation one layer at a time. Write \(p_k\) for the density of \(X_k\). To evaluate \(p_\theta(x) = p_N(x)\) at an output \(x\), we work backwards from the last layer to \(p_0\).</p> \[\begin{aligned} p_\theta(x) &amp;= p_{N-1}\big(\varphi_N^{-1}(x)\big)\,\big\vert\det D\varphi_N^{-1}\big\vert \\ &amp;= p_{N-2}\big(\varphi_{N-1}^{-1}\circ\varphi_N^{-1}(x)\big)\,\big\vert\det D\varphi_{N-1}^{-1}\big\vert\,\big\vert\det D\varphi_N^{-1}\big\vert \\ &amp;\;\;\vdots \\ &amp;= p_0\big(\varphi_1^{-1}\circ\dots\circ\varphi_N^{-1}(x)\big)\,\prod_{k=1}^N \big\vert\det D\varphi_k^{-1}\big\vert \\ &amp;= p_0\big(\Phi_\theta^{-1}(x)\big) \prod_{k=1}^N \big\vert\det D\varphi_k^{-1}\big\vert \end{aligned}\] <p>Note that this also determines how we could compute the cross-entropy loss (the logarithm turns the product into a sum):</p> \[\mathcal L(\theta) = -\,\mathbb E_{x\sim p_{\text{target}}}\Big[ \log p_{\theta}(x)\Big]= -\,\mathbb E_{x\sim p_{\text{target}}}\Big[\log p_0\big(\Phi_\theta^{-1}(x)\big) + \sum_{k=1}^N \log\big\vert\det D\varphi_k^{-1}\big\vert\Big],\] <p>with each determinant evaluated at the point where the inverse passes through layer \(k\). So we have to make sure that the inverse of every layer exists, and we have to be able to compute the determinant of its Jacobian. These two requirements shape the whole family of normalizing flows <d-cite key="rezende2015variational,papamakarios2021normalizing"></d-cite>. Let’s take a brief look at one such approach.</p> <h3 id="residual-flows">Residual flows</h3> <p>One way to meet the requirements is to use a residual block <d-cite key="he2015deep"></d-cite>, which changes its input only a little:</p> \[\varphi_k(x) = x + \delta\, u_k(x) .\] <p>With a proper choice of \(u_k\) and $\delta$, both requirements can be guaranteed. If \(\delta\,u_k\) is a contraction, the block is invertible <d-cite key="behrmann2019invertible,chen2019residual"></d-cite>. With more structure the determinant becomes easy as well. An optional example is available below.</p> <details> <summary>An example: a triangular block</summary> <p>Write the block out component by component. Its \(i\)-th output is \(x_i + \delta\,u_{k,i}(x)\), so</p> \[D\varphi_k(x) = D\big(x + \delta\,u_k(x)\big) = D\begin{pmatrix} x_1 + \delta\,u_{k,1}(x) \\ x_2 + \delta\,u_{k,2}(x) \\ \vdots \\ x_d + \delta\,u_{k,d}(x) \end{pmatrix}.\] <p>In general every component depends on all of \(x_1, \dots, x_d\), and the Jacobian is a full \(d \times d\) matrix. Now restrict the network: let the first component of \(u_k\) depend only on \(x_1\), the second only on \(x_1\) and \(x_2\), and in general the \(i\)-th only on the first \(i\) coordinates, \(u_{k,i}(x_1, \dots, x_i)\). Then</p> \[\begin{aligned} D\varphi_k(x) &amp;= D\begin{pmatrix} x_1 + \delta\,u_{k,1}(x_1) \\ x_2 + \delta\,u_{k,2}(x_1, x_2) \\ \vdots \\ x_d + \delta\,u_{k,d}(x_1, \dots, x_d) \end{pmatrix} \\[0.8em] &amp;= \begin{pmatrix} 1 + \delta\,\partial_1 u_{k,1} &amp; 0 &amp; \cdots &amp; 0 \\ * &amp; 1 + \delta\,\partial_2 u_{k,2} &amp; &amp; \vdots \\ \vdots &amp; &amp; \ddots &amp; 0 \\ * &amp; \cdots &amp; * &amp; 1 + \delta\,\partial_d u_{k,d} \end{pmatrix}. \end{aligned}\] <p>The determinant of a triangular matrix is the product of its diagonal:</p> \[\det D\varphi_k(x) = \prod_{i=1}^d \big(1 + \delta\,\partial_i u_{k,i}\big),\] <p>\(d\) numbers multiplied instead of a \(d \times d\) determinant. One can also prove that with proper choice of $\delta$ one can make each block easy to invert, one coordinate at a time.</p> </details> <p>At a general level, what you should focus your attention on is that all of this is non-trivial and requires constraining the network. Ordinary networks do things that are not invertible all the time: a ReLU sends every negative number to zero, a network with more outputs than inputs puts all its outputs on a thin surface, and so on.</p> <p>Moreover, remember about the \(\big\vert \det D\Phi_\theta^{-1}(x) \big\vert\) term in the loss. It has to be evaluated at every training point, in every training step. For a general network this is a determinant of a \(d \times d\) matrix, which takes on the order of \(d^3\) operations, and for a 256×256 colour image \(d\) is about 200 000.</p> <p>To train by likelihood this way, we need a network we can invert and a Jacobian determinant we can compute efficiently. Is there an easier way to learn to sample from the target distribution?</p> <h3 id="understanding-the-meaning-of-a-residual-block">Understanding the meaning of a residual block</h3> <p>Let’s take a look at the Residual Flows at work with a very suggestive example distribution:</p> <div class="l-page fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/coffee-unstir.html" title="A chain of residual blocks, and what it does to a very suggestive distribution" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 1000 / 444; max-width: 1000px"></iframe> </div> <div class="caption fm-cap"> A chain of residual blocks at work. Press next twice: once to see what each block adds to its input, and once more to see how this visualisation relates to what we've already seen. </div> <p>Does the deformation remind you of anything? Use the “next” button to:</p> <ol> <li>First see the visualised outputs of the residual blocks for some samples</li> <li>Then add colours to make the analogy super clear</li> </ol> <p>The deformation is the milk in a cup one we saw when discussing deformable simulation! The blocks un-stir it: each block undoes one slice of the stirring. But this is what we did in the numerical integration section - only with time flowing in the opposite direction. Put the two formulas next to each other:</p> \[\underbrace{x_k = x_{k-1} + \delta\, u_k(x_{k-1})}_{\text{residual block}} \qquad\qquad \underbrace{x(t+\Delta t) \approx x(t) + \Delta t\,u_t\big(x(t)\big)}_{\text{Euler numerical integration}}\] <p>I hope it’s clear that, in essence, they are the same formula. A residual block is one step of a numerical integration, and a residual flow learns a numerical integration with the step size and the number of steps frozen into the architecture <d-cite key="chen2018neural"></d-cite>. This is the key idea of flow matching: <strong>learn the velocity</strong>, not the resulting deformation. Then use numerical integration to obtain the result.</p> <h2 id="learning-flows">Learning flows</h2> <div class="l-body fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/flowrows.html" title="A probability flow and its velocity field" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 680 / 367; max-width: 680px"></iframe> </div> <div class="caption fm-cap"> A probability flow. Left: samples of a simple distribution carried along a velocity field. Right: the field at the same moment, coloured by speed. The menu changes the pair of distributions. </div> <p>Some vocabulary for what follows. The <strong>flow</strong> \(\varphi : [0, 1] \times \mathbb R^d \to \mathbb R^d\) records where points end up: \(\varphi_t(x_0)\) is the position at time \(t\) of the point that started at \(x_0\). Under it lies a time-dependent vector field, the velocity field,</p> \[\frac{d}{dt}\varphi_t(x) = u_t\big(\varphi_t(x)\big), \qquad \varphi_0(x) = x,\] <p>and this is the thing we will learn directly: the network is now \(v_\theta(t, x)\), which takes a time and a position and returns a velocity. The family of distributions we encounter along the way, determined by \(\varphi_t(X_0)\) for \(X_0 \sim p_0\), is called the <strong>probability path</strong> \(p_t\). It starts at a simple distribution, \(p_0 = \mathcal N(0, I)\), and we want it to end at the target, \(p_1 \approx p_{\text{target}}\).</p> <h3 id="if-we-knew-the-velocity-field">If we knew the velocity field</h3> <p>Suppose for a moment that the velocity field were known, as it is in the cup example. Take the stirred cup as the start and the heart of milk as the target. The field that leads from one to the other is the stirring, run backwards. We can fit the network to the known velocities by least squares:</p> \[\mathcal L_{\text{FM}}(\theta) = \mathbb E_{\,t \sim U[0,1],\; x \sim p_t}\, \big\lVert v_\theta(t, x) - u_t(x) \big\rVert^2 .\] <p>The loss has four ingredients: sample a moment in time, sample a point in space where the flow actually passes at that moment, check the velocity that the network gives there, and compare it against the target velocity. A training step draws moments and points at random and compares the two velocities.</p> <div class="l-page fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/coffee-learn.html" title="Fitting a network to a known velocity field" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 1060 / 490; max-width: 1060px"></iframe> </div> <div class="caption fm-cap"> Fitting a network to a known velocity field. Step through the first training step: moments in time, points in the cup at those moments, the outputs of the network, the true velocities. After that a small network is trained in your browser, and from time to time training stops to compare the true flow with the flow that the network produces. </div> <p>Note that during training this is plain regression. The numerical integration appears only afterwards, when we want to use the field that was learned.</p> <h3 id="what-we-get">What we get</h3> <p>Three things are gained by learning the velocity instead of the deformation.</p> <ul> <li> <strong>Any network.</strong> \(v_\theta(t, x)\) needs no invertibility: a differential equation with a well-behaved right-hand side can always be run backwards in time.</li> <li> <strong>An arbitrary number of steps.</strong> How many integration steps are taken, how large they are and how they are computed are no longer baked into the network. These are chosen when sampling.</li> <li> <strong>The density is still there, implicitly.</strong> Along a trajectory, \(\log p_1(x_1) = \log p_0(x_0) - \int_0^1 \nabla\!\cdot u_t(x_t)\,dt\), the continuous version of \(\log p_0\big(\Phi_\theta^{-1}(x)\big) + \sum_{k} \log\big\vert\det D\varphi_k^{-1}\big\vert\) <d-cite key="chen2018neural"></d-cite>.</li> </ul> <p>Continuous normalizing flows train \(v_\theta\) by maximum likelihood with this last formula <d-cite key="chen2018neural,grathwohl2018ffjord"></d-cite>: every training step integrates the differential equation, and the divergence of a network along it, for every data point. That is correct, but slow. The regression above would be much cheaper.</p> <h2 id="flow-matching">Flow matching</h2> <h3 id="the-problem">The problem</h3> <p>But there are some problems. For images, we don’t know the stirring - if we did, we could just use it and there would be nothing to learn. Of the four ingredients of \(\mathcal L_{\text{FM}}\), two are missing. We cannot draw \(x \sim p_t\), because we do not know the probability path. And we have no target \(u_t(x)\), because we do not know the velocity field. All we have is noise that we can sample, at \(t = 0\), and a data set, at \(t = 1\). Infinitely many flows lead from the noise to the data. What can we do?</p> <div class="l-page fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/problem.html" title="What we have, and what we do not: noise, data, and nothing in between" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 1060 / 304; max-width: 1060px"></iframe> </div> <div class="caption fm-cap"> What we have, and what we do not: samples of the noise at \(t = 0\), a data set at \(t = 1\) (samples of a distribution that we do not know), and nothing in between. </div> <h3 id="one-data-point">One data point</h3> <p>We can design a reasonable path if the target distribution always produces the same thing, for example the same image: a data set with a single point \(x_1\). Draw the noise, \(x_0 \sim \mathcal N(0, I)\), and move every sample towards \(x_1\) along a straight line, shrinking the cloud on the way:</p> \[x_t = \sigma_t\, x_0 + t\, x_1, \qquad \sigma_t = 1 - (1 - \sigma_{\min})\, t .\] <div class="l-page fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/one-point.html" title="A probability path to a single data point" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 897 / 324; max-width: 897px"></iframe> </div> <div class="caption fm-cap"> The simple path of a single data point, drawn as a surface over the plane: a Gaussian that travels to the data point and narrows. On the floor: the velocity field that carries it. </div> <p>At time \(t\) these points are distributed as \(p_t(x \mid x_1) = \mathcal N\big(t\,x_1,\; \sigma_t^2 I\big)\). This is the <strong>conditional probability path</strong>, and it is our design choice: the standard Gaussian at \(t = 0\), and a Gaussian of width \(\sigma_{\min}\) gathered around \(x_1\) at \(t = 1\). As before, a velocity field determines the deformation, the <strong>conditional velocity field</strong> \(u_t(x \mid x_1)\). For this family of paths it can be written down <d-cite key="lipman2022flow"></d-cite>: differentiate \(x_t\) with respect to \(t\) and express \(x_0\) through \(x_t\), which gives</p> \[u_t(x \mid x_1) = \frac{x_1 - (1 - \sigma_{\min})\,x}{\sigma_t} .\] <p>With \(\sigma_{\min} = 0\) this is \((x_1 - x)/(1 - t)\), and along the path of one sample it is constant, \(x_1 - x_0\): every point moves on a straight line at constant speed.</p> <h3 id="many-data-points">Many data points</h3> <p>For a data set with multiple samples, a natural thing to try is to give every data point its own simple path, and average the paths over the data points. Think of a mixture of Gaussians we discussed at the beginning, with a mixture at each time $t$. For a sample of \(n\) points it’s a sum \(\frac1n \sum_k p_t(x \mid x_k)\), and in general it is:</p> \[p_t(x) = \int p_t(x \mid x_1)\; p_{\text{target}}(x_1)\, dx_1 ,\] <div class="l-page fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/mixture.html" title="The mixture of the simple paths of several data points" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 1060 / 420; max-width: 1060px"></iframe> </div> <div class="caption fm-cap"> The mixture of the simple paths of seven data points. Left: one Gaussian per data point, each on its way to its data point (the pins); the net over them is their sum. Right: the sum, the mixture \(p_t\), coloured by the data points that contribute at each place. </div> <p>At \(t = 0\) every conditional path is the standard Gaussian, so \(p_0 = \mathcal N(0, I)\). At \(t = 1\) there is a narrow Gaussian around each data point, so \(p_1 \approx p_{\text{target}}\). In between we have a valid probability path from noise to data.</p> <h3 id="lets-hit-the-road">Let’s hit the road</h3> <p>We have a probability path. Which velocity field moves the points along it? Let’s come back to <a href="#road-puzzle">the opening puzzle</a>. This time we can see the whole road. The yellow cars still drive at 100 km/h and the blue cars at 50 km/h, but the faster cars overtake the slower ones. The mix of cars now depends on where and when we look.</p> <div class="l-page fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/cars-hint.html" title="One speed for all the cars at a place" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 1060 / 462; max-width: 1060px"></iframe> </div> <div class="caption fm-cap"> A hint: counting cars. Think about the question first, then press next. </div> <p>Choose a given kilometer on the road (without choosing the lane) and a moment in time. If someone asked you how quickly people are driving here at this moment, what would you say?</p> <p>Take a snapshot of that stretch of road. Average the speeeds of each lane, weighting each by its share of the cars in the snapshot.</p> \[\bar v(x, t) = \frac{\rho_{\text{yellow}}(x, t) \cdot 100 + \rho_{\text{blue}}(x, t) \cdot 50}{\rho_{\text{yellow}}(x, t) + \rho_{\text{blue}}(x, t)} ,\] <p>where \(\rho\) counts cars per km. The lower picture checks that this is the right speed. Its cars cannot be told apart, and each of them drives at the weighted average speed of the place where it is. They take different paths from the real cars: no grey car ever overtakes another. Yet at every moment the crowd as a whole is the same, and the curve that counts the cars per km is identical in both pictures.</p> <h3 id="the-velocity-of-the-mixture">The velocity of the mixture</h3> <p>Now translate. A lane is a data point. The cars per kilometre in that lane correspond to the point’s Gaussian density \(p_t(x \mid x_k)\). Dividing that density by the sum across lanes gives the lane’s share of the cars at \(x\). The speed of the lane is the conditional velocity \(u_t(x \mid x_k)\). So the guess for the velocity of the mixture is the weighted average</p> \[u_t(x) = \sum_k w_k(x)\, u_t(x \mid x_k), \qquad w_k(x) = \frac{p_t(x \mid x_k)}{\sum_j p_t(x \mid x_j)} .\] <div class="l-page fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/mix-velocity.html" title="The velocity of the mixture at a point" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 1060 / 460; max-width: 1060px"></iframe> </div> <div class="caption fm-cap"> The velocity of the mixture at a point \(x\). Step through it: the velocity of every Gaussian at \(x\), how much each of them counts at a later moment, and their weighted average. Afterwards the point can be dragged and the time moved. </div> <p>For a general data distribution the sum becomes an integral, and the weights become the distribution of the data point given where we are:</p> \[u_t(x) = \int u_t(x \mid x_1)\; \frac{p_t(x \mid x_1)\, p_{\text{target}}(x_1)}{p_t(x)}\; dx_1 = \int u_t(x \mid x_1)\; p_t(x_1 \mid x)\; dx_1 .\] <p>It can actually be proved that this works: the averaged field moves the points exactly along the mixture path \(p_t\) (Theorem 1 of <d-cite key="lipman2022flow"></d-cite>). The proof rests on the continuity equation, which describes how a density changes when a velocity field carries its mass. It deserves pictures of its own, and we leave it to a separate post.</p> <h3 id="training-on-the-weighted-averages">Training on the weighted averages</h3> <p>With this, both missing ingredients are back. A sample of \(p_t\): read the formula of the mixture as a recipe, pick a data point at random, then draw a point from its Gaussian. A target at that point: the weighted average of the conditional velocities there.</p> <div class="l-page fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/mix-sampling.html" title="Sampling training points and their targets" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 1060 / 460; max-width: 1060px"></iframe> </div> <div class="caption fm-cap"> Training data from \(p_t\). Left: the Gaussians of the data points at one moment, seen from above; a circle is one standard deviation. Right: their sum. Step through one sample, then draw more with the buttons: the dots are samples of \(p_t\), the arrows their targets. </div> <p>Regressing \(v_\theta(t, x)\) on these weighted averages is a way to train, known as <em>empirical flow matching</em> (EFM) <d-cite key="bertrand2025closed"></d-cite>. With a large data set the sum cannot run over all the data points for every training point, so it runs over a batch of \(M\) of them, and this batch always includes the data point that the training point came from. With that precaution the smaller average still has the right mean (Proposition 2 of the paper).</p> <div class="l-page fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/efm-moons.html" title="Training on the weighted averages, on two moons" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 1060 / 534; max-width: 1060px"></iframe> </div> <div class="caption fm-cap"> Empirical flow matching on two moons, with targets averaged over 32 data points. Below: training. A batch consists of 16 moments in time with 8 points each; three of the moments are drawn, with the points, the outputs of the network and the targets. Above: from time to time training stops, and the noise is carried along the field of the network as it is at that moment. </div> <p>Training on the weighted average works, but each target uses several data points. Could we train on the velocity from just one of them? That’s the question we tried out with the two score columns on the road.</p> <h3 id="scoring-a-guess">Scoring a guess</h3> <p>In the <a href="#road-puzzle">opening puzzle</a>, a guess of 80 km/h scored 100 against the average speed and 500 against the individual cars. Change the guess to 85 and the scores fall to 25 and 425. Both rules reward the change by exactly 75 points. In fact, adding 400 to the first score gives the second for <strong>every</strong> guess. So the two columns give the same ranking, ties included.</p> <p>Now stand at any place \(x\) at a time \(t\) and make a prediction \(v_p\). The expanded table compares two ways to score it.</p> <ul> <li>Score the guess against the local average speed \(\bar v = \mathbb E_{\text{lane}}[v_{\text{lane}}]\). Its squared error is \((v_p - \bar v)^2\).</li> <li>Score the guess against a randomly chosen car at that place and time, then average the squared errors over the choice of car: \(\mathbb E_{\text{lane}}\big[(v_p - v_{\text{lane}})^2\big]\).</li> </ul> <div class="fm-question"> <p>Move the marker to a stretch of road with a different mix of cars. What happens to the gap between the columns? Do the rankings still agree?</p> </div> <div class="l-page fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/guess-road.html" title="Scoring a guess of the speed, two ways" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 1060 / 486; max-width: 1060px"></iframe> </div> <div class="caption fm-cap"> Scoring a guess, two ways. Drag \(x\) along the road or move the time: the shares of the two lanes at \(x\) change, and with them both scores of every guess. The last column is the difference of the two scores. The last row takes a guess of your own. </div> <p>The gap can change when you move the marker. Nevertheless, at any fixed place and time, it is the same for every guess. Why is that?</p> <p>Add and subtract the average speed inside the square:</p> \[\begin{aligned} \mathbb E_{\text{lane}}\big[(v_p - v_{\text{lane}})^2\big] &amp;= \mathbb E_{\text{lane}}\big[(v_p - \bar v + \bar v - v_{\text{lane}})^2\big] \\ &amp;= (v_p - \bar v)^2 + 2\,(v_p - \bar v)\,\underbrace{\mathbb E_{\text{lane}}\big[\bar v - v_{\text{lane}}\big]}_{=\,0} + \underbrace{\mathbb E_{\text{lane}}\big[(\bar v - v_{\text{lane}})^2\big]}_{\text{no } v_p \text{ in it}} . \end{aligned}\] <p>The middle term vanishes because the deviations from the average cancel; that is what makes \(\bar v\) the average. The last term is the spread of the speeds at that place, and the prediction does not appear in it. So</p> \[\mathbb E_{\text{lane}}\big[(v_p - v_{\text{lane}})^2\big] = (v_p - \bar v)^2 + \text{const} .\] <h3 id="from-one-place-to-the-whole-road">From one place to the whole road</h3> <p>But this is at a fixed place and time on the road. Written with everything it depends on,</p> \[\mathbb E_{\text{lane} \sim p_t(\cdot \mid x)} \big[ (v_p(x, t) - v_{\text{lane}}(x, t))^2 \big] = \big( v_p(x, t) - \bar v(x, t) \big)^2 + \text{const}(x, t) ,\] <p>and what we want is a prediction for every place and every time. So take the expectation of both sides over the times \(t\) and over the places \(x \sim p_t\) where the cars are:</p> \[\begin{aligned} &amp;\mathbb E_{t}\, \mathbb E_{x \sim p_t}\, \mathbb E_{\text{lane} \sim p_t(\cdot \mid x)} \big[ (v_p(x, t) - v_{\text{lane}})^2 \big] \\ &amp;\qquad = \mathbb E_{t}\, \mathbb E_{x \sim p_t} \big[ \big( v_p(x, t) - \bar v(x, t) \big)^2 \big] + \underbrace{\mathbb E_{t}\, \mathbb E_{x \sim p_t} \big[ \text{const}(x, t) \big]}_{\text{const}} . \end{aligned}\] <p>On the right is the score against the average speed, over the whole road and all times, plus a constant. But more important things happen on the left. Because</p> \[p_t(x)\; p_t(\text{lane} \mid x) \;=\; p_t(x, \text{lane}) \;=\; p_t(\text{lane})\; p_t(x \mid \text{lane}) ,\] <p>we can change the sampling order:</p> \[\begin{aligned} &amp;\mathbb E_{t}\, \mathbb E_{x \sim p_t}\, \mathbb E_{\text{lane} \sim p_t(\cdot \mid x)} \big[ (v_p(x, t) - v_{\text{lane}})^2 \big] \\ &amp;\qquad = \mathbb E_{t}\, \mathbb E_{\text{lane} \sim p_t}\, \mathbb E_{x \sim p_t(\cdot \mid \text{lane})} \big[ (v_p(x, t) - v_{\text{lane}})^2 \big] . \end{aligned}\] <p>Pick a time, pick a lane, then pick a place on that lane. We no longer have to average over lanes at a given place and time!</p> <p>This is an equality of expectations, so it holds exactly. In practice we see finitely many cars, and almost never two of them at the same place and time: the prediction at a place has to be learned from the cars around it. So the recipe works as long as the prediction changes smoothly with place and time, and what it learns at one place carries over to the neighbouring ones.</p> <h3 id="conditional-vs-empirical-flow-matching-at-a-fixed-moment">Conditional vs Empirical Flow Matching at a fixed moment</h3> <p>Let us first try this at a single moment in time. We start with some prediction $v_p(x)$: a curve over the road. With CFM, we train one lane at a time: every sample pulls the curve towards a target, near its own place.</p> <div class="l-page fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/guess-curve.html" title="Two prediction curves trained on the same cars" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 1060 / 518; max-width: 1060px"></iframe> </div> <div class="caption fm-cap"> Two prediction curves for the whole road, trained at the same places, one car at a time. Top row: prediction is scored against selected lane speed. Bottom row: prediction is scored against the weighted average of both lanes at a given place. Dashed: the true average speed. Below the rows: where the cars are, and how many cars every km of road has received. The slider changes how smooth the curves are. </div> <p>No place comes up twice, but every stretch of road keeps receiving cars in its own mix, and the curve, which is smooth, pools them. In the end, it settles on the average speed.</p> <p>Both rows end at the same curve, and the lower one gets there with less wandering. Is that a fair comparison? Both rows take the same steps with the same cars, so the prediction is evaluated and corrected equally often. For a network that is the same amount of work. But the lower row uses more information in every step: its target is worked out from both lanes, while the upper row looks only at the lane of its car. The counters in the figure show the difference. The same is true of empirical flow matching. An average over \(M\) data points for every training point costs \(M\) data points, but no additional passes through the network, and an average is cheap next to those: its authors measure about 2% of extra time for every 100 data points in the average, on CIFAR-10 <d-cite key="bertrand2025closed"></d-cite>.</p> <h3 id="conditional-vs-empirical-flow-matching-over-the-entire-time-axis">Conditional vs Empirical Flow Matching over the entire time axis</h3> <div class="l-page fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/guess-surface.html" title="A prediction for every place and time" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 1060 / 540; max-width: 1060px"></iframe> </div> <div class="caption fm-cap"> A prediction for every place and time. The figure starts with the curve of one moment; press next to unfold the time axis and to train on cars from any moment. The surface is the prediction, and the net is the average speed. Drag the picture to turn it. The slider sets the width of the bumps that the prediction is made of. </div> <p>The slider shows what smoothness does. Too smooth, and the prediction blurs where the average speed changes quickly. Too wiggly, and it follows a single car.</p> <p>It is worth being precise about the role that smoothness plays. The equality of the two expectations does not need it: every single car is an unbiased sample of the loss, and a perfectly flexible prediction fed with endless fresh cars would also land on the averages. Smoothness matters because the cars are finitely many. Almost no place is seen twice, so the prediction at a place can only be learned by pooling the cars around it, in place and in time. Pool too widely, and places with different average speeds are mixed. Pool too narrowly, and single cars show through.</p> <p>In a neural network there is no single slider for this. The smoothness is set by the size of the network, by weight decay, by penalties on its slope (or spectral normalisation), by the frequencies of its input features (such as the time embedding), by noise on the inputs, and by the moment at which training stops.</p> <p>In flow matching this trade-off affects what a model generates. For a fixed training set and \(\sigma_{\min}=0\), following the exact empirical velocity field to \(t=1\) returns one of the training examples. In that setting, generating new examples by exact integration requires a learned field that differs from the empirical one <d-cite key="bertrand2025closed"></d-cite>. On the road, we saw how smoothing across a sharp change in the mean velocity can produce such a difference.</p> <h3 id="back-to-the-arrows">Back to the arrows</h3> <p>The road was flow matching in disguise. Here is the dictionary.</p> <table> <thead> <tr> <th>the cars</th> <th>flow matching</th> </tr> </thead> <tbody> <tr> <td>a lane</td> <td>a data point \(x_1\)</td> </tr> <tr> <td>the speed of a lane, \(v_{\text{lane}}\)</td> <td>the conditional velocity \(u_t(x \mid x_1)\)</td> </tr> <tr> <td>the shares of the lanes at \(x\), \(p_t(\text{lane} \mid x)\)</td> <td>the weights \(w_k(x) = p_t(x_1 \mid x)\)</td> </tr> <tr> <td>the weighted speed at \(x\), \(\bar v(x, t)\)</td> <td>the velocity of the mixture, \(u_t(x)\)</td> </tr> <tr> <td>the prediction \(v_p(x, t)\)</td> <td>the network \(v_\theta(t, x)\)</td> </tr> <tr> <td>scoring against the average speed</td> <td>the flow matching loss \(\mathcal L_{\text{FM}}\)</td> </tr> <tr> <td>scoring against a random lane, \(\mathbb E_{\text{lane}}\big[(v_p - v_{\text{lane}})^2\big]\)</td> <td>the conditional loss \(\mathcal L_{\text{CFM}}\)</td> </tr> <tr> <td>a time, a lane, then a place on the road</td> <td>\(t\), then \(x_1 \sim p_{\text{target}}\), then \(x \sim p_t(\cdot \mid x_1)\)</td> </tr> </tbody> </table> <p>In the words of the right-hand column: draw a time, draw a data point, draw a point from its simple path, and regress on the conditional velocity of that one data point. This is the <strong>conditional flow matching</strong> loss,</p> \[\mathcal L_{\text{CFM}}(\theta) = \mathbb E_{\,t \sim U[0,1],\; x_1 \sim p_{\text{target}},\; x \sim p_t(\cdot \mid x_1)}\, \big\lVert v_\theta(t, x) - u_t(x \mid x_1) \big\rVert^2 ,\] <p>and the road argument, applied to arrows, gives \(\mathcal L_{\text{CFM}}(\theta) = \mathcal L_{\text{FM}}(\theta) + \text{const}\). The constant is the expected squared deviation of a conditional arrow from its local mean. It is independent of \(\theta\), so the two losses have the same gradient (Theorem 2 of <d-cite key="lipman2022flow"></d-cite>). Every ingredient of \(\mathcal L_{\text{CFM}}\) is something we have.</p> <p>We can now read the two columns of the road puzzle as training losses. For a given training set, fix a time \(t\) and a position \(x\) on the mixture path. The weighted mean of the individual arrows gives the full-data EFM target. Scoring against that arrow gives the first column. CFM scores against one arrow. Given \(x\) and \(t\), that arrow comes from data point \(x_k\) with probability \(w_k(x)\). Averaging its score over those possibilities gives the second column. The gap between the columns is independent of the prediction, so even after averaging over positions and times the two losses rank candidate velocity fields in the same order.</p> <div class="l-body fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/cfm-arrows.html" title="CFM targets near x and the EFM target at x" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 680 / 424; max-width: 680px"></iframe> </div> <div class="caption fm-cap"> Each colored arrow is the CFM target for one sample. The wide, shaded arrow is the EFM target at \(x\), computed from all seven data points. Press next to draw more samples. The thin arrow approaches the mean of the CFM targets over the circle, which approximates the target at its center. </div> <h3 id="the-algorithm">The algorithm</h3> <p>Everything is in place. For the simple paths with \(\sigma_{\min} = 0\), where \(x_t = (1 - t)\,x_0 + t\,x_1\) and the conditional velocity along the path is \(x_1 - x_0\), the whole algorithm fits on a few lines. Training:</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>initialize θ randomly
+repeat:
+    x1 ← a minibatch of data
+    x0 ← noise  N(0, I)             # same shape as x1
+    t  ← Uniform[0, 1]              # one per example
+    xt ← (1 − t) · x0 + t · x1
+    L  ← ‖ v_θ(t, xt) − (x1 − x0) ‖²
+    θ  ← θ − η · ∇_θ L
+</code></pre></div></div> <p>Inference:</p> <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>x ← noise  N(0, I)
+for k = 0, …, n−1:
+    x ← x + (1/n) · v_θ(k/n, x)     # one Euler step
+return x
+</code></pre></div></div> <p>During training there is no likelihood, no Jacobian and no differential equation: one evaluation of the network per example, as in any regression. The solver appears only during inference. Reference implementations, and many variants of the paths and of the pairing between noise and data, are collected in <d-cite key="lipman2024guide,tong2023improving"></d-cite>.</p> <div class="l-body fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/train.html" title="Training a flow-matching model in the browser" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 669 / 384; max-width: 669px"></iframe> </div> <div class="caption fm-cap"> Watch it learn. A small network \(v_\theta(t, x)\) is trained in your browser on the conditional loss. The picture shows the data and, on top of it, the samples that the network generates right now with 12 Euler steps. Press "train". </div> <p>Inference is numerical integration, so the earlier lesson applies: the number of steps changes the result. The learned flow bends, a single Euler step cuts every bend, and a handful of steps is often enough.</p> <div class="l-body fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/euler.html" title="The number of integration steps at sampling time" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 657 / 404; max-width: 657px"></iframe> </div> <div class="caption fm-cap"> The number of integration steps at inference. The loop shows the learned flow, then inference with a single straight Euler step, then with more and more steps; the buttons choose a number of steps. Dashed: the exact paths. </div> <h2 id="extensions-and-applications">Extensions and applications</h2> <h3 id="diffusion-models">Diffusion models</h3> <p>Diffusion models <d-cite key="ho2020denoising,song2021score"></d-cite> are close relatives. They also move noise to data, and they are trained with the same trick of regressing on a target that is built from one data point at a time. The differences are in what is learned and in how samples are drawn.</p> <div class="l-body fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/ode-sde.html" title="A deterministic path and a noisy path from noise to data" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 564 / 218; max-width: 564px"></iframe> </div> <div class="caption fm-cap"> Two ways from noise to data: a deterministic path, and a path that receives fresh noise at every step. </div> <table> <thead> <tr> <th> </th> <th>flow matching</th> <th>diffusion</th> </tr> </thead> <tbody> <tr> <td>sampling</td> <td>an ordinary differential equation: deterministic steps</td> <td>a stochastic differential equation: every step adds noise</td> </tr> <tr> <td>what is learned</td> <td>the velocity \(u_t\)</td> <td>the score \(\nabla_x \log p_t\), or the noise</td> </tr> <tr> <td>training</td> <td>regression on a per-data-point target</td> <td>regression on a per-data-point target</td> </tr> </tbody> </table> <p>The table is a simplification: a diffusion model can also be sampled deterministically <d-cite key="song2021score"></d-cite>. A great starting point for learning more is the course MIT 6.S184, Flow Matching and Diffusion Models, which treats both in one framework: <a href="https://www.youtube.com/watch?v=9eJQQVrUUoI&amp;list=PL57nT7tSGAAXwjhDYcxEycx5W7YoSrZyt" rel="external nofollow noopener" target="_blank">its lectures</a> are online, and so are its lecture notes <d-cite key="holderrieth2025introduction"></d-cite>.</p> <h3 id="learning-families-of-distributions">Learning families of distributions</h3> <p>A prompt \(y\) picks one member of a family of distributions \(\{\, p_{\text{target}}(\,\cdot \mid y) \,\}_y\), indexed by \(y\), and we want to learn the whole family at once.</p> <div class="l-body fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/condfam.html" title="A family of conditional distributions" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 700 / 168; max-width: 700px"></iframe> </div> <div class="caption fm-cap"> A family of distributions indexed by a condition: all the data, and the data for three different prompts. </div> <p>In general \(y\) stands for conditioning tokens: a text prompt, a class label, an image, an observation of a robot. With a network, learning the family is a small change. The condition becomes one more input, \(v_\theta(t, x, y)\). Note that here we are not talking about the conditional loss we used earlier! The conditioning we are discussing here chooses one specific member from the family of distributions. The training pairs \((x_1, y)\) come from the data set, the loss is unchanged, and at inference we fix \(y\) and run the same numerical integration loop.</p> <div class="l-body fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/conditioning.html" title="The condition is one more input of the network" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 528 / 230; max-width: 528px"></iframe> </div> <div class="caption fm-cap"> The condition is one more input of the network. </div> <p>This view can be made precise: for every \(y\) there is a probability path that ends at \(p_{\text{target}}(\,\cdot \mid y)\) and a velocity field that generates it, and a single network is trained to model the fields for all values of \(y\) (Section 4.10 of <d-cite key="lipman2024guide"></d-cite>, Section 5 of <d-cite key="holderrieth2025introduction"></d-cite>). In practice the conditional model is usually combined with classifier-free guidance <d-cite key="ho2022classifier,zheng2023guided"></d-cite>, which makes the samples follow the prompt more closely. A good place to understand it is the guest video by Welch Labs on 3Blue1Brown, <a href="https://www.youtube.com/watch?v=iv-5mZ_9CPY" rel="external nofollow noopener" target="_blank">But how do AI images and videos actually work?</a>. Systems built this way include image generators <d-cite key="esser2024scaling"></d-cite> and speech generators <d-cite key="le2023voicebox"></d-cite>.</p> <h3 id="robot-actions">Robot actions</h3> <p>Flow matching is not only for images. In $\pi 0$ <d-cite key="black2024pi0"></d-cite> the thing being generated is a chunk of future actions of a robot <d-cite key="zhao2023learning"></d-cite>, and the condition is what the robot observes: camera images, a language command and the state of the arm. An inference starts from noise and integrates a learned velocity field for a few steps; the robot executes the resulting chunk and asks again.</p> <div class="l-body fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/chunkflow.html" title="Action chunks generated by a flow, one inference at a time" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 631 / 434; max-width: 631px"></iframe> </div> <div class="caption fm-cap"> Action chunks generated by a flow, computed exactly from a small set of demonstrations. The gripper has to pass two obstacles, and the demonstrations go around each of them on the left or on the right. Each inference carries noise to a chunk of 50 positions in 10 Euler steps; the chain on the left lights up while it runs. Then the robot executes the chunk, and the next inference starts from where the gripper is. </div> <h2 id="summary">Summary</h2> <p>Flow matching deforms a distribution we can sample onto the distribution of the data. A deformation in time is a flow, and a flow is described by a velocity field, so the network learns velocities. At inference we draw a sample of the known distribution and integrate numerically, with as many steps as we choose. Learning the velocity avoids the explicit constraints that a network has to satisfy when it represents the deformation itself. We build a simple path for each data point. At a given position and time, the weighted average of the conditional velocities gives the velocity field we are after. Using one sampled velocity as the target gives, on average, the same loss gradient as using that weighted average. Through conditioning, one network learns a whole family of distributions at once, which is what makes the method useful for prompts and for robots.</p> <h2 id="exercises">Exercises</h2> <h3 id="hitting-the-data-exactly">Hitting the data exactly</h3> <p>Suppose we draw \(x_1 \sim p_{\text{target}}\). What should the conditional distribution at \(t=1\) be so that the mixture ends exactly at \(p_{\text{target}}\)?</p> <details> <summary>Answer</summary> <p>Set \(\sigma_{\min}=0\). The conditional endpoint is then a point mass (a Dirac delta) at \(x_1\), so we return exactly the point we drew. Since that draw came from \(p_{\text{target}}\), the endpoint has distribution \(p_{\text{target}}\). If we choose \(x_1\) uniformly from a fixed training set, the same argument gives its empirical distribution.</p> </details> <h3 id="the-proofs">The proofs</h3> <p>If you are eager to learn more, I encourage you to open the flow matching paper <d-cite key="lipman2022flow"></d-cite> and try to prove its theorems. The following reading of conditional expectation may help (it follows <a href="https://math.stackexchange.com/a/2909504" rel="external nofollow noopener" target="_blank">an answer on Mathematics Stack Exchange</a>). \(\mathbb E[X \mid \mathcal B]\) is a random variable: the average of \(X\) over each cell that the information \(\mathcal B\) lets you resolve. Think of a camera. Finer information gives a sharper picture, and a low-resolution picture of a high-resolution picture is just the low-resolution picture.</p> <div class="l-page fm-fig"> <iframe src="/2027/assets/html/2027-04-30-a-two-lane-road-to-flow-matching/condexp.html" title="Conditional expectation as a camera" loading="lazy" frameborder="0" scrolling="no" style="aspect-ratio: 1130 / 389; max-width: 1130px"></iframe> </div> <div class="caption fm-cap"> Conditional expectation as a camera, for a function on an interval (right) and for a picture (left). Step through it: a fine camera, a coarse camera, and the coarse camera pointed at the fine picture. </div> <p>In symbols,</p> \[\mathbb E\big[\,\mathbb E[X \mid \mathcal B]\;\big\vert\;\mathcal A\big] = \mathbb E[X \mid \mathcal A] \quad\text{whenever } \mathcal A \subseteq \mathcal B .\] <p>The velocity of the mixture is such a picture: \(u_t(x)\) is the conditional arrow \(u_t(x \mid x_1)\) seen at the resolution of the time and the place alone, without the data point.</p> </d-article> <d-appendix> <d-footnote-list></d-footnote-list> <d-citation-list></d-citation-list> </d-appendix> <d-bibliography src="/2027/assets/bibliography/2027-04-30-a-two-lane-road-to-flow-matching.bib"></d-bibliography> <d-article> <h2 class="text-3xl font-semibold mb-4 mt-12">Enjoy Reading This Article?</h2> <p class="mb-2">Here are some more articles you might like to read next:</p> <ul class="list-disc pl-7 my-3 space-y-2 marker:text-[var(--global-theme-color)]"> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/who-watches-the-watcher/">Who Watches the Watcher? Lessons Learned from Evaluating Agent Monitors and Auditors</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/when-b-is-correct/">When B Is Correct</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/what-did-the-alignment-learn/">Wrong Clips, Right Categories: What Cross-Modal Alignment Actually Learns</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/uncertainty-schur-convexity/">The Fundamental Role of Schur-Convexity in Uncertainty Estimation</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/two-fragments-or-silence/">Two Fragments, or Silence</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/toward-observability-in-physical-ai/">Toward Observability in Physical AI: Offline Diagnostics for Imitation-Learning Policies in Robotics</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/same-collision-different-prediction/">Same Collision, Different Prediction: A Lesson in JEPA Masking</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/sac-massive-sim/">Getting SAC to Work on a Massively Parallel Simulator: An RL Journey With Off-Policy Algorithms</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/rubrics-and-rl/">Do Rubrics Expand What RL Can Learn?</a> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/2027/blog/repeatable-evaluation-decisions/">How Many Tasks Make an AI Evaluation Decision Repeatable?</a> </li> </ul> <br> <br> </d-article> </div> <footer class="sticky-bottom mt-5" role="contentinfo"> <div class="container"> © Copyright 2026 ICLR Blog. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. Photos from <a href="https://unsplash.com" target="_blank" rel="external nofollow noopener">Unsplash</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/2027/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script src="/2027/assets/js/distillpub/overrides.js"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/2027/assets/al_math/js/mathjax-setup.js"></script> <script src="/2027/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/2027/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/2027/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/2027/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/2027/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/2027/assets/al_img_tools/js/zoom.js"></script> <script defer src="/2027/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/2027/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/2027/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-home",
+    title: "home",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/2027/";
+    },
+  },{id: "nav-about",
+          title: "about",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/about/";
+          },
+        },{id: "nav-call-for-blogposts",
+          title: "call for blogposts",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/call/";
+          },
+        },{id: "nav-submitting",
+          title: "submitting",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/submitting/";
+          },
+        },{id: "nav-reviewing",
+          title: "reviewing",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/2027/reviewing/";
+          },
+        },{id: "dropdown-lt-strong-gt-2027-lt-strong-gt",
+              title: "<strong>2027</strong>",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2027/";
+              },
+            },{id: "dropdown-2026",
+              title: "2026",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2026/";
+              },
+            },{id: "dropdown-2025",
+              title: "2025",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2025/";
+              },
+            },{id: "dropdown-2024",
+              title: "2024",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2024/";
+              },
+            },{id: "dropdown-2023",
+              title: "2023",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blogposts.github.io/2023/";
+              },
+            },{id: "dropdown-2022",
+              title: "2022",
+              description: "",
+              section: "Dropdown",
+              handler: () => {
+                window.location.href = "https://iclr-blog-track.github.io/home/";
+              },
+            },{id: "post-who-watches-the-watcher-lessons-learned-from-evaluating-agent-monitors-and-auditors",
+        
+          title: "Who Watches the Watcher? Lessons Learned from Evaluating Agent Monitors and Auditors",
+        
+        description: "Agentic runs require monitoring systems as a precursor to intervention. We evaluate online monitors, offline auditors and cascades of both across multiple agent benchmarks, and show that the baseline, the label view and the operating point change what a single number means. Before trusting a monitor to watch agents, practitioners should check it against a simple but strong baseline, on trustworthy labels with a validated alert threshold; our lessons show how critical these considerations are.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/who-watches-the-watcher/";
+          
+        },
+      },{id: "post-when-b-is-correct",
+        
+          title: "When B Is Correct",
+        
+        description: "On 72 multiple-choice questions, simply reversing the order of two answer lines changed whether activation steering helped either of two small language models. With the correct letters held fixed and 144 responses per layout, steering gave Qwen 11 more correct answers when A appeared first and 19 fewer when B appeared first. SmolLM2 showed the same reversal, yet all 16 of its changed answers went to the first printed line, compared with 13 of 34 for Qwen.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/when-b-is-correct/";
+          
+        },
+      },{id: "post-wrong-clips-right-categories-what-cross-modal-alignment-actually-learns",
+        
+          title: "Wrong Clips, Right Categories: What Cross-Modal Alignment Actually Learns",
+        
+        description: "Rotating audio and video embeddings into alignment boosts cross-modal event recognition from 36.7% to 90.5%. Yet shuffling almost every audio-video pair within its category gives nearly the same score (90.1%), while holding out categories breaks transfer completely.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/what-did-the-alignment-learn/";
+          
+        },
+      },{id: "post-the-fundamental-role-of-schur-convexity-in-uncertainty-estimation",
+        
+          title: "The Fundamental Role of Schur-Convexity in Uncertainty Estimation",
+        
+        description: "A short two-sentence abstract belongs here. It should summarize the post in plain text, without mathematics or hyperlinks, to mirror the website description field.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/uncertainty-schur-convexity/";
+          
+        },
+      },{id: "post-two-fragments-or-silence",
+        
+          title: "Two Fragments, or Silence",
+        
+        description: "A personal agent that already holds memories a person chose to share should default to silence. The only other action returns two original fragments and one gap or causal constraint already written in those texts. Semantic nearness is not a trigger, a feeling of insight is not evidence, and whether an interruption is worth making is left open.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/two-fragments-or-silence/";
+          
+        },
+      },{id: "post-toward-observability-in-physical-ai-offline-diagnostics-for-imitation-learning-policies-in-robotics",
+        
+          title: "Toward Observability in Physical AI: Offline Diagnostics for Imitation-Learning Policies in Robotics",
+        
+        description: "When an imitation-learning policy fails on a robot, the failure looks the same whatever its cause. We turn the terms of the objective behind the Action Chunking Transformer into ten metrics that are computed from recorded demonstrations and saved policies, without a robot, each with a reference value and a place in a fixed order of checks. On two datasets from a low-cost arm they expose a policy that had been trained for 2 steps instead of 20,000, policies that take 98 to 100% of their output from the cameras and almost none from the joint readings, and a measure of the demonstrations alone that anticipates the error after training.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/toward-observability-in-physical-ai/";
+          
+        },
+      },{id: "post-same-collision-different-prediction-a-lesson-in-jepa-masking",
+        
+          title: "Same Collision, Different Prediction: A Lesson in JEPA Masking",
+        
+        description: "We use a collision simulation to ask which cues a predictor learns when part of an object's history is hidden. Flipping a lamp while holding the collision fixed changed the predicted motion more after masked training, even when the lamp was an imperfect cue. The experiment illustrates how masking and the training data together shape what a predictor relies on.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/same-collision-different-prediction/";
+          
+        },
+      },{id: "post-getting-sac-to-work-on-a-massively-parallel-simulator-an-rl-journey-with-off-policy-algorithms",
+        
+          title: "Getting SAC to Work on a Massively Parallel Simulator: An RL Journey With...",
+        
+        description: "This post details how to get the Soft Actor-Critic (SAC) and other off-policy reinforcement learning algorithms to work on massively parallel simulators (e.g., Isaac Sim with thousands of robots simulated in parallel) for locomotion tasks. In addition to tuning SAC for speed, the post also explores why SAC fails where PPO succeeds, highlighting a common problem in task design that many codebases share.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/sac-massive-sim/";
+          
+        },
+      },{id: "post-do-rubrics-expand-what-rl-can-learn",
+        
+          title: "Do Rubrics Expand What RL Can Learn?",
+        
+        description: "In reinforcement learning, reward signals not only tell a model whether its response is correct but also shape what it can learn from feedback. By evaluating responses against explicit criteria, rubrics provide more fine-grained feedback than conventional outcome-based rewards. This raises a natural question: can rubric-based rewards push the reasoning capabilities of a model beyond those of its base model, rather than simply increasing the likelihood of generating solutions it can already produce? In this blog post, we explore this question across four mathematical reasoning benchmarks, examining pass@k under different sampling budgets to understand how reasoning capability boundaries evolve. We further investigate the roles of rubric generation models, judge models, and reward design, and compare rubric-based reinforcement learning with supervised fine-tuning distillation and on-policy distillation. Through these experiments, we aim to better understand whether, and under what conditions, rubric-based rewards can expand a model’s reasoning capabilities.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/rubrics-and-rl/";
+          
+        },
+      },{id: "post-how-many-tasks-make-an-ai-evaluation-decision-repeatable",
+        
+          title: "How Many Tasks Make an AI Evaluation Decision Repeatable?",
+        
+        description: "An item count chosen for global score dependability need not achieve a specified level of repeat agreement at a pass/fail threshold. We compare the standard projected dependability coefficient Phi with exact finite-pool classification probabilities on matched response matrices from seven historical AI benchmark populations and three fixed synthetic cuts. On SWE-bench Verified, the projected count is 43 items, while 66 items are required for 90% mean agreement.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/repeatable-evaluation-decisions/";
+          
+        },
+      },{id: "post-why-llms-can-t-let-go",
+        
+          title: "Why LLMs Can’t Let Go",
+        
+        description: "Large Language Models now have access to more context than ever before. A natural concern in this setting has been their ability to retrieve information from that context. We shed light on other problems that arise with larger context windows, not because the model cannot locate the relevant context, but because it cannot ignore the irrelevant context. Through this blog, we aim to motivate the community to think beyond scaling the context window and retrieving the right context, toward the model's ability to ignore what it does not need.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/remembering-everything/";
+          
+        },
+      },{id: "post-what-are-we-actually-evolving-four-flaws-in-darwin-gödel-machine-s-polyglot-environment",
+        
+          title: "What Are We Actually Evolving? Four Flaws in Darwin Gödel Machine’s Polyglot Environment...",
+        
+        description: "Self-evolving coding agents such as Darwin Gödel Machine (DGM) use their scores on a coding benchmark to guide changes to their own harnesses, such as their tools and workflows. We find four flaws in DGM’s adaptation of Aider’s Polyglot benchmark that make these scores an unreliable signal of which harness changes improve a coding agent. Later systems such as Huxley-Gödel Machine reuse the same evaluation setup and inherit these flaws. In this misconfigured Polyglot environment, agents can access hidden tests and solutions, task contracts and supporting files are missing, and most Java tests are skipped. Repairing the environment shifts the score of the same gpt-5.4-mini agent by up to 12 percentage points. This sensitivity to the evaluation setup warrants revisiting DGM’s reported gains on Polyglot, and it shows that a correct environment is a precondition for reliable self-evolving systems.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/polyglot-dgm/";
+          
+        },
+      },{id: "post-one-recipe-for-the-geometries-of-flow-matching-from-densities-to-amplitudes",
+        
+          title: "One recipe for the geometries of flow matching: from densities to amplitudes",
+        
+        description: "Flow matching assumes your data lives in Euclidean space, but when each data point is a distribution, the straight line and the L2 norm need replacing, and Wasserstein, the linear mixture and Fisher-Rao are the usual choices. We show that all three come from one recipe with three ingredients, a state, a rule for how it may change and a price for each change. Made with complex amplitudes as the state, the same recipe gives a fourth geometry, Fubini-Study; samples cannot see its phase, and a signed amplitude lets a network represent zeros of a density that survive small errors.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/one-recipe-for-flow-matching-geometries/";
+          
+        },
+      },{id: "post-does-a-verlet-like-orbit-transformer-respect-the-mirror",
+        
+          title: "Does a Verlet-Like Orbit Transformer Respect the Mirror?",
+        
+        description: "Small transformers trained only on counter-clockwise planetary orbits have been described as close to Verlet, a textbook integration rule. Reflecting held-out orbits about their major axes leaves the physics intact, yet all five noise-free baseline models, trained on counter-clockwise orbits only, fail the mirror test while their rotation-equivariance error stays small. Adding mirrored orbits at the same training budget narrows the gap in steps, and for the recipe with input noise the outcome at 50% mirrored data is undetermined by the criterion set in advance.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/mirror-test/";
+          
+        },
+      },{id: "post-one-kernel-two-transformers-what-a-text-llm-megakernel-teaches-us-about-streaming-tts",
+        
+          title: "One Kernel, Two Transformers - What a Text-LLM Megakernel Teaches Us About Streaming...",
+        
+        description: "Persistent megakernels have made batch-one LLM decoding fast by removing launch overhead. I take one written for a 0.6B text model and reuse it, almost unchanged, for both transformer stages of a streaming codec-language-model TTS system. The speedups are real. So are two quality problems: the model inserts extra words, and it does not stop on its own.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/megakernel-reuse-streaming-tts/";
+          
+        },
+      },{id: "post-mamba-as-a-hierarchy-of-input-driven-linear-systems",
+        
+          title: "Mamba as a Hierarchy of Input-Driven Linear Systems",
+        
+        description: "Mamba's building block is a data-driven linear dynamical system. This post presents an interactive guide to these basic units through small hand-set demonstrations. We start with a single real and complex pole, continue through latches, a gyroscope–compass filter, path integration and a rhythm grammar and end up with the full Mamba-3 block.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/mamba-input-driven/";
+          
+        },
+      },{id: "post-halpern-iteration-accelerates-solving-high-order-monotone-variational-inequalities",
+        
+          title: "Halpern Iteration Accelerates Solving High-Order Monotone Variational Inequalities",
+        
+        description: "In this blog post, we revisit the classical Halpern iteration in 1967 and show its new applications in designing second- and higher-order methods for solving smooth monotone variational inequalities (MVI).  By using a large-step inexact Halpern iteration, we propose a novel pth-order method Halpern-ATM, that achieves a fast convergence rate of Õ(T⁻ᵖ). This improves the best-known results for p ≥ 2 since 2012 and matches the classical extragradient method for p = 1.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/halpern-npe/";
+          
+        },
+      },{id: "post-telling-a-small-misaligned-model-it-39-s-being-evaluated-barely-moves-its-misalignment",
+        
+          title: "Telling a small misaligned model it's being evaluated barely moves its misalignment",
+        
+        description: "We trained a small open model on bad medical advice, then told it that it was being evaluated. Its answers stayed about as misaligned as before. The AI judge that scores those answers made a far bigger difference, which affects anyone measuring emergent misalignment or comparing results across papers.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/emergent-misalignment-evaluation-cue/";
+          
+        },
+      },{id: "post-the-linear-algebra-of-long-context-what-recurrent-sequence-models-remember-forget-and-overwrite",
+        
+          title: "The Linear Algebra of Long Context: What Recurrent Sequence Models Remember, Forget, and...",
+        
+        description: "This post examines scalar forgetting, directional memory updates, and simplified linear test-time training through a common matrix-state framework. Controlled associative-recall experiments illustrate why an exact local overwrite does not guarantee better aggregate retrieval.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/duality-of-sequence-models/";
+          
+        },
+      },{id: "post-does-recursion-depth-mean-difficulty-a-token-level-test-of-mixture-of-recursions",
+        
+          title: "Does Recursion Depth Mean Difficulty? A Token-Level Test of Mixture-of-Recursions",
+        
+        description: "Mixture-of-Recursions gives each token a recursion depth, and the original paper reads depth as a sign of how easily the next token can be predicted. We test that reading on the released 360M checkpoints. Depth is low for easy tokens and stops rising near the median token, the hardest tokens gain least from depth, and token-choice depth is almost a fixed function of the token.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/does-recursion-depth-mean-difficulty/";
+          
+        },
+      },{id: "post-don-39-t-overthink-your-distributed-training",
+        
+          title: "Don't Overthink Your Distributed Training",
+        
+        description: "With PyTorch's DDP on up to 32 GPUs, communication accounts for at most about 6.5% of training time on V100 GPUs with Omni-Path, and at most about 5.5% on H100 GPUs with InfiniBand, across transformers, a CNN and a deep MLP. No communication-reduction method can save more than that, so for models that fit on one GPU, plain synchronous data parallelism leaves little to gain.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/distributed-training/";
+          
+        },
+      },{id: "post-sample-blog-post",
+        
+          title: "Sample Blog Post",
+        
+        description: "Your blog post's abstract. Please add your abstract or summary here and not in the main body of your text. Do not include math/latex or hyperlinks.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/distill-example/";
+          
+        },
+      },{id: "post-from-strongly-adaptive-regret-to-discounted-regret",
+        
+          title: "From Strongly Adaptive Regret to Discounted Regret",
+        
+        description: "Discounted regret against a fixed comparator equals a convex combination of regrets over suffixes of the horizon. This post derives the identity, uses it to transfer strongly adaptive regret bounds to all nonincreasing discount sequences at once, and collects the resulting uniform bounds for convex, strongly convex, and exp-concave losses.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/discounted-regret-suffix-mixture/";
+          
+        },
+      },{id: "post-what-makes-a-good-toy-example-for-diffusion-models",
+        
+          title: "What Makes a Good Toy Example for Diffusion Models?",
+        
+        description: "Toys help us see diffusion algorithms at the level of distributions—but the moment we design a toy, we may also (without noticing) choose a side by baking in preferences. Using guidance in diffusion models, we examine how class separation and within-class branching shape what we conclude from a toy.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/diffusion-toy-design/";
+          
+        },
+      },{id: "post-consequence-persistence-admission-control-for-open-agent-meshes",
+        
+          title: "Consequence Persistence: Admission Control for Open Agent Meshes",
+        
+        description: "Open agent meshes can fail while every request stays valid. A consequence persistence layer checks a signed header before the payload, keeps a subjective viability score by identity and task, and makes viability fall much faster than it recovers. The price of a fresh identity, false isolation of long tasks, and the receiver's cost of holding a delay are left open.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/consequence-persistence/";
+          
+        },
+      },{id: "post-the-calculus-of-inference-time-scaling-unifying-process-verification-group-relative-policy-optimization-grpo-and-search-based-reasoning",
+        
+          title: "The Calculus of Inference-Time Scaling: Unifying Process Verification, Group Relative Policy Optimization (GRPO),...",
+        
+        description: "An investigation of training signals, verification reliability, and budgeted inference in reasoning systems. Interactive exhibits examine group-relative gradients, process aggregation, synthetic search, and verifier selection risk.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/calculus-of-inference-time-scaling/";
+          
+        },
+      },{id: "post-beyond-surface-alignment-belief-as-the-gateway-to-deep-alignment-in-llms",
+        
+          title: "Beyond Surface Alignment: Belief as the Gateway to Deep Alignment in LLMs",
+        
+        description: "Surface alignment changes what a model says, but whether the internal beliefs of a model are aligned with the real world still lacks effective, unified means of observation and intervention. On this basis, we argue that alignment research needs to attend more closely to the belief layer.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/beyond-surface-alignment/";
+          
+        },
+      },{id: "post-a-two-lane-road-to-flow-matching",
+        
+          title: "A Two-Lane Road to Flow Matching",
+        
+        description: "Imagine you're taking part in a somewhat bizarre competition. You're standing next to a two-lane road, and your goal is to guess the average speed of cars. Two judges score your guess. The first is fond of gadgets. He uses one to measure the average speed of all cars, then scores your guess against that number. The second prefers to keep things simple. He scores the same guess against some individual cars in turn, then averages those scores. Both judges use squared error. Will they rank the contestants in the same order? It turns out that the answer to this bizarre puzzle, together with many additional interactive visualisations, will help us learn how flow matching works: how we can use a velocity field to carry us from noise to beautiful images and beyond. Along the way, we see how empirical flow matching builds a target by averaging velocities and why conditional flow matching can train on one sampled velocity at a time.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/a-two-lane-road-to-flow-matching/";
+          
+        },
+      },{id: "post-a-pass-is-not-a-guard",
+        
+          title: "A Pass Is Not a Guard",
+        
+        description: "A truncated tool call wrote a 16-line file while the agent reported success. Building a conformance suite around that case exposed a harder problem: nine ways our own measurement produced a confident wrong answer, and the rules we added to stop it.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/a-pass-is-not-a-guard/";
+          
+        },
+      },{id: "post-a-post-with-marimo-snippets",
+        
+          title: "a post with marimo snippets",
+        
+        description: "running Python in the browser with marimo",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/marimo/";
+          
+        },
+      },{id: "post-یک-نوشتهٔ-راست-چین",
+        
+          title: "یک نوشتهٔ راست‌چین",
+        
+        description: "نمونه‌ای از پشتیبانی زبان‌های راست‌چین",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/rtl/";
+          
+        },
+      },{id: "books-the-godfather",
+          title: 'The Godfather',
+          description: "",
+          section: "Books",handler: () => {
+              window.location.href = "/2027/books/the_godfather/";
+            },},{id: "news-a-simple-inline-announcement",
+          title: 'A simple inline announcement.',
+          description: "",
+          section: "News",},{id: "news-a-long-announcement-with-details",
+          title: 'A long announcement with details',
+          description: "",
+          section: "News",handler: () => {
+              window.location.href = "/2027/news/announcement_2/";
+            },},{id: "news-a-simple-inline-announcement-with-markdown-emoji-sparkles-smile",
+          title: 'A simple inline announcement with Markdown emoji! <img class="emoji" title=":sparkles:" alt=":sparkles:" src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png" height="20" width="20"> <img class="emoji" title=":smile:" alt=":smile:" src="https://github.githubassets.com/images/icons/emoji/unicode/1f604.png" height="20" width="20">',
+          description: "",
+          section: "News",},{id: "projects-project-1",
+          title: 'project 1',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/1_project/";
+            },},{id: "projects-project-2",
+          title: 'project 2',
+          description: "a project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/2_project/";
+            },},{id: "projects-project-3-with-very-long-name",
+          title: 'project 3 with very long name',
+          description: "a project that redirects to another website",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/3_project/";
+            },},{id: "projects-project-4",
+          title: 'project 4',
+          description: "another without an image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/4_project/";
+            },},{id: "projects-project-5",
+          title: 'project 5',
+          description: "a project with a background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/5_project/";
+            },},{id: "projects-project-6",
+          title: 'project 6',
+          description: "a project with no image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/6_project/";
+            },},{id: "projects-project-7",
+          title: 'project 7',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/7_project/";
+            },},{id: "projects-project-8",
+          title: 'project 8',
+          description: "an other project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/8_project/";
+            },},{id: "projects-project-9",
+          title: 'project 9',
+          description: "another project with an image 🎉",
+          section: "Projects",handler: () => {
+              window.location.href = "/2027/projects/9_project/";
+            },},{id: "teachings-data-science-fundamentals",
+          title: 'Data Science Fundamentals',
+          description: "This course covers the foundational aspects of data science, including data collection, cleaning, analysis, and visualization. Students will learn practical skills for working with real-world datasets.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/data-science-fundamentals/";
+            },},{id: "teachings-introduction-to-machine-learning",
+          title: 'Introduction to Machine Learning',
+          description: "This course provides an introduction to machine learning concepts, algorithms, and applications. Students will learn about supervised and unsupervised learning, model evaluation, and practical implementations.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/2027/teachings/introduction-to-machine-learning/";
+            },},{
+        id: 'social-cv',
+        title: 'CV',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/assets/pdf/example_pdf.pdf", "_blank");
+        },
+      },{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%79%6F%75@%65%78%61%6D%70%6C%65.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-inspire',
+        title: 'Inspire HEP',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://inspirehep.net/authors/1010907", "_blank");
+        },
+      },{
+        id: 'social-rss',
+        title: 'RSS Feed',
+        section: 'Socials',
+        handler: () => {
+          window.open("/2027/feed.xml", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=qc6CJjYAAAAJ", "_blank");
+        },
+      },{
+        id: 'social-custom_social',
+        title: 'Custom_social',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.alberteinstein.com/", "_blank");
+        },
+      },{
+      id: 'light-theme',
+      title: 'Change theme to light',
+      description: 'Change the theme of the site to Light',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("light");
+      },
+    },
+    {
+      id: 'dark-theme',
+      title: 'Change theme to dark',
+      description: 'Change the theme of the site to Dark',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("dark");
+      },
+    },
+    {
+      id: 'system-theme',
+      title: 'Use system default theme',
+      description: 'Change the theme of the site to System Default',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("system");
+      },
+    },];
+
+</script> <script src="/2027/assets/al_search/js/shortcut-key.js"></script> </body> </html>
