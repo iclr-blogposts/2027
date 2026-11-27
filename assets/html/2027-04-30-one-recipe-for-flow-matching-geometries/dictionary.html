@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Four geodesics</title>
+<style>
+  :root { --bg:#fff; --fg:#1f2328; --muted:#6a737d; --grid:#e4e7eb; --panel:#fafbfc;
+    --w2:#2ca02c; --fr:#ff7f0e; --mix:#9467bd; --fs:#1f77b4; --im:#d62728; --ghost:#b8bec6; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --grid:#2a2f37; --panel:#161a20;
+    --w2:#5cc85c; --fr:#ffa04a; --mix:#b48ae0; --fs:#5aa7e0; --im:#ff6b6b; --ghost:#4a525c; } }
+  :root[data-theme="dark"] { --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --grid:#2a2f37; --panel:#161a20;
+    --w2:#5cc85c; --fr:#ffa04a; --mix:#b48ae0; --fs:#5aa7e0; --im:#ff6b6b; --ghost:#4a525c; }
+  html,body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:980px; margin:0 auto; padding:8px 16px 10px; box-sizing:border-box; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; margin-bottom:8px; }
+  .controls label { display:flex; align-items:center; gap:7px; white-space:nowrap; }
+  .controls input[type=range] { width:120px; }
+  .controls label.off { opacity:0.4; }
+  select, button { font:inherit; color:var(--fg); background:var(--panel); border:1px solid var(--grid); border-radius:6px; padding:3px 8px; }
+  button { cursor:pointer; min-width:64px; }
+  .val { font-variant-numeric:tabular-nums; color:var(--muted); min-width:2.6em; display:inline-block; }
+  .grid { display:grid; grid-template-columns:165px 1fr 150px; gap:5px 12px; align-items:center; }
+  .lab b { display:block; } .lab span { color:var(--muted); font-size:12px; font-family:ui-serif,Georgia,serif; }
+  .read { font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .read b { color:var(--fg); font-weight:600; }
+  canvas { width:100%; height:96px; display:block; background:var(--panel); border:1px solid var(--grid); border-radius:4px; }
+  .note { font-size:12px; color:var(--muted); margin-top:6px; }
+  @media (max-width:640px) { .grid { grid-template-columns:1fr; } canvas { height:88px; } }
+  /* legend swatches, shared by every widget of this post: line, dashed line, filled area, outline, dot, ring, triangle */
+  .lg { display:inline-block; vertical-align:middle; margin:0 4px 0 8px; box-sizing:border-box; }
+  .lg-line { width:16px; height:0; border-top:2.5px solid currentColor; }
+  .lg-dash { width:16px; height:0; border-top:2px dashed currentColor; }
+  .lg-fill { width:12px; height:10px; border:1.5px solid currentColor; border-radius:2px; background:color-mix(in srgb, currentColor 35%, transparent); }
+  .lg-box { width:12px; height:10px; border:1.5px solid currentColor; border-radius:2px; }
+  .lg-dot { width:9px; height:9px; border-radius:50%; background:currentColor; }
+  .lg-ring { width:9px; height:9px; border-radius:50%; border:1.5px solid currentColor; }
+  .lg-tri { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:9px solid currentColor; }
+  /* ---- shared look of every widget in this post (keep identical across widgets) ---- */
+  :root { --grid:#e4e7eb; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --grid:#2a2f37; } }
+  :root[data-theme="dark"] { --grid:#2a2f37; }
+  .wrap { max-width:1040px; padding:8px 16px 10px; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; margin-bottom:8px; font-size:14px; }
+  .controls label { display:flex; align-items:center; gap:7px; white-space:nowrap; }
+  .controls input[type=range] { width:120px; }
+  select, button { font:inherit; font-size:13px; color:var(--fg); background:var(--panel); border:1px solid var(--grid); border-radius:6px; padding:3px 9px; cursor:pointer; }
+  canvas { box-sizing:border-box; background:var(--panel); border:1px solid var(--grid); border-radius:4px; }
+  canvas.wheel, .ahead canvas { background:none; border:0; border-radius:0; }
+  .cap, .ttl { font-size:12px; color:var(--muted); margin:0 0 3px; text-align:left; }
+  .cap b, .ttl b { color:var(--fg); font-weight:600; }
+  .note { font-size:12.5px; color:var(--muted); margin-top:8px; line-height:1.45; }
+  .lgrow { margin:2px 0; } .lgrow > b:first-child { color:var(--fg); font-weight:600; margin-right:3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="controls">
+    <label>end ψ₁ <select id="preset">
+      <option value="gauss">a Gaussian</option>
+      <option value="packet">a wave packet</option>
+      <option value="excited">a signed state with one zero</option></select></label>
+    <label id="Ld">separation d <input id="d" type="range" min="0.5" max="6" step="0.05" value="3.5"><span class="val" id="dv"></span></label>
+    <label id="Lk">end phase e<sup>ikx</sup>, k <input id="k" type="range" min="0" max="12" step="0.25" value="6"><span class="val" id="kv"></span></label>
+    <label>t <input id="t" type="range" min="0" max="1" step="any" value="0.5"><span class="val" id="tv"></span></label>
+    <button id="play">play</button>
+  </div>
+  <div class="grid">
+    <div class="lab"><b style="color:var(--w2)">Wasserstein</b><span>∂μ/∂t + ∇·(μU) = 0</span></div>
+    <canvas id="c0"></canvas><div class="read" id="r0"></div>
+    <div class="lab"><b style="color:var(--mix)">Mixture (linear)</b><span>∂μ/∂t = rμ, flat price</span></div>
+    <canvas id="c2"></canvas><div class="read" id="r2"></div>
+    <div class="lab"><b style="color:var(--fr)">Fisher-Rao</b><span>∂μ/∂t = rμ</span></div>
+    <canvas id="c1"></canvas><div class="read" id="r1"></div>
+    <div class="lab fsrow"><b style="color:var(--fs)">Fubini-Study</b><span>∂ψ/∂t = −iHψ, μ = |ψ|²</span></div>
+    <canvas id="c3" class="fsrow"></canvas><div class="read fsrow" id="r3"></div>
+  </div>
+  <div class="note" id="note-mu">
+    <div class="lgrow"><b>Endpoints:</b> start ψ₀, a Gaussian amplitude; end ψ₁, chosen above.</div>
+    <div class="lgrow"><b>Each row:</b> <span class="lg lg-fill" style="color:var(--muted)"></span>μ<sub>t</sub>, in the row's colour; <span class="lg lg-dash" style="color:var(--ghost)"></span>μ₀ and μ₁; one vertical scale for all rows.</div>
+    <div class="lgrow fsrow"><b>Fubini-Study row, thin lines:</b> <span class="lg lg-line" style="color:var(--fg)"></span>Re ψ<sub>t</sub> <span class="lg lg-dash" style="color:var(--fg)"></span>Im ψ<sub>t</sub>.</div>
+  </div>
+</div>
+<script>
+(function () {
+  "use strict";
+  const N = 700, XL = -10, XR = 10, dx = (XR - XL) / N, SIG = 0.7;
+  const x = new Float64Array(N); for (let i = 0; i < N; i++) x[i] = XL + (i + 0.5) * dx;
+  const $ = (id) => document.getElementById(id);
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const gaussMu = (c, m = 1) => { const g = new Float64Array(N), z = m / Math.sqrt(2 * Math.PI * SIG * SIG);
+    for (let i = 0; i < N; i++) g[i] = z * Math.exp(-0.5 * ((x[i] - c) / SIG) ** 2); return g; };
+  const unit = (a) => { let s = 0; for (let i = 0; i < N; i++) s += a[i] * a[i]; s = Math.sqrt(s * dx); return a.map((v) => v / s); };
+  // the source is always the Gaussian amplitude at -d/2; the target sits at +d/2 and is a Gaussian (also for the wave packet,
+  // whose phase e^{ikx} is applied in build()) or a signed state with one zero, (x - c) times the Gaussian amplitude: signed, one zero at c
+  function endpoints(preset, d) { // real (signed) amplitudes, unit L2 norm
+    const a0 = gaussMu(-d / 2).map(Math.sqrt);
+    if (preset !== "excited") return [a0, gaussMu(d / 2).map(Math.sqrt)];
+    const c = d / 2, a1 = x.map((X) => (X - c) * Math.exp(-((X - c) ** 2) / (4 * SIG * SIG)));
+    return [a0, unit(a1)];
+  }
+  const NU = 4000;
+  function quantiles(m) { const C = new Float64Array(N + 1); for (let i = 0; i < N; i++) C[i + 1] = C[i] + m[i] * dx;
+    for (let i = 0; i <= N; i++) C[i] /= C[N]; const Q = new Float64Array(NU); let j = 0;
+    for (let u = 0; u < NU; u++) { const v = (u + 0.5) / NU; while (j < N - 1 && C[j + 1] < v) j++;
+      const f = C[j + 1] > C[j] ? (v - C[j]) / (C[j + 1] - C[j]) : 0.5; Q[u] = XL + (j + f) * dx; } return Q; }
+  function setup(cv) { const r = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * r) || cv.height !== Math.round(h * r)) { cv.width = Math.round(w * r); cv.height = Math.round(h * r); }
+    const g = cv.getContext("2d"); g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, w, h); return [g, w, h]; }
+  // x-axis tick labels, shared by every widget of this post
+  const xTicks = (g, w, h, base, X, lo, hi, name) => { g.strokeStyle = css("--grid"); g.lineWidth = 1; g.beginPath(); g.moveTo(X(lo), base + 0.5); g.lineTo(X(hi), base + 0.5); g.stroke();
+    g.fillStyle = css("--muted"); g.font = "10px system-ui, sans-serif"; g.textAlign = "center"; const st = (hi - lo) > 9 ? 2 : 1;
+    for (let v = Math.ceil(lo / st) * st; v <= hi + 1e-9; v += st) g.fillText(Math.abs(v) < 1e-9 ? (name || "x") + " = 0" : String(v), X(v), h - 3); };
+  function draw(cv, ys, ymax, col, ghosts, waves, signed) {
+    const [g, w, h] = setup(cv), p = 4, base = h - 16, X = (i) => p + i / (N - 1) * (w - 2 * p), Xv = (v) => p + (v - (XL + dx / 2)) / ((N - 1) * dx) * (w - 2 * p),
+      Y = signed ? (v) => base / 2 - v / ymax * (base / 2 - p) : (v) => base - v / ymax * (base - p);
+    xTicks(g, w, h, base, Xv, XL + 1, XR - 1);
+    if (signed) { g.beginPath(); g.moveTo(p, base / 2); g.lineTo(w - p, base / 2); g.strokeStyle = css("--grid"); g.lineWidth = 1; g.stroke(); }
+    if (!ys) { g.fillStyle = css("--muted"); g.font = "12px system-ui, sans-serif"; g.textAlign = "center";
+      g.fillText("not available for these endpoints", w / 2, h / 2 + 4); return; }
+    for (const gh of ghosts) { g.beginPath(); for (let i = 0; i < N; i++) (i ? g.lineTo : g.moveTo).call(g, X(i), Y(gh[i]));
+      g.strokeStyle = css("--ghost"); g.lineWidth = 1; g.setLineDash([3, 3]); g.stroke(); g.setLineDash([]); }
+    if (waves) { const mid = base / 2, amax = waves.amax; g.globalAlpha = 0.7; g.lineWidth = 1;
+      for (const [arr, dash] of [[waves.re, []], [waves.im, [3, 2]]]) { g.beginPath(); g.setLineDash(dash);
+        for (let i = 0; i < N; i++) (i ? g.lineTo : g.moveTo).call(g, X(i), mid - arr[i] / amax * (mid - p)); g.strokeStyle = css("--fg"); g.stroke(); }
+      g.setLineDash([]); g.globalAlpha = 1; }
+    g.beginPath(); g.moveTo(X(0), Y(0)); for (let i = 0; i < N; i++) g.lineTo(X(i), Y(ys[i])); g.lineTo(X(N - 1), Y(0));
+    g.globalAlpha = 0.25; g.fillStyle = col; g.fill(); g.globalAlpha = 1;
+    g.beginPath(); for (let i = 0; i < N; i++) (i ? g.lineTo : g.moveTo).call(g, X(i), Y(ys[i])); g.strokeStyle = col; g.lineWidth = 1.8; g.stroke(); }
+  const slerp = (t, c) => { const th = Math.acos(Math.max(-1, Math.min(1, c))); return th < 1e-9 ? [1 - t, t] : [Math.sin((1 - t) * th) / Math.sin(th), Math.sin(t * th) / Math.sin(th)]; };
+  const mass = (m) => { let s = 0; for (let i = 0; i < N; i++) s += m[i]; return s * dx; };
+
+  let S = null; // cached per (preset, d, k)
+  function build() {
+    const preset = $("preset").value, d = +$("d").value, k = preset === "packet" ? +$("k").value : 0;
+    const [a0, a1] = endpoints(preset, d);
+    const m0 = a0.map((v) => v * v), m1 = a1.map((v) => v * v), s0 = a0.map(Math.abs), s1 = a1.map(Math.abs);
+    let bc = 0; for (let i = 0; i < N; i++) bc += s0[i] * s1[i]; bc *= dx;
+    const r1 = new Float64Array(N), i1 = new Float64Array(N);
+    for (let i = 0; i < N; i++) { r1[i] = a1[i] * Math.cos(k * x[i]); i1[i] = a1[i] * Math.sin(k * x[i]); }
+    let ar = 0, ai = 0; for (let i = 0; i < N; i++) { ar += a0[i] * r1[i]; ai += a0[i] * i1[i]; } ar *= dx; ai *= dx;
+    const F = Math.hypot(ar, ai), c = F > 1e-12 ? ar / F : 1, s = F > 1e-12 ? -ai / F : 0;
+    for (let i = 0; i < N; i++) { const R = r1[i] * c - i1[i] * s, I = r1[i] * s + i1[i] * c; r1[i] = R; i1[i] = I; }
+    const Q0 = quantiles(m0), Q1 = quantiles(m1); let W2 = 0; for (let u = 0; u < NU; u++) W2 += (Q0[u] - Q1[u]) ** 2;
+    let L2 = 0; for (let i = 0; i < N; i++) L2 += (m1[i] - m0[i]) ** 2; L2 = Math.sqrt(L2 * dx);
+    // cumulative distributions of the two endpoint densities (for the exact Wasserstein interpolation in rows())
+    const cum = (m) => { const C = new Float64Array(N); for (let i = 1; i < N; i++) C[i] = C[i - 1] + 0.5 * (m[i] + m[i - 1]) * dx; const z = C[N - 1]; return C.map((v) => v / z); };
+    const C0 = cum(m0), C1 = cum(m1);
+    // both quantile functions are piecewise linear in u, with breakpoints at the values of C0 and C1; on the merged breakpoints
+    // x_t(u) and the two densities are linear between neighbours, for every t, so rows() can invert x_t in one pass
+    const Qf = (C, m, u) => { let lo = 0, hi = N - 1; while (hi - lo > 1) { const md = (lo + hi) >> 1; if (C[md] <= u) lo = md; else hi = md; }
+      const dd = C[hi] - C[lo], f = dd > 0 ? (u - C[lo]) / dd : 0.5; return [x[lo] + f * dx, m[lo] * (1 - f) + m[hi] * f]; };
+    const Ub = Array.from(new Set([...C0, ...C1])).sort((a, b) => a - b), NB = Ub.length;
+    const B = { n: NB, q0x: new Float64Array(NB), q0p: new Float64Array(NB), q1x: new Float64Array(NB), q1p: new Float64Array(NB) };
+    for (let k = 0; k < NB; k++) { const a = Qf(C0, m0, Ub[k]), b = Qf(C1, m1, Ub[k]); B.q0x[k] = a[0]; B.q0p[k] = a[1]; B.q1x[k] = b[0]; B.q1p[k] = b[1]; }
+    S = { L2, preset, d, a0, r1, i1, m0, m1, s0, s1, bc: Math.min(1, bc), F: Math.min(1, F), Q0, Q1, B, W2: Math.sqrt(W2 / NU) };
+    // fixed vertical scales for this choice of endpoints: the max over the whole path (41 values of t) of every
+    // row that is shown, so nothing rescales while t moves (per-frame scales made the Wasserstein bump look like it dipped)
+    const showFS = $("c3").style.display !== "none", T41 = Array.from({ length: 41 }, (_, k) => k / 40), hD = 0.02;
+    let yMu = 0, yDot = 0, aMu = 0, aDot = 0;
+    for (const t of T41) { const R = rows(t, 0), A = rows(Math.max(0, t - hD), 0), B = rows(Math.min(1, t + hD), 0), dt = Math.min(1, t + hD) - Math.max(0, t - hD);
+      for (const key of showFS ? ["w2", "fr", "mix", "fs"] : ["w2", "fr", "mix"]) for (let i = 0; i < N; i++) {
+        yMu = Math.max(yMu, R[key][i]); yDot = Math.max(yDot, Math.abs(B[key][i] - A[key][i]) / dt); }
+      const [dp, dq] = dslerp(t, S.F);
+      for (let i = 0; i < N; i++) { aMu = Math.max(aMu, Math.abs(R.re[i]), Math.abs(R.im[i]));
+        aDot = Math.max(aDot, Math.abs(dp * a0[i] + dq * r1[i]), Math.abs(dq * i1[i])); } }
+    for (const m of [m0, m1]) for (const v of m) yMu = Math.max(yMu, v);
+    Object.assign(S, { yMu: yMu * 1.06, yDot: yDot * 1.06, aMu: aMu * 1.1, aDot: aDot * 1.1 });
+    $("Lk").style.display = preset === "packet" ? "" : "none";
+  }
+  function rows(t, l) {
+    const { preset, d, a0, r1, i1, s0, s1, bc, F, Q0, Q1 } = S;
+    // Wasserstein: displacement interpolation, exact. A quantile level u sits at x_t(u) = (1-t) Q0(u) + t Q1(u), where the density is
+    // mu_t = mu0(Q0) mu1(Q1) / ((1-t) mu1(Q1) + t mu0(Q0)). Sample in OUTPUT space: for each grid x, find the u with x_t(u) = x (exactly,
+    // on the merged breakpoints from build()). Pushing source grid points forward and interpolating back fails where the map is steep.
+    const w2 = new Float64Array(N), { B } = S;
+    { let k = 0; const X = (i) => (1 - t) * B.q0x[i] + t * B.q1x[i], X0 = X(0), X1 = X(B.n - 1);
+      for (let j = 0; j < N; j++) { if (x[j] < X0 || x[j] > X1) continue;
+        while (k < B.n - 2 && X(k + 1) < x[j]) k++;
+        const xa = X(k), xb = X(k + 1), f = xb > xa ? (x[j] - xa) / (xb - xa) : 0.5;
+        const p0 = B.q0p[k] * (1 - f) + B.q0p[k + 1] * f, p1 = B.q1p[k] * (1 - f) + B.q1p[k + 1] * f, den = (1 - t) * p1 + t * p0;
+        w2[j] = den > 0 ? p0 * p1 / den : 0; } }
+    // Fisher-Rao: great circle between square roots
+    const [a, b] = slerp(t, bc), fr = s0.map((v, i) => (a * v + b * s1[i]) ** 2);
+    // Mixture: the straight line between the densities (flat L² price)
+    const mix = S.m0.map((v, i) => (1 - t) * v + t * S.m1[i]);
+    // Fubini-Study: great circle between phase-aligned complex amplitudes
+    const [p, q] = slerp(t, F), re = a0.map((v, i) => p * v + q * r1[i]), im = i1.map((v) => q * v), fs = re.map((v, i) => v * v + im[i] * im[i]);
+    return { w2, fr, mix, fs, re, im };
+  }
+  // exact t-derivative of the slerp coefficients (for the amplitude velocity ψ̇_t)
+  const dslerp = (t, c) => { const th = Math.acos(Math.max(-1, Math.min(1, c))); return th < 1e-9 ? [-1, 1] : [-th * Math.cos((1 - t) * th) / Math.sin(th), th * Math.cos(t * th) / Math.sin(th)]; };
+  function render() {
+    const t = +$("t").value, l = 0;
+    $("tv").textContent = t.toFixed(2); $("dv").textContent = (+$("d").value).toFixed(2); $("kv").textContent = (+$("k").value).toFixed(2);
+    const { a0, r1, i1, m0, m1, bc, F, W2 } = S;
+    const R = rows(t, l);
+    let { w2, fr, mix, fs, re, im } = R;
+    const ymax = S.yMu, amax = S.aMu;
+    const gh = [m0, m1];
+    draw($("c0"), w2, ymax, css("--w2"), gh); draw($("c1"), fr, ymax, css("--fr"), gh);
+    draw($("c2"), mix, ymax, css("--mix"), gh); draw($("c3"), fs, ymax, css("--fs"), gh, { re, im, amax });
+    ({ w2, fr, mix, fs } = R);
+    $("r0").innerHTML = `W₂ = <b>${W2.toFixed(2)}</b><br>mass <b>${mass(w2).toFixed(2)}</b>`;
+    $("r1").innerHTML = `d<sub>FR</sub> = <b>${(2 * Math.acos(bc)).toFixed(2)}</b><br>BC = ${bc.toFixed(3)}, mass <b>${mass(fr).toFixed(2)}</b>`;
+    $("r2").innerHTML = `‖μ₁ − μ₀‖<sub>L²</sub> = <b>${S.L2.toFixed(2)}</b><br>mass <b>${mass(mix).toFixed(2)}</b>`;
+    $("r3").innerHTML = `d<sub>FS</sub> = <b>${Math.acos(F).toFixed(2)}</b><br>F = ${F.toFixed(3)}, mass <b>${mass(fs).toFixed(2)}</b>`;
+  }
+  let playing = false, dir = 1, last = 0;
+  function tick(ts) { if (!playing) return; if (last) { let v = +$("t").value + dir * (ts - last) / 5000;
+      if (v >= 1) { v = 1; dir = -1; } if (v <= 0) { v = 0; dir = 1; } $("t").value = v; render(); } last = ts; requestAnimationFrame(tick); }
+  $("play").onclick = (e) => { playing = !playing; e.target.textContent = playing ? "pause" : "play"; last = 0; if (playing) requestAnimationFrame(tick); };
+  $("t").oninput = render;
+  for (const id of ["d", "k"]) $(id).oninput = () => { build(); render(); };
+  $("preset").onchange = () => { if ($("preset").value === "packet" && +$("k").value === 0) $("k").value = 6; build(); render(); };
+  window.addEventListener("resize", render);
+  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+  // URL options: ?rows=3 hides the Fubini-Study row (used before it is defined); ?d=..&k=..&t=.. set the sliders
+  const Q = new URLSearchParams(location.search);
+  for (const id of ["d", "k", "t"]) if (Q.has(id)) $(id).value = Q.get(id);
+  if (["gauss", "packet", "excited"].includes(Q.get("target"))) $("preset").value = Q.get("target");
+  if (Q.get("rows") === "3") { document.querySelectorAll(".fsrow").forEach((el) => el.style.display = "none"); $("Lk").style.display = "none"; }
+  build(); render();
+})();
+</script>
+</body>
+</html>
