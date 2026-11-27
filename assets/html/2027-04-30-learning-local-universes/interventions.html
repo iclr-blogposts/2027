@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="data:,"><title>Real-time world interventions</title><style>
+@import url("https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&family=Product+Sans&display=swap");
+* { box-sizing: border-box; }
+:root { --accent:#0284c7; --border:#e2e8f0; --muted:#64748b; }
+html { color-scheme: light; background: transparent; }
+body { margin: 0; padding: 2px; font: 15px/1.6 "Google Sans Flex", "Google Sans", "Product Sans", Roboto, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #334155; background:transparent; }
+button, input { font: inherit; }
+button { background:white; border:1px solid var(--border); color:#475569; border-radius:8px; padding:7px 12px; cursor:pointer; font-size:14px; font-weight:500; }
+button:hover { background:#f8fafc; border-color:#bae6fd; color:var(--accent); }
+button:focus-visible, input:focus-visible, a:focus-visible { outline:3px solid #7dd3fc; outline-offset:3px; }
+button[aria-pressed="true"] { color:var(--accent); border-color:#7dd3fc; background:#f0f9ff; box-shadow:0 1px 4px rgba(2,132,199,.1); }
+button:disabled { opacity:.6; cursor:default; }
+.tabs { display:flex; flex-wrap:nowrap; justify-content:center; gap:10px; margin:0 0 15px; width:100%; }
+.tabs button { min-height:44px; flex:1; white-space:normal; }
+.stage { width:100%; min-height:0; }
+.stage iframe { width:100%; display:block; border:0; border-radius:12px; background:white; }
+.simulation-card { overflow:hidden; border:1px solid var(--border); border-radius:12px; background:white; box-shadow:0 4px 20px -2px rgba(0,0,0,.05); }
+.hint { color:var(--muted); font-size:14px; text-align:center; }
+.model-status { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); }
+.model-status.error { position:static; width:auto; height:auto; margin:12px; clip:auto; }
+.figure-options { color:var(--muted); font-size:14px; margin:10px 4px 0; }
+.figure-options summary { cursor:pointer; text-align:right; }
+.figure-options .toolbar { display:flex; gap:8px; margin:8px 0; justify-content:flex-end; }
+.keypad { display:none; justify-content:center; gap:8px; margin:10px 0; }
+.keypad button { min-width:70px; min-height:42px; touch-action:none; user-select:none; background:#f8fafc; border-color:#cbd5e1; }
+.text-controls { display:none; margin:10px; }
+.text-controls input { width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:8px; text-align:center; }
+.text-buttons { display:none; gap:8px; justify-content:center; margin:8px; }
+.switch-container { display:flex; align-items:center; justify-content:center; gap:12px; margin:0 0 20px; }
+.switch-label { font-size:14px; color:#94a3b8; transition:color .2s; }
+.switch-label.active-label { color:#334155; font-weight:600; }
+.switch { position:relative; width:42px; height:24px; flex:none; }
+.switch input { opacity:0; width:0; height:0; }
+.slider { position:absolute; inset:0; cursor:pointer; background:#cbd5e1; border-radius:24px; transition:background .2s; }
+.slider::before { position:absolute; content:""; width:18px; height:18px; left:3px; top:3px; border-radius:50%; background:white; box-shadow:0 1px 3px #0002; transition:transform .2s; }
+.switch input:checked + .slider { background:var(--accent); }
+.switch input:checked + .slider::before { transform:translateX(18px); }
+.switch input:focus-visible + .slider { outline:3px solid #7dd3fc; outline-offset:3px; }
+.hero-showcase { display:grid; grid-template-columns:minmax(130px,1fr) minmax(300px,460px) minmax(130px,1fr); gap:16px; max-width:1060px; margin:0 auto; align-items:start; }
+.hero-flank { display:flex; flex-direction:column; gap:14px; min-width:0; }
+.hero-flank-right { gap:14px; }
+.hero-card { display:flex; flex-direction:column; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:white; color:inherit; text-decoration:none; box-shadow:0 4px 16px -2px rgba(0,0,0,.04); filter:grayscale(85%) contrast(.9) opacity(.75); transition:transform .2s,box-shadow .2s,border-color .2s,filter .3s; }
+.hero-card:hover { transform:translateY(-3px); border-color:#7dd3fc; filter:none; box-shadow:0 8px 24px -4px rgba(2,132,199,.18); }
+.hero-card video { width:100%; height:auto; display:block; pointer-events:none; background:#0f172a; }
+.hero-card-label { text-align:center; padding:7px 10px; border-top:1px solid #f1f5f9; font-size:14px; font-weight:600; color:#475569; line-height:1.5; }
+.hero-card:hover .hero-card-label { color:var(--accent); }
+.hero-video-frame { background:#0f172a; padding:16px 8px; display:flex; align-items:center; justify-content:center; }
+.hero-video-frame video { max-height:150px; object-fit:contain; border-radius:4px; background:transparent; }
+.hero-center { min-width:0; }
+.hero-center .stage { min-height:0; }
+.hero-center .figure-options { margin-right:8px; }
+.album-card { max-width:440px; margin:8px auto 14px; padding:10px; border:1px solid var(--border); border-radius:12px; background:white; box-shadow:none; }
+.album-segmented-bar { display:flex; background:#f1f5f9; padding:3px; border-radius:10px; border:1px solid var(--border); margin-bottom:8px; gap:2px; }
+.album-segmented-bar button { flex:1; border:0; background:transparent; padding:8px 4px; min-height:44px; font-size:14px; white-space:nowrap; border-radius:7px; }
+.album-segmented-bar button[aria-pressed="true"] { background:white; color:#0369a1; font-weight:600; box-shadow:none; outline:1px solid #bae6fd; outline-offset:-1px; }
+.album-video-viewport { position:relative; width:100%; border-radius:6px; overflow:hidden; background:#000; }
+video.album { display:block; width:100%; height:auto; object-fit:contain; }
+video.album:focus-visible { outline:3px solid #7dd3fc; outline-offset:-3px; }
+.album-float-arrow { position:absolute; top:50%; transform:translateY(-50%); width:44px; height:44px; border-radius:50%; background:#0f172acc; border:1px solid #ffffff66; color:white; z-index:2; padding:0; font-size:14px; opacity:1; }
+.album-float-arrow:hover { background:#0f172ae6; color:white; opacity:1; }
+.album-float-arrow.prev { left:10px; } .album-float-arrow.next { right:10px; }
+.compare { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:clamp(10px,2vw,24px); max-width:760px; margin:0 auto; }
+.compare figure { margin:0; min-width:0; text-align:center; }
+.compare video { display:block; width:100%; height:auto; max-width:360px; margin:0 auto; background:transparent; image-rendering:pixelated; border-radius:8px; border:1px solid var(--border); box-shadow:0 4px 14px #0000000f; }
+.compare figcaption { margin:8px 0; font-size:15px; line-height:1.5; text-align:center; color:var(--muted); }
+.compare-toolbar { display:flex; justify-content:center; gap:8px; margin:10px 0; }
+[hidden] { display:none!important; }
+@media(max-width:859px) {
+ .hero-showcase { grid-template-columns:1fr; justify-items:center; max-width:560px; }
+ .hero-flank { flex-direction:row; width:100%; gap:14px; } .hero-flank .hero-card { flex:1; }
+ .hero-center { width:100%; grid-row:1; } .hero-flank-right { gap:14px; }
+ .hero-flank video { height:130px; object-fit:contain; } .hero-video-frame { height:130px; }
+}
+@media(max-width:768px) {
+ .keypad { display:flex; flex-wrap:wrap; }
+ .text-controls,.text-buttons { display:flex; }
+ .text-controls label { width:100%; }
+ .text-controls .input-label { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+ .tabs { flex-wrap:wrap; gap:6px; } .tabs button { flex:1 1 calc(50% - 6px); min-width:110px; padding:7px 8px; font-size:14px; }
+}
+@media(max-width:480px) {
+ .hero-flank video { max-height:120px; } .hero-video-frame { height:120px; padding:8px; }
+ .hero-flank { gap:8px; } .hero-showcase { gap:12px; } .hero-card-label { font-size:14px; padding:6px; }
+ .hero-center .stage { min-height:0; } .switch-label { font-size:14px; }
+}
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; transition:none!important; } }
+/* Keep figure controls legible and their layout within the article width. */
+body { width:100%; max-width:960px; margin:0 auto; }
+body:has(.hero-showcase) { max-width:1060px; }
+.switch-label { text-align:center; }
+.album-segmented-bar { flex-wrap:wrap; }
+.album-segmented-bar button { flex:1 1 auto; }
+@media(max-width:480px) {
+ .album-segmented-bar { gap:4px; }
+ .album-segmented-bar button { flex-basis:calc(33.333% - 4px); }
+ .hero-flank video { object-fit:contain; }
+}
+/* Keep the recording's footprint stable while another clip is decoded. */
+.album-card { border:0; border-radius:0; background:transparent; box-shadow:none; }
+.album-video-viewport { aspect-ratio:1; border-radius:1.5%; }
+video.album, .album-still {
+  position:absolute; inset:auto; left:0; top:0; width:100%; height:100%;
+  object-fit:contain; border:0; border-radius:0; box-shadow:none;
+}
+.album-still { pointer-events:none; background:#000; }
+.album-video-viewport[aria-busy="true"] video.album { visibility:hidden; }
+.album-status { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+.album-status[data-error] {
+  inset:40% 10% auto; width:auto; height:auto; clip-path:none;
+  padding:12px; background:#fff; color:#334155; text-align:center; z-index:3;
+}
+@media(max-width:480px) {
+  .album-segmented-bar { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .album-segmented-bar button { min-width:0; white-space:normal; line-height:1.2; padding:4px 2px; }
+}
+</style></head><body>
+<div class="album-card"><div class="album-segmented-bar" role="group" aria-label="Choose recorded intervention"><button type="button" data-video="0" aria-pressed="true">Brick</button><button type="button" data-video="1" aria-pressed="false">77 → 81</button><button type="button" data-video="2" aria-pressed="false">000 → 001</button><button type="button" data-video="3" aria-pressed="false">99 → 00</button><button type="button" data-video="4" aria-pressed="false">Ball</button><button type="button" data-video="5" aria-pressed="false">Paddle</button></div><div class="album-video-viewport"><button type="button" id="previous" class="album-float-arrow prev" aria-label="Previous example">❮</button><button type="button" id="next" class="album-float-arrow next" aria-label="Next example">❯</button><video id="album" class="album" muted loop playsinline preload="auto" tabindex="0" aria-label="Recorded world intervention. Click to pause or resume.">Your browser does not support the video tag.</video></div></div>
+<script>
+const videos = [["Brick", "bricks.mp4"], ["77 \u2192 81", "77_to_81.mp4"], ["000 \u2192 001", "000_to_001.mp4"], ["99 \u2192 00", "99_to_00.mp4"], ["Ball", "ball_spawn.mp4"], ["Paddle", "double_paddle.mp4"]];
+
+const video = document.getElementById('album');
+const viewport = document.querySelector('.album-video-viewport');
+const still = document.createElement('canvas');
+still.className = 'album-still';
+still.setAttribute('aria-hidden', 'true');
+viewport.append(still);
+const status = document.createElement('p');
+status.className = 'album-status';
+status.setAttribute('role', 'status');
+viewport.append(status);
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+let current = Number(new URLSearchParams(location.search).get('example') || 0);
+if (!Number.isInteger(current) || current < 0 || current >= videos.length) current = 0;
+let request = 0, loading = true, inView = true, userPaused = reducedMotion.matches;
+let loaded = null;
+// Align the game canvas, rather than the differently sized screen recordings.
+// Bounds are [left, top, square side] in source pixels. Paddle's negative top
+// restores its missing black margin; the MP4s themselves remain unchanged.
+const recordingBounds = {
+  'bricks.mp4': [10, 6, 1000],
+  '77_to_81.mp4': [10, 6, 1000],
+  '000_to_001.mp4': [6, 6, 1000],
+  '99_to_00.mp4': [10, 6, 1000],
+  'ball_spawn.mp4': [10, 6, 1000],
+  'double_paddle.mp4': [0, -3, 840],
+};
+function frameRecording(filename) {
+  const bounds = recordingBounds[filename];
+  if (!bounds) { video.removeAttribute('style'); return; }
+  const [left, top, side] = bounds;
+  video.style.left = `${-left / side * 100}%`;
+  video.style.top = `${-top / side * 100}%`;
+  video.style.width = `${video.videoWidth / side * 100}%`;
+  video.style.height = `${video.videoHeight / side * 100}%`;
+}
+function updatePlayback() {
+  if (loading || !inView || document.hidden || userPaused) video.pause();
+  else video.play().catch(() => {});
+}
+function select(index) {
+  const next = (index + videos.length) % videos.length;
+  if (next === current && !loading && video.currentSrc) return;
+  const token = ++request;
+  // Freeze the displayed picture before resetting the media element. On rapid
+  // clicks retain that same picture until the last requested clip is ready.
+  if (!loading && video.readyState >= 2 && video.videoWidth) {
+    still.width = video.videoWidth;
+    still.height = video.videoHeight;
+    still.getContext('2d').drawImage(video, 0, 0);
+    // Hold the old clip with its own framing until the new picture is ready.
+    still.style.cssText = video.style.cssText;
+  }
+  still.hidden = false;
+  loading = true;
+  viewport.setAttribute('aria-busy', 'true');
+  status.removeAttribute('data-error');
+  status.textContent = 'Loading recording.';
+  current = next;
+  userPaused = reducedMotion.matches;
+  for (const tab of document.querySelectorAll('[data-video]'))
+    tab.setAttribute('aria-pressed', String(Number(tab.dataset.video) === current));
+  video.pause();
+  if (loaded) video.removeEventListener('loadeddata', loaded);
+  const filename = videos[current][1];
+  const source = new URL('videos/' + filename, location.href).href;
+  loaded = () => {
+    if (token !== request || video.currentSrc !== source || video.readyState < 2) return;
+    video.removeEventListener('loadeddata', loaded);
+    frameRecording(filename);
+    // Let the decoded first picture reach the next paint before removing the
+    // still. Neither the viewport nor the enclosing article changes height.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (token !== request || video.currentSrc !== source || video.readyState < 2) return;
+      loading = false;
+      viewport.setAttribute('aria-busy', 'false');
+      still.hidden = true;
+      status.textContent = '';
+      updatePlayback();
+    }));
+  };
+  video.addEventListener('loadeddata', loaded);
+  video.src = source;
+  video.load();
+  video.defaultPlaybackRate = 2;
+  video.playbackRate = 2;
+}
+video.addEventListener('error', () => {
+  loading = false;
+  viewport.setAttribute('aria-busy', 'false');
+  status.setAttribute('data-error', '');
+  status.textContent = 'This recording could not load. Choose another tab to try again.';
+});
+select(current);
+// Article links target this named iframe. The reserved viewport gives the
+// recording its final dimensions before the selected media starts loading.
+if (new URLSearchParams(location.search).has('example')) {
+  window.addEventListener('load', () => requestAnimationFrame(() => {
+    try {
+      const figure = window.frameElement?.closest('figure');
+      if (!figure) return;
+      figure.scrollIntoView({behavior: reducedMotion.matches ? 'instant' : 'smooth', block: 'start'});
+      document.querySelector('[data-video="' + current + '"]')?.focus({preventScroll: true});
+    } catch (_) { /* Standalone recordings retain their normal position. */ }
+  }));
+}
+for (const button of document.querySelectorAll('[data-video]'))
+  button.addEventListener('click', () => select(Number(button.dataset.video)));
+document.getElementById('previous').addEventListener('click', () => select(current - 1));
+document.getElementById('next').addEventListener('click', () => select(current + 1));
+function toggle() { userPaused = !userPaused; updatePlayback(); }
+video.addEventListener('click', toggle);
+video.addEventListener('keydown', event => {
+  if (event.code === 'Space' || event.code === 'Enter') { event.preventDefault(); toggle(); }
+});
+document.addEventListener('visibilitychange', updatePlayback);
+reducedMotion.addEventListener('change', () => {
+  if (reducedMotion.matches) userPaused = true;
+  updatePlayback();
+});
+new IntersectionObserver(entries => {
+  inView = entries[0].isIntersecting;
+  updatePlayback();
+}).observe(viewport);
+
+
+(() => {
+  let lastHeight = 0;
+  function fitOuterFrame() {
+    try {
+      const frame = window.frameElement;
+      if (!frame) return;
+      // Intrinsic body height does not include the enclosing iframe viewport;
+      // using documentElement.scrollHeight here would prevent shrinking.
+      const height = Math.ceil(document.body.getBoundingClientRect().height + 2);
+      if (height !== lastHeight) { lastHeight = height; frame.style.height = height + 'px'; }
+    } catch (_) { /* Direct or cross-origin opening retains its fixed fallback height. */ }
+  }
+  new ResizeObserver(fitOuterFrame).observe(document.body);
+  window.addEventListener('load', fitOuterFrame);
+  window.addEventListener('resize', fitOuterFrame);
+  fitOuterFrame();
+})();
+
+</script>
+</body></html>
