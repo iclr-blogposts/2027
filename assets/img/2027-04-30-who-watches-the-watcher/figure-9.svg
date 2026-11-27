@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 330" font-family="Helvetica, Arial, sans-serif">
+<rect width="940" height="330" fill="white"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#D55E00"/><line x1="0" y1="0" x2="0" y2="6" stroke="white" stroke-width="2"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#0072B2"/><circle cx="3" cy="3" r="1.3" fill="white"/></pattern></defs>
+<text x="20.0" y="26.0" font-size="14" text-anchor="start" fill="#1a1a1a" font-weight="600">Which failing runs each checker flags, at matched false alarms</text>
+<text x="220.0" y="100.0" font-size="11.5" text-anchor="end" fill="#1a1a1a" font-weight="normal">bfcl (error run = any wrong step)</text>
+<rect x="230.0" y="80" width="120.0" height="30" fill="#1a1a1a" stroke="white" stroke-width="1.5"/>
+<text x="290.0" y="100.0" font-size="12" text-anchor="middle" fill="white" font-weight="600">4</text>
+<rect x="350.0" y="80" width="180.0" height="30" fill="url(#hatch)" stroke="white" stroke-width="1.5"/>
+<text x="440.0" y="100" font-size="12" text-anchor="middle" fill="#1a1a1a" font-weight="700" stroke="white" stroke-width="3.5" paint-order="stroke">6</text>
+<rect x="530.0" y="80" width="30.0" height="30" fill="url(#dots)" stroke="white" stroke-width="1.5"/>
+<text x="545.0" y="100" font-size="12" text-anchor="middle" fill="#1a1a1a" font-weight="700" stroke="white" stroke-width="3.5" paint-order="stroke">1</text>
+<rect x="560.0" y="80" width="120.0" height="30" fill="#bbbbbb" stroke="white" stroke-width="1.5"/>
+<text x="620.0" y="100.0" font-size="12" text-anchor="middle" fill="#1a1a1a" font-weight="600">4</text>
+<text x="692.0" y="100.0" font-size="10.5" text-anchor="start" fill="#555555" font-weight="normal">audit only 6 vs monitor only 1</text>
+<text x="220.0" y="162.0" font-size="11.5" text-anchor="end" fill="#1a1a1a" font-weight="normal">R-Judge (unsafe)</text>
+<rect x="230.0" y="142" width="360.0" height="30" fill="#1a1a1a" stroke="white" stroke-width="1.5"/>
+<text x="410.0" y="162.0" font-size="12" text-anchor="middle" fill="white" font-weight="600">12</text>
+<rect x="590.0" y="142" width="60.0" height="30" fill="url(#hatch)" stroke="white" stroke-width="1.5"/>
+<text x="620.0" y="162" font-size="12" text-anchor="middle" fill="#1a1a1a" font-weight="700" stroke="white" stroke-width="3.5" paint-order="stroke">2</text>
+<rect x="650.0" y="142" width="30.0" height="30" fill="url(#dots)" stroke="white" stroke-width="1.5"/>
+<text x="665.0" y="162" font-size="12" text-anchor="middle" fill="#1a1a1a" font-weight="700" stroke="white" stroke-width="3.5" paint-order="stroke">1</text>
+<text x="692.0" y="162.0" font-size="10.5" text-anchor="start" fill="#555555" font-weight="normal">audit only 2 vs monitor only 1</text>
+<text x="220.0" y="224.0" font-size="11.5" text-anchor="end" fill="#1a1a1a" font-weight="normal">TheAgentCompany (failed run)</text>
+<rect x="230.0" y="204" width="90.0" height="30" fill="#1a1a1a" stroke="white" stroke-width="1.5"/>
+<text x="275.0" y="224.0" font-size="12" text-anchor="middle" fill="white" font-weight="600">3</text>
+<rect x="320.0" y="204" width="240.0" height="30" fill="url(#hatch)" stroke="white" stroke-width="1.5"/>
+<text x="440.0" y="224" font-size="12" text-anchor="middle" fill="#1a1a1a" font-weight="700" stroke="white" stroke-width="3.5" paint-order="stroke">8</text>
+<rect x="560.0" y="204" width="30.0" height="30" fill="url(#dots)" stroke="white" stroke-width="1.5"/>
+<text x="575.0" y="224" font-size="12" text-anchor="middle" fill="#1a1a1a" font-weight="700" stroke="white" stroke-width="3.5" paint-order="stroke">1</text>
+<rect x="590.0" y="204" width="90.0" height="30" fill="#bbbbbb" stroke="white" stroke-width="1.5"/>
+<text x="635.0" y="224.0" font-size="12" text-anchor="middle" fill="#1a1a1a" font-weight="600">3</text>
+<text x="692.0" y="224.0" font-size="10.5" text-anchor="start" fill="#555555" font-weight="normal">audit only 8 vs monitor only 1</text>
+<rect x="40" y="285" width="16" height="14" fill="#1a1a1a"/>
+<text x="62.0" y="297.0" font-size="11" text-anchor="start" fill="#1a1a1a" font-weight="normal">Flagged by both</text>
+<rect x="230" y="285" width="16" height="14" fill="url(#hatch)"/>
+<text x="252.0" y="297.0" font-size="11" text-anchor="start" fill="#1a1a1a" font-weight="normal">Audit only</text>
+<rect x="420" y="285" width="16" height="14" fill="url(#dots)"/>
+<text x="442.0" y="297.0" font-size="11" text-anchor="start" fill="#1a1a1a" font-weight="normal">Monitor only</text>
+<rect x="610" y="285" width="16" height="14" fill="#bbbbbb"/>
+<text x="632.0" y="297.0" font-size="11" text-anchor="start" fill="#1a1a1a" font-weight="normal">Neither</text>
+</svg>
