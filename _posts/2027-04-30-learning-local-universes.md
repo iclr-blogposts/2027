@@ -77,8 +77,8 @@ _styles: |
     .post.distill > d-article:first-of-type { padding-top: 1.25rem; }
   }
   
-  /* Architecture and training keep their narrative in the article. The static
-     layout is also used for printing and browsers without named view timelines. */
+  /* Architecture and training keep their narrative in the article. Browsers
+     without the scrolling layout get native stage controls; print shows every stage. */
   .post.distill .lu-stage-section {
     --lu-accent: var(--global-theme-color, #0076df);
     --lu-border: var(--global-divider-color, #ddd);
@@ -89,7 +89,8 @@ _styles: |
   }
   .post.distill .lu-stage-header { position: relative; z-index: 4; margin: 0; padding: .5em 0 .75em; background: var(--lu-panel); }
   .post.distill d-article .lu-stage-header h2 { margin: 0 0 14px; }
-  .post.distill .lu-stage-nav {
+  .post.distill .lu-stage-nav,
+  .post.distill .lu-stage-tabs {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 4px;
@@ -98,7 +99,8 @@ _styles: |
     border-radius: 14px;
     background: var(--lu-stage-soft);
   }
-  .post.distill d-article .lu-stage-nav a {
+  .post.distill d-article .lu-stage-nav a,
+  .post.distill .lu-stage-tabs label {
     --lu-tab-foreground: color-mix(in srgb, var(--global-text-color, #334155) 75%, var(--lu-panel));
     display: inline-flex;
     align-items: center;
@@ -117,8 +119,10 @@ _styles: |
     text-align: center;
     text-decoration: none;
   }
-  .post.distill d-article .lu-stage-nav a:hover { background: color-mix(in srgb, var(--lu-accent) 10%, var(--lu-panel)); }
-  .post.distill d-article .lu-stage-nav a:focus-visible { outline: 2px solid var(--lu-accent); outline-offset: 3px; }
+  .post.distill d-article .lu-stage-nav a:hover,
+  .post.distill .lu-stage-tabs label:hover { background: color-mix(in srgb, var(--lu-accent) 10%, var(--lu-panel)); }
+  .post.distill d-article .lu-stage-nav a:focus-visible,
+  .post.distill .lu-stage-tabs label:has(input:focus-visible) { outline: 2px solid var(--lu-accent); outline-offset: 3px; }
   .post.distill .lu-stage { position: relative; margin: 0 0 2em; }
   .post.distill .lu-stage-window {
     position: relative;
@@ -143,6 +147,31 @@ _styles: |
   .post.distill d-article .lu-step-card h3 { margin: 0 0 10px; padding: 0; scroll-margin-top: 96px; }
   .post.distill d-article .lu-step-card p { margin: 0; }
   
+  /* Native radio groups keep Safari's fallback compact without article scripts.
+     Keep inputs within their labels so keyboard focus never scrolls off-screen. */
+  .post.distill .lu-stage-tabs { display: none; }
+  .post.distill .lu-stage-tabs label { position: relative; margin: 0; cursor: pointer; }
+  .post.distill .lu-stage-tabs input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+  .post.distill .lu-stage-tabs label:has(input:checked) {
+    --lu-tab-foreground: var(--lu-panel);
+    background: var(--lu-accent);
+    border-color: var(--lu-accent);
+    box-shadow: 0 2px 5px #00000012;
+  }
+  @supports selector(:has(*)) {
+    @media screen {
+      .post.distill .lu-stage-nav { display: none; }
+      .post.distill .lu-stage-tabs { display: grid; }
+      .post.distill .lu-stage { display: var(--lu-stage-display, none); }
+      .post.distill .lu-stage-section:has(.lu-stage-tabs input[value="1"]:checked) > .lu-stage:nth-of-type(1),
+      .post.distill .lu-stage-section:has(.lu-stage-tabs input[value="2"]:checked) > .lu-stage:nth-of-type(2),
+      .post.distill .lu-stage-section:has(.lu-stage-tabs input[value="3"]:checked) > .lu-stage:nth-of-type(3),
+      .post.distill .lu-stage-section:has(.lu-stage-tabs input[value="4"]:checked) > .lu-stage:nth-of-type(4) { --lu-stage-display: block; }
+    }
+  }
+  @media print {
+    .post.distill .lu-stage-nav, .post.distill .lu-stage-tabs { display: none; }
+  }
   /* All four illustrations occupy the same sticky grid cell. Each narrative
      track drives its matching illustration and tab at one shared reading line.
      Because the timeline is tied to position, scrolling back reverses the state
@@ -172,6 +201,8 @@ _styles: |
         animation-timeline: view(block var(--lu-navbar-height) 0px);
         animation-range: exit-crossing 0% exit-crossing 100%;
       }
+      .post.distill .lu-stage-nav { display: grid; }
+      .post.distill .lu-stage-tabs { display: none; }
       .post.distill .lu-stage { display: contents; }
       .post.distill .lu-stage:nth-of-type(1) { --lu-stage-timeline: --lu-step-1; }
       .post.distill .lu-stage:nth-of-type(2) { --lu-stage-timeline: --lu-step-2; }
@@ -243,11 +274,11 @@ _styles: |
     }
   }
   @media (max-width: 1179px) {
-    .post.distill .lu-stage-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .post.distill .lu-stage-nav, .post.distill .lu-stage-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 600px) {
     .post.distill .lu-step-card { padding: .9em; }
-    .post.distill d-article .lu-stage-nav a { padding: 7px 6px; }
+    .post.distill d-article .lu-stage-nav a, .post.distill .lu-stage-tabs label { padding: 7px 6px; }
   }
   
   /* Article figure sizing and captions. */
@@ -324,10 +355,16 @@ _styles: |
 <div class="lu-stage-header">
   <h2 id="model-architecture">Model Architecture</h2>
   <nav class="lu-stage-nav" aria-label="Model Architecture stages"><a href="#macro-step-transitions">Macro-Step</a><a href="#local-perception-action-conditioning">Local Perception</a><a href="#shared-mlp-stochastic-fire-rate">Shared MLP</a><a href="#residual-micro-steps">Residual Micro-Steps</a></nav>
+  <div class="lu-stage-tabs" role="group" aria-label="Model Architecture stages">
+    <label><input type="radio" name="lu-model-architecture" value="1" checked><span>Macro-Step</span></label>
+    <label><input type="radio" name="lu-model-architecture" value="2"><span>Local Perception</span></label>
+    <label><input type="radio" name="lu-model-architecture" value="3"><span>Shared MLP</span></label>
+    <label><input type="radio" name="lu-model-architecture" value="4"><span>Residual Micro-Steps</span></label>
+  </div>
 </div>
 <section class="lu-stage" aria-labelledby="macro-step-transitions">
 <figure class="lu-stage-window">
-  <img src="{{ 'assets/img/2027-04-30-learning-local-universes/architecture/1.svg' | relative_url }}" alt="Macro-Step" width="1050" height="550" loading="lazy" style="display:block;width:100%;height:auto;">
+  <img src="{{ 'assets/img/2027-04-30-learning-local-universes/architecture/1.svg' | relative_url }}" alt="Macro-Step" width="1050" height="550" loading="eager" style="display:block;width:100%;height:auto;">
 </figure>
 <div class="lu-stage-track">
 <div class="lu-step-card">
@@ -339,7 +376,7 @@ _styles: |
 </section>
 <section class="lu-stage" aria-labelledby="local-perception-action-conditioning">
 <figure class="lu-stage-window">
-  <img src="{{ 'assets/img/2027-04-30-learning-local-universes/architecture/2.svg' | relative_url }}" alt="Local Perception" width="1050" height="550" loading="lazy" style="display:block;width:100%;height:auto;">
+  <img src="{{ 'assets/img/2027-04-30-learning-local-universes/architecture/2.svg' | relative_url }}" alt="Local Perception" width="1050" height="550" loading="eager" style="display:block;width:100%;height:auto;">
 </figure>
 <div class="lu-stage-track">
 <div class="lu-step-card">
@@ -351,7 +388,7 @@ _styles: |
 </section>
 <section class="lu-stage" aria-labelledby="shared-mlp-stochastic-fire-rate">
 <figure class="lu-stage-window">
-  <img src="{{ 'assets/img/2027-04-30-learning-local-universes/architecture/3.svg' | relative_url }}" alt="Shared MLP" width="1050" height="550" loading="lazy" style="display:block;width:100%;height:auto;">
+  <img src="{{ 'assets/img/2027-04-30-learning-local-universes/architecture/3.svg' | relative_url }}" alt="Shared MLP" width="1050" height="550" loading="eager" style="display:block;width:100%;height:auto;">
 </figure>
 <div class="lu-stage-track">
 <div class="lu-step-card">
@@ -363,7 +400,7 @@ _styles: |
 </section>
 <section class="lu-stage" aria-labelledby="residual-micro-steps">
 <figure class="lu-stage-window">
-  <img src="{{ 'assets/img/2027-04-30-learning-local-universes/architecture/4.svg' | relative_url }}" alt="Residual Micro-Steps" width="1050" height="550" loading="lazy" style="display:block;width:100%;height:auto;">
+  <img src="{{ 'assets/img/2027-04-30-learning-local-universes/architecture/4.svg' | relative_url }}" alt="Residual Micro-Steps" width="1050" height="550" loading="eager" style="display:block;width:100%;height:auto;">
 </figure>
 <div class="lu-stage-track">
 <div class="lu-step-card">
@@ -379,10 +416,16 @@ _styles: |
 <div class="lu-stage-header">
   <h2 id="training-setup">Training Setup</h2>
   <nav class="lu-stage-nav" aria-label="Training Setup stages"><a href="#offline-environment-trajectories">Environment Trajectories</a><a href="#burn-in-phase">Burn-in Phase</a><a href="#autoregressive-generation-phase">Generation Phase</a><a href="#gradient-step-replay-buffer-update">Gradient Step &amp; Buffer Update</a></nav>
+  <div class="lu-stage-tabs" role="group" aria-label="Training Setup stages">
+    <label><input type="radio" name="lu-training-setup" value="1" checked><span>Environment Trajectories</span></label>
+    <label><input type="radio" name="lu-training-setup" value="2"><span>Burn-in Phase</span></label>
+    <label><input type="radio" name="lu-training-setup" value="3"><span>Generation Phase</span></label>
+    <label><input type="radio" name="lu-training-setup" value="4"><span>Gradient Step &amp; Buffer Update</span></label>
+  </div>
 </div>
 <section class="lu-stage" aria-labelledby="offline-environment-trajectories">
 <figure class="lu-stage-window">
-  <img src="{{ 'assets/img/2027-04-30-learning-local-universes/training/1.svg' | relative_url }}" alt="Environment Trajectories" width="1050" height="550" loading="lazy" style="display:block;width:100%;height:auto;">
+  <img src="{{ 'assets/img/2027-04-30-learning-local-universes/training/1.svg' | relative_url }}" alt="Environment Trajectories" width="1050" height="550" loading="eager" style="display:block;width:100%;height:auto;">
 </figure>
 <div class="lu-stage-track">
 <div class="lu-step-card">
@@ -394,7 +437,7 @@ _styles: |
 </section>
 <section class="lu-stage" aria-labelledby="burn-in-phase">
 <figure class="lu-stage-window">
-  <img src="{{ 'assets/img/2027-04-30-learning-local-universes/training/2.svg' | relative_url }}" alt="Burn-in Phase" width="1050" height="550" loading="lazy" style="display:block;width:100%;height:auto;">
+  <img src="{{ 'assets/img/2027-04-30-learning-local-universes/training/2.svg' | relative_url }}" alt="Burn-in Phase" width="1050" height="550" loading="eager" style="display:block;width:100%;height:auto;">
 </figure>
 <div class="lu-stage-track">
 <div class="lu-step-card">
@@ -406,7 +449,7 @@ _styles: |
 </section>
 <section class="lu-stage" aria-labelledby="autoregressive-generation-phase">
 <figure class="lu-stage-window">
-  <img src="{{ 'assets/img/2027-04-30-learning-local-universes/training/3.svg' | relative_url }}" alt="Generation Phase" width="1050" height="550" loading="lazy" style="display:block;width:100%;height:auto;">
+  <img src="{{ 'assets/img/2027-04-30-learning-local-universes/training/3.svg' | relative_url }}" alt="Generation Phase" width="1050" height="550" loading="eager" style="display:block;width:100%;height:auto;">
 </figure>
 <div class="lu-stage-track">
 <div class="lu-step-card">
@@ -418,7 +461,7 @@ _styles: |
 </section>
 <section class="lu-stage" aria-labelledby="gradient-step-replay-buffer-update">
 <figure class="lu-stage-window">
-  <img src="{{ 'assets/img/2027-04-30-learning-local-universes/training/4.svg' | relative_url }}" alt="Gradient Step &amp; Replay Buffer Update" width="1050" height="550" loading="lazy" style="display:block;width:100%;height:auto;">
+  <img src="{{ 'assets/img/2027-04-30-learning-local-universes/training/4.svg' | relative_url }}" alt="Gradient Step &amp; Replay Buffer Update" width="1050" height="550" loading="eager" style="display:block;width:100%;height:auto;">
 </figure>
 <div class="lu-stage-track">
 <div class="lu-step-card">
