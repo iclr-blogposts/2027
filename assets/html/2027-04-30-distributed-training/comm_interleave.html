@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Communication Interleaving</title>
+<style>
+  :root { color-scheme: light; --ink: #111; --panel: #e9ecef; --card: #fff; --border: #bbb; --blue: #2c5fd4; }
+  :root[data-theme="dark"] { color-scheme: dark; --ink: #e6e6e6; --panel: #2b2e33; --card: #1c1d20; --border: #555; --blue: #7aa2ff; }
+  html, body { margin: 0; background: transparent; color: var(--ink);
+    font-family: "Latin Modern Roman", "CMU Serif", "Computer Modern", Georgia, serif; }
+  .fig { max-width: 600px; margin: 0 auto; }
+  svg { width: 100%; height: auto; display: block; fill: var(--ink); }
+  .bar { display: flex; align-items: center; gap: .5em; font-size: 15px; }
+  button { font: inherit; border: 1px solid var(--border); background: var(--card); color: var(--ink); border-radius: 6px;
+    padding: .15em .6em; cursor: pointer; min-width: 2.4em; }
+  #cap { flex: 1; min-height: 1.35em; margin: .3em 0; line-height: 1.35; }
+  .layer, .inputs { transition: stroke .4s; }
+  .lbl { transition: fill .4s; }
+</style>
+</head>
+<body>
+<div class="fig">
+  <svg viewBox="0 0 600 680" role="img" aria-label="Animated backward pass with communication interleaving"></svg>
+  <div class="bar">
+    <button id="play" aria-label="Pause">⏸</button>
+    <button id="restart" aria-label="Restart">↺</button>
+    <p id="cap" aria-live="polite"></p>
+  </div>
+</div>
+<script>
+// night mode: follow the embedding page's al-folio theme (data-theme), else the OS setting
+const darkMQ = matchMedia('(prefers-color-scheme: dark)');
+const syncTheme = () => {
+  let t;
+  if (parent !== window) try { t = parent.document.documentElement.getAttribute('data-theme'); } catch (e) {}
+  document.documentElement.dataset.theme = t || (darkMQ.matches ? 'dark' : 'light');
+};
+syncTheme();
+darkMQ.addEventListener('change', syncTheme);
+if (parent !== window) try {
+  new MutationObserver(syncTheme).observe(parent.document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+} catch (e) {}
+const NS = 'http://www.w3.org/2000/svg', svg = document.querySelector('svg');
+const el = (tag, attrs, parent = svg) => {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) // fill/stroke via style so CSS variables work
+    k === 'fill' || k === 'stroke' ? e.style.setProperty(k, attrs[k]) : e.setAttribute(k, attrs[k]);
+  parent.appendChild(e);
+  return e;
+};
+const INK = 'var(--ink)', ORANGE = '#f39c12', TEAL = '#17b3a3', BLUE = 'var(--blue)';
+const COLX = [70, 230, 390, 550], R = 16, SUB = ['N−2', 'N−1', 'N'];
+const layerX = l => (COLX[l] + COLX[l + 1]) / 2;
+const PANELS = [{ y0: 10, sup: '1' }, { y0: 370, sup: 'm' }];
+const ARROW = '0,0 14,-11 14,-4.5 50,-4.5 50,4.5 14,4.5 14,11'; // thick arrow pointing left, tip at origin
+
+el('defs', {}).innerHTML = `<marker id="tip" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="3" markerHeight="3"
+  orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="${TEAL}"/></marker>`;
+
+for (const P of PANELS) {
+  const y0 = P.y0, ny = i => y0 + 78 + i * 42;
+  el('rect', { x: 8, y: y0, width: 584, height: 250, rx: 18, fill: 'var(--panel)' });
+  const name = el('text', { x: 36, y: y0 + 30, 'font-size': 21 });
+  name.textContent = 'worker ';
+  el('tspan', { 'font-style': P.sup === 'm' ? 'italic' : 'normal' }, name).textContent = P.sup;
+  P.inputs = el('g', { class: 'inputs', 'stroke-dasharray': '2 2', 'stroke-width': 1.2 });
+  P.inputs.style.stroke = INK;
+  for (let i = 0; i < 4; i++) for (const d of [-8, -3, 3])
+    el('line', { x1: 22, y1: ny(i) + d, x2: COLX[0] - R, y2: ny(i) }, P.inputs);
+  P.layers = [0, 1, 2].map(l => {
+    const g = el('g', { class: 'layer', 'stroke-width': 1.4 });
+    for (let a = 0; a < 4; a++) for (let b = 0; b < 4; b++)
+      el('line', { x1: COLX[l] + R, y1: ny(a), x2: COLX[l + 1] - R, y2: ny(b) }, g);
+    return g;
+  });
+  for (const x of COLX) for (let i = 0; i < 4; i++)
+    el('circle', { cx: x, cy: ny(i), r: R, fill: 'var(--card)', stroke: INK, 'stroke-width': 1.5 });
+  P.labels = [0, 1, 2].map(l => el('text', { class: 'lbl', x: layerX(l), y: y0 + 238, 'font-size': 20, 'text-anchor': 'middle' }));
+  P.arrow = el('polygon', { points: ARROW, fill: ORANGE });
+}
+
+// Workers in between, and the all-reduce traffic between them
+el('text', { x: 40, y: 330, 'font-size': 34, 'font-weight': 'bold', 'text-anchor': 'middle' }).textContent = '⋮';
+const comm = el('g', { opacity: 0 });
+const flow = [
+  el('line', { x1: -24, y1: 268, x2: -24, y2: 354 }, comm), // down
+  el('line', { x1: 24, y1: 354, x2: 24, y2: 268 }, comm),   // up
+];
+flow.forEach(f => { f.setAttribute('stroke', TEAL); f.setAttribute('stroke-width', 9);
+  f.setAttribute('stroke-dasharray', '16 10'); f.setAttribute('marker-end', 'url(#tip)'); });
+
+// Legend
+el('polygon', { points: ARROW, fill: ORANGE, transform: 'translate(25 656)' });
+el('text', { x: 85, y: 662, 'font-size': 18 }).textContent = 'Backward compute';
+el('polygon', { points: ARROW, fill: TEAL, transform: 'translate(265 656)' });
+el('text', { x: 325, y: 662, 'font-size': 18 }).textContent = 'All-reduce';
+el('line', { x1: 440, y1: 656, x2: 490, y2: 656, stroke: BLUE, 'stroke-width': 4 });
+el('text', { x: 500, y: 662, 'font-size': 18 }).textContent = 'Averaged';
+
+// ∇W^k_sub, or ∇W_sub once averaged across workers
+function label(t, sup, sub, color) {
+  t.textContent = '';
+  t.style.fill = color;
+  el('tspan', {}, t).textContent = '∇';
+  el('tspan', { 'font-weight': 'bold' }, t).textContent = 'W';
+  let dx = 0;
+  if (sup) {
+    const s = el('tspan', { dx: 2, dy: -9, 'font-size': '0.65em', 'font-style': sup === 'm' ? 'italic' : 'normal' }, t);
+    s.textContent = sup;
+    dx = -s.getComputedTextLength() - 2;
+  }
+  el('tspan', { dx, dy: sup ? 15 : 6, 'font-size': '0.65em', 'font-style': 'italic' }, t).textContent = sub;
+}
+
+const STYLE = {
+  idle:    { color: INK },
+  compute: { color: ORANGE, sup: true },
+  comm:    { color: TEAL, sup: true },
+  done:    { color: BLUE },
+};
+function setLayer(l, state) {
+  for (const P of PANELS) {
+    const s = STYLE[state];
+    P.layers[l].style.stroke = s.color;
+    if (state === 'idle') P.labels[l].textContent = '';
+    else label(P.labels[l], s.sup && P.sup, SUB[l], s.color);
+  }
+}
+
+// [layer being computed, layer being communicated, caption]; 'in' = earlier layers
+const PHASES = [
+  [2, null, 'Compute ∇<b>W</b><sub><i>N</i></sub>.'],
+  [1, 2, 'Compute ∇<b>W</b><sub><i>N−1</i></sub> while sending ∇<b>W</b><sub><i>N</i></sub>.'],
+  [0, 1, 'Update layer <i>N</i>. Compute ∇<b>W</b><sub><i>N−2</i></sub> while sending ∇<b>W</b><sub><i>N−1</i></sub>.'],
+  ['in', 0, 'Same overlap down to the first layer.'],
+  [null, null, 'Done: most communication was hidden.'],
+];
+
+// Pausable, cancellable timeline
+let gen = 0, paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function tween(ms, f) {
+  const g = gen;
+  return new Promise((res, rej) => {
+    let t = 0, last = null;
+    requestAnimationFrame(function frame(now) {
+      if (g !== gen) return rej('abort');
+      if (last !== null && !paused) t += now - last;
+      last = now;
+      const p = Math.min(t / ms, 1);
+      f(p);
+      p < 1 ? requestAnimationFrame(frame) : res();
+    });
+  });
+}
+const cap = html => document.getElementById('cap').innerHTML = html;
+
+async function run() {
+  const g = ++gen;
+  await new Promise(requestAnimationFrame); // let the previous run see the new gen and stop
+  if (g !== gen) return;
+  try {
+    while (true) {
+      const state = ['idle', 'idle', 'idle'];
+      for (const [k, [cmp, com, text]] of PHASES.entries()) {
+        state.forEach((s, l) => state[l] = s === 'comm' ? 'done' : s);
+        if (typeof cmp === 'number') state[cmp] = 'compute';
+        if (com !== null) state[com] = 'comm';
+        state.forEach((s, l) => setLayer(l, s));
+        for (const P of PANELS) {
+          P.inputs.style.stroke = cmp === 'in' ? ORANGE : INK;
+          P.arrow.style.display = typeof cmp === 'number' ? '' : 'none';
+        }
+        if (com !== null) comm.setAttribute('transform', `translate(${layerX(com)} 0)`);
+        cap(text);
+        await tween(k === PHASES.length - 1 ? 3500 : 2600, p => {
+          if (typeof cmp === 'number') {
+            const x = COLX[cmp + 1] - 60 - p * (COLX[cmp + 1] - COLX[cmp] - 70);
+            PANELS.forEach(P => P.arrow.setAttribute('transform', `translate(${x} ${P.y0 + 49})`));
+          }
+          comm.setAttribute('opacity', com === null ? 0 : Math.min(1, p * 6, (1 - p) * 6));
+          flow.forEach(f => f.setAttribute('stroke-dashoffset', -p * 2600 / 20));
+        });
+      }
+    }
+  } catch (e) { if (e !== 'abort') throw e; }
+}
+
+const playBtn = document.getElementById('play');
+const syncBtn = () => { playBtn.textContent = paused ? '▶' : '⏸'; playBtn.setAttribute('aria-label', paused ? 'Play' : 'Pause'); };
+playBtn.onclick = () => { paused = !paused; syncBtn(); };
+document.getElementById('restart').onclick = run;
+syncBtn();
+run();
+</script>
+</body>
+</html>

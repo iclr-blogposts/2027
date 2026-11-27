@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ring All-Reduce</title>
+<style>
+  :root { color-scheme: light; --ink: #111; --panel: #e9ecef; --card: #fff; --border: #bbb; --blue: #2c5fd4; }
+  :root[data-theme="dark"] { color-scheme: dark; --ink: #e6e6e6; --panel: #2b2e33; --card: #1c1d20; --border: #555; --blue: #7aa2ff; }
+  html, body { margin: 0; background: transparent; color: var(--ink);
+    font-family: "Latin Modern Roman", "CMU Serif", "Computer Modern", Georgia, serif; }
+  .fig { max-width: 600px; margin: 0 auto; }
+  svg { width: 100%; height: auto; display: block; fill: var(--ink); }
+  .bar { display: flex; align-items: center; gap: .5em; font-size: 15px; }
+  button { font: inherit; border: 1px solid var(--border); background: var(--card); color: var(--ink); border-radius: 6px;
+    padding: .15em .6em; cursor: pointer; min-width: 2.4em; }
+  #cap { flex: 1; min-height: 1.35em; margin: .3em 0; line-height: 1.35; }
+</style>
+</head>
+<body>
+<div class="fig">
+  <svg viewBox="0 0 580 500" role="img" aria-label="Animated Ring All-Reduce with 3 workers"></svg>
+  <div class="bar">
+    <button id="play" aria-label="Pause">⏸</button>
+    <button id="restart" aria-label="Restart">↺</button>
+    <p id="cap" aria-live="polite"></p>
+  </div>
+</div>
+<script>
+// night mode: follow the embedding page's al-folio theme (data-theme), else the OS setting
+const darkMQ = matchMedia('(prefers-color-scheme: dark)');
+const syncTheme = () => {
+  let t;
+  if (parent !== window) try { t = parent.document.documentElement.getAttribute('data-theme'); } catch (e) {}
+  document.documentElement.dataset.theme = t || (darkMQ.matches ? 'dark' : 'light');
+};
+syncTheme();
+darkMQ.addEventListener('change', syncTheme);
+if (parent !== window) try {
+  new MutationObserver(syncTheme).observe(parent.document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+} catch (e) {}
+const NS = 'http://www.w3.org/2000/svg', svg = document.querySelector('svg');
+const el = (tag, attrs, parent = svg) => {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) // fill/stroke via style so CSS variables work
+    k === 'fill' || k === 'stroke' ? e.style.setProperty(k, attrs[k]) : e.setAttribute(k, attrs[k]);
+  parent.appendChild(e);
+  return e;
+};
+const INK = 'var(--ink)', COL = ['#17b3a3', '#f39c12', '#8e5cf7'], NAME = ['A', 'B', 'C'];
+const X0 = 55, CW = 150, CH = 81, LOOP_X = 560, TOP_Y = 18, BOT_Y = 481;
+const rowY = w => 36 + w * 150, cy = w => rowY(w) + 62.5, cx = j => X0 + CW * (j + .5);
+const next = w => (w + 2) % 3; // ring: A -> C -> B -> A (C sends up to B, B to A, A wraps to C)
+
+el('defs', {}).innerHTML = `<marker id="tip" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7"
+  orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: ${INK}"/></marker>`;
+
+// Workers
+const cellText = [], cellEq = [], cellFlash = [], whole = [], dividers = [];
+for (let w = 0; w < 3; w++) {
+  const y = rowY(w);
+  el('rect', { x: 4, y, width: 521, height: 125, rx: 18, fill: 'var(--panel)' });
+  el('text', { x: 30, y: y + 62.5, fill: COL[w], 'font-size': 20, 'text-anchor': 'middle',
+    'dominant-baseline': 'middle', transform: `rotate(-90 30 ${y + 62.5})` }).textContent = 'worker ' + NAME[w];
+  cellText[w] = []; cellEq[w] = []; cellFlash[w] = [];
+  for (let j = 0; j < 3; j++) {
+    cellFlash[w][j] = el('rect', { x: X0 + CW * j, y: y + 22, width: CW, height: CH, fill: '#ffe08a', opacity: 0 });
+    cellText[w][j] = el('text', { x: cx(j), y: cy(w) + 6, 'font-size': 21, 'text-anchor': 'middle' });
+    cellEq[w][j] = [0, 1].map(() => el('text', { x: 0, y: cy(w) + 6, 'font-size': 21, fill: INK, opacity: 0 })); // sᵢ and = overlays
+  }
+  whole[w] = el('text', { x: cx(1), y: cy(w) + 6, 'font-size': 24, 'text-anchor': 'middle' });
+  el('rect', { x: X0, y: y + 22, width: 3 * CW, height: CH, fill: 'none', stroke: INK, 'stroke-width': 1.5 });
+  dividers[w] = [1, 2].map(j => el('line', { x1: X0 + CW * j, x2: X0 + CW * j, stroke: INK, 'stroke-dasharray': '3 3' }));
+}
+
+// One arrow + one packet per worker; their geometry changes every step.
+const transfers = [0, 1, 2].map(() => {
+  const arrow = el('path', { fill: 'none', stroke: INK, 'stroke-width': 2, 'marker-end': 'url(#tip)', opacity: 0 });
+  const route = el('path', { fill: 'none', stroke: 'none' });
+  const g = el('g', { opacity: 0 });
+  const box = el('rect', { fill: 'var(--card)', stroke: INK, 'stroke-width': 1.2, rx: 6, height: 34, y: -17 }, g);
+  const text = el('text', { 'font-size': 19, 'text-anchor': 'middle', y: 6 }, g);
+  return { arrow, route, g, box, text };
+});
+function path(w, n, x, y1, y2) {
+  if (n === w - 1) return `M${x} ${y1} V${y2}`;
+  const r = 16; // wrap-around from the top worker to the bottom one
+  return `M${x} ${y1} V${TOP_Y + r} Q${x} ${TOP_Y} ${x + r} ${TOP_Y} H${LOOP_X - r} Q${LOOP_X} ${TOP_Y} ${LOOP_X} ${TOP_Y + r}
+    V${BOT_Y - r} Q${LOOP_X} ${BOT_Y} ${LOOP_X - r} ${BOT_Y} H${x + r} Q${x} ${BOT_Y} ${x} ${BOT_Y - r} V${y2}`;
+}
+
+// Cell contents: a list of [letter, index, colour] terms, rendered as "a₁ + b₁ + c₁",
+// optionally preceded by a left-hand side term: "s₁ = a₁ + b₁ + c₁".
+let cells;
+function render(t, terms, lhs) {
+  t.textContent = '';
+  (lhs ? [lhs, ...terms] : terms).forEach(([l, i, c], k) => {
+    if (k) el('tspan', { fill: INK, dy: i === '' ? 0 : -5 }, t).textContent = lhs && k === 1 ? ' = ' : ' + ';
+    el('tspan', { fill: c, 'font-weight': 'bold' }, t).textContent = l;
+    if (i !== '') el('tspan', { fill: c, dy: 5, 'font-size': '0.7em' }, t).textContent = i;
+  });
+}
+
+// Pausable, cancellable timeline
+let gen = 0, paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function tween(ms, f) {
+  const g = gen;
+  return new Promise((res, rej) => {
+    let t = 0, last = null;
+    requestAnimationFrame(function frame(now) {
+      if (g !== gen) return rej('abort');
+      if (last !== null && !paused) t += now - last;
+      last = now;
+      const p = Math.min(t / ms, 1);
+      f(p);
+      p < 1 ? requestAnimationFrame(frame) : res();
+    });
+  });
+}
+const wait = ms => tween(ms, () => {});
+const ease = p => p < .5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
+const cap = html => document.getElementById('cap').innerHTML = html;
+// e = 0: one whole tensor per worker, e = 1: split into m chunks
+function setSplit(e) {
+  for (let w = 0; w < 3; w++) {
+    dividers[w].forEach(d => { d.setAttribute('y1', cy(w) - CH / 2 * e); d.setAttribute('y2', cy(w) + CH / 2 * e); d.setAttribute('opacity', e); });
+    whole[w].setAttribute('opacity', 1 - e);
+    cellText[w].forEach(t => t.setAttribute('opacity', e));
+  }
+}
+// Move text t so its anchor point (ax, baseline) lands at X, scaled by k.
+function place(t, ax, X, k) {
+  const y = +t.getAttribute('y');
+  t.setAttribute('transform', `translate(${X} ${y}) scale(${k}) translate(${-ax} ${-y})`);
+}
+// "a₁ + b₁ + c₁" shrinks right while "s₁ =" fades in, then the sum fades out and s₁ grows back to the centre.
+async function nameSums(full) {
+  const parts = full.map(([w, j]) => {
+    const sum = cellText[w][j], [lhs, eq] = cellEq[w][j];
+    render(lhs, [['s', j + 1, INK]]);
+    eq.textContent = '=';
+    const [Wl, We, Ws] = [lhs, eq, sum].map(t => t.getComputedTextLength());
+    const gap = 6, total = Wl + We + Ws + 2 * gap, k = Math.min(1, (CW - 12) / total), L = cx(j) - total * k / 2;
+    return { w, j, sum, lhs, eq, Wl, k, L, eqX: L + (Wl + gap) * k, sumX: L + (Wl + We + 2 * gap + Ws / 2) * k };
+  });
+  parts.forEach(c => { place(c.lhs, 0, c.L, c.k); place(c.eq, 0, c.eqX, c.k); });
+  await tween(800, p => parts.forEach(c => { // make room
+    const e = ease(p);
+    place(c.sum, cx(c.j), cx(c.j) + (c.sumX - cx(c.j)) * e, 1 + (c.k - 1) * e);
+  }));
+  await tween(500, p => parts.forEach(c => { c.lhs.setAttribute('opacity', p); c.eq.setAttribute('opacity', p); }));
+  await wait(1800);
+  await tween(500, p => parts.forEach(c => { c.sum.setAttribute('opacity', 1 - p); c.eq.setAttribute('opacity', 1 - p); }));
+  await tween(800, p => parts.forEach(c => { // sᵢ back to the centre at full size
+    const e = ease(p), L0 = cx(c.j) - c.Wl / 2;
+    place(c.lhs, 0, c.L + (L0 - c.L) * e, c.k + (1 - c.k) * e);
+  }));
+  parts.forEach(c => { // swap the overlay for the cell's own text, which now reads sᵢ
+    render(c.sum, cells[c.w][c.j] = [['s', c.j + 1, INK]]);
+    c.sum.removeAttribute('transform'); c.sum.setAttribute('opacity', 1); c.lhs.setAttribute('opacity', 0);
+  });
+}
+const flash = list => tween(800, p => list.forEach(([w, j]) => cellFlash[w][j].setAttribute('opacity', 1 - p)));
+
+async function step(s) {
+  const reduce = s < 2;
+  const moves = [0, 1, 2].map(w => ({ w, n: next(w), j: (((2 - w - s) % 3) + 3) % 3 }));
+  moves.forEach(({ w, n, j }, k) => {
+    const T = transfers[k], x = cx(j);
+    T.arrow.setAttribute('d', path(w, n, x, rowY(w) + 22, rowY(n) + 22 + CH + 4));
+    T.route.setAttribute('d', path(w, n, x, cy(w), cy(n)));
+    render(T.text, cells[w][j]);
+    const bw = T.text.getBBox().width + 18;
+    T.box.setAttribute('x', -bw / 2); T.box.setAttribute('width', bw);
+  });
+  await tween(400, p => transfers.forEach(T => T.arrow.setAttribute('opacity', p)));
+  await tween(1800, p => transfers.forEach(T => {
+    const len = T.route.getTotalLength(), pt = T.route.getPointAtLength(ease(p) * len);
+    T.g.setAttribute('transform', `translate(${pt.x} ${pt.y})`);
+    T.g.setAttribute('opacity', Math.min(1, p * 8, (1 - p) * 8));
+  }));
+  moves.forEach(({ w, n, j }) => {
+    cells[n][j] = reduce ? [...cells[n][j], ...cells[w][j]].sort((a, b) => a[0] < b[0] ? -1 : 1) : cells[w][j];
+    render(cellText[n][j], cells[n][j]);
+  });
+  await Promise.all([
+    flash(moves.map(({ n, j }) => [n, j])),
+    tween(600, p => transfers.forEach(T => T.arrow.setAttribute('opacity', 1 - p))),
+  ]);
+  await wait(500);
+}
+
+async function run() {
+  const g = ++gen;
+  await new Promise(requestAnimationFrame); // let the previous run see the new gen and stop
+  if (g !== gen) return;
+  try {
+    while (true) {
+      cells = [0, 1, 2].map(w => [0, 1, 2].map(j => [['abc'[w], j + 1, COL[w]]]));
+      cells.forEach((row, w) => row.forEach((t, j) => { render(cellText[w][j], t); cellText[w][j].removeAttribute('transform');
+        cellEq[w][j].forEach(e => e.setAttribute('opacity', 0)); cellFlash[w][j].setAttribute('opacity', 0); }));
+      transfers.forEach(T => { T.g.setAttribute('opacity', 0); T.arrow.setAttribute('opacity', 0); });
+      whole.forEach((t, w) => render(t, [['abc'[w], '', COL[w]]]));
+      setSplit(0);
+      cap('Each worker has its gradient (<b>a</b>, <b>b</b>, <b>c</b>).');
+      await wait(1800);
+      cap('Split into 3 chunks.');
+      await tween(1200, p => setSplit(ease(p)));
+      await wait(1200);
+      for (let s = 0; s < 4; s++) {
+        if (s === 2) {
+          cap('Each worker holds one summed chunk <b>s</b><sub><i>i</i></sub>.');
+          const full = [];
+          cells.forEach((row, w) => row.forEach((t, j) => t.length === 3 && full.push([w, j])));
+          await flash(full);
+          await nameSums(full);
+          await wait(600);
+        }
+        cap(s < 2
+          ? `Reduce ${s + 1}/2: send a chunk, receiver <b>adds</b> it.`
+          : `Share ${s - 1}/2: send a summed chunk, receiver <b>copies</b> it.`);
+        await step(s);
+      }
+      cap('Done: every worker has <b>s</b> = <b>a</b> + <b>b</b> + <b>c</b>.');
+      whole.forEach(t => render(t, [['a', '', COL[0]], ['b', '', COL[1]], ['c', '', COL[2]]], ['s', '', INK]));
+      await wait(800);
+      await tween(1200, p => setSplit(1 - ease(p)));
+      await wait(3000);
+    }
+  } catch (e) { if (e !== 'abort') throw e; }
+}
+
+const playBtn = document.getElementById('play');
+const syncBtn = () => { playBtn.textContent = paused ? '▶' : '⏸'; playBtn.setAttribute('aria-label', paused ? 'Play' : 'Pause'); };
+playBtn.onclick = () => { paused = !paused; syncBtn(); };
+document.getElementById('restart').onclick = run;
+syncBtn();
+run();
+</script>
+</body>
+</html>
