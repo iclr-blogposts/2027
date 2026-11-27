@@ -167,13 +167,13 @@ function requestBuild() {
       type: "scatter", mode: "lines", name: model.label, x: times,
       y: example.schedules[scheduleID][model.id].counts,
       line: { color: model.color, width: 2.5, shape: "hv", dash: model.dash },
-      hovertemplate: `<b>${model.label}</b><br>t = %{x:.2f}<br>Unmasked cells: %{y:.0f} / ${blankCount}<extra></extra>`,
+      hovertemplate: `<b>${model.label}</b><br>t = %{x:.2f}<br>Revealed Tokens: %{y:.0f} / ${blankCount}<extra></extra>`,
     }));
     traces.push({
       type: "scatter", mode: "lines", name: "Expected (MDM)", x: times,
       y: example.schedules[scheduleID].expected,
       line: { color: "#808080", width: 1.8, dash: "dash" },
-      hovertemplate: `<b>Expected (MDM)</b><br>t = %{x:.2f}<br>Unmasked cells: %{y:.1f} / ${blankCount}<extra></extra>`,
+      hovertemplate: `<b>Expected (MDM)</b><br>t = %{x:.2f}<br>Revealed Tokens: %{y:.1f} / ${blankCount}<extra></extra>`,
     });
     const size = chart.getBoundingClientRect();
     const axis = { fixedrange: true, zeroline: false, gridcolor: style.grid, tickfont: { size: 10 }, automargin: true };
@@ -184,7 +184,7 @@ function requestBuild() {
       hoverlabel: { bgcolor: style.background, bordercolor: style.grid, font: { size: 11 } },
       xaxis: { ...axis, range: [0, 1], tickvals: [0, 0.5, 1], title: { text: "t", standoff: 5, font: { size: 10 } } },
       yaxis: { ...axis, range: [0, blankCount], tickvals: [0, Math.round(blankCount / 2), blankCount],
-        title: { text: "Unmasked cells", standoff: 4, font: { size: 10 } } },
+        title: { text: "Revealed Tokens", standoff: 4, font: { size: 10 } } },
     }, { displayModeBar: false, displaylogo: false, scrollZoom: false });
     chart.removeListener("plotly_click", selectChartStep);
     chart.on("plotly_click", selectChartStep);

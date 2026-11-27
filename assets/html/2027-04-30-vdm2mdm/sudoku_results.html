@@ -4,25 +4,86 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sudoku evaluation</title>
-<style>
-:root{color-scheme:light;--global-bg-color: #ffffff;--global-code-bg-color: rgba(181, 9, 172, 0.05);--global-text-color: #000000;--global-text-color-light: #828282;--global-theme-color: #b509ac;--global-hover-color: #b509ac;--global-hover-text-color: #ffffff;--global-footer-bg-color: #1c1c1d;--global-footer-text-color: #e8e8e8;--global-footer-link-color: #ffffff;--global-distill-app-color: #828282;--global-divider-color: rgba(0, 0, 0, 0.1);--global-card-bg-color: #ffffff;--global-highlight-color: #b71c1c;--global-back-to-top-bg-color: rgba( 0, 0, 0, 0.4 );--global-back-to-top-text-color: #ffffff;--global-newsletter-bg-color: #ffffff;--global-newsletter-text-color: #000000;--global-tip-block: #42b983;--global-tip-block-bg: #e2f5ec;--global-tip-block-text: #215d42;--global-tip-block-title: #359469;--global-warning-block: #e7c000;--global-warning-block-bg: #fff8d8;--global-warning-block-text: #6b5900;--global-warning-block-title: #b29400;--global-danger-block: #c00;--global-danger-block-bg: #ffe0e0;--global-danger-block-text: #600;--global-danger-block-title: #c00}
-:root{--global-theme-color: #2698ba;--global-hover-color: #1688aa}
-html[data-theme=dark]{color-scheme:dark;--global-bg-color: #1c1c1d;--global-code-bg-color: #2c3237;--global-text-color: #e8e8e8;--global-text-color-light: #828282;--global-theme-color: #2698ba;--global-hover-color: #2698ba;--global-hover-text-color: #ffffff;--global-footer-bg-color: #e8e8e8;--global-footer-text-color: #1c1c1d;--global-footer-link-color: #000000;--global-distill-app-color: #e8e8e8;--global-divider-color: #424246;--global-card-bg-color: #212529;--global-back-to-top-bg-color: rgba( 255, 255, 255, 0.5 );--global-back-to-top-text-color: #000000;--global-newsletter-bg-color: #e8e8e8;--global-newsletter-text-color: #1c1c1d;--global-tip-block: #42b983;--global-tip-block-bg: #215d42;--global-tip-block-text: #beffe2;--global-tip-block-title: #e2f5ec;--global-warning-block: #e7c000;--global-warning-block-bg: #6b5900;--global-warning-block-text: #fff2af;--global-warning-block-title: #fff8d8;--global-danger-block: #c00;--global-danger-block-bg: #600;--global-danger-block-text: #ffb9b9;--global-danger-block-title: #ffe0e0}
-</style>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&amp;display=swap">
+<!-- the same stylesheets, in the same order, as the article page -->
 <link rel="stylesheet" href="../../css/tailwind.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&amp;display=swap">
+<link rel="stylesheet" href="../../css/jekyll-pygments-themes-github.css" id="highlight_theme_light">
 <link rel="stylesheet" href="../../css/main.css">
+<link rel="stylesheet" href="../../css/jekyll-pygments-themes-native.css" media="none" id="highlight_theme_dark">
+<link rel="stylesheet" href="../../css/al-folio-distill.css">
+<style>
+a { color: rgb(0, 66, 118); }
+figure { margin: 0px; }
+table { border-collapse: collapse; border-spacing: 0px; }
+table th { text-align: left; }
+table thead { border-bottom: 1px solid rgba(0, 0, 0, 0.05); }
+table thead th { padding-bottom: 0.5em; }
+table tbody :first-child td { padding-top: 0.5em; }
+pre { overflow: auto; max-width: 100%; }
+p { margin-top: 0px; margin-bottom: 1em; }
+figure { position: relative; margin-bottom: 2.5em; margin-top: 1.5em; }
+figcaption + figure {  }
+figure img { width: 100%; }
+figure svg text, figure svg tspan {  }
+figcaption { color: rgba(0, 0, 0, 0.6); font-size: 12px; line-height: 1.5em; }
+@media (min-width: 1024px) { figcaption { font-size: 13px; } }
+figure.external img { background: white; border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 8px; padding: 18px; box-sizing: border-box; }
+figcaption a { color: rgba(0, 0, 0, 0.6); }
+d-article { display: grid; justify-items: stretch; grid-template-columns: [screen-start] 8px [page-start kicker-start text-start gutter-start middle-start] 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr [text-end page-end gutter-end kicker-end middle-end] 8px [screen-end]; column-gap: 8px; }
+@media (min-width: 768px) { d-article { grid-template-columns: [screen-start] 1fr [page-start kicker-start middle-start text-start] 45px 45px 45px 45px 45px 45px 45px 45px [kicker-end text-end gutter-start] 45px [middle-end] 45px [page-end gutter-end] 1fr [screen-end]; column-gap: 16px; } }
+@media (min-width: 1000px) { d-article { grid-template-columns: [screen-start] 1fr [page-start kicker-start] 50px [middle-start] 50px [text-start kicker-end] 50px 50px 50px 50px 50px 50px 50px 50px [text-end gutter-start] 50px [middle-end] 50px [page-end gutter-end] 1fr [screen-end]; column-gap: 16px; } }
+@media (min-width: 1180px) { d-article { grid-template-columns: [screen-start] 1fr [page-start kicker-start] 60px [middle-start] 60px [text-start kicker-end] 60px 60px 60px 60px 60px 60px 60px 60px [text-end gutter-start] 60px [middle-end] 60px [page-end gutter-end] 1fr [screen-end]; column-gap: 32px; } }
+d-article aside { grid-column: gutter; font-size: 12px; line-height: 1.6em; color: rgba(0, 0, 0, 0.6); }
+d-article d-byline a { color: rgba(0, 0, 0, 0.8); text-decoration: none; border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor; }
+d-article d-byline a:hover { text-decoration: underline; border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor; }
+d-article { contain: layout style; overflow-x: hidden; border-top: 1px solid rgba(0, 0, 0, 0.1); padding-top: 2rem; color: rgba(0, 0, 0, 0.8); }
+d-article > * { grid-column: text; }
+@media (min-width: 768px) { d-article { font-size: 16px; } }
+@media (min-width: 1024px) { d-article { font-size: 1.06rem; line-height: 1.7em; } }
+d-article .marker { text-decoration: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; counter-reset: section 0; grid-column: kicker; line-height: 1.7em; }
+d-article .marker:hover { border-width: medium; border-style: none; border-color: currentcolor; border-image: none; }
+d-article .marker span { padding: 0px 3px 4px; border-bottom: 1px solid rgba(0, 0, 0, 0.2); position: relative; top: 4px; }
+d-article .marker:hover span { color: rgba(0, 0, 0, 0.7); border-bottom: 1px solid rgba(0, 0, 0, 0.7); }
+d-article h2 { font-weight: 600; font-size: 24px; line-height: 1.25em; margin: 2rem 0px 1.5rem; border-bottom: 1px solid rgba(0, 0, 0, 0.1); padding-bottom: 1rem; }
+@media (min-width: 1024px) { d-article h2 { font-size: 36px; } }
+d-article h3 { font-weight: 700; font-size: 18px; line-height: 1.4em; margin-bottom: 1em; margin-top: 2em; }
+@media (min-width: 1024px) { d-article h3 { font-size: 20px; } }
+d-article h4 { font-weight: 600; text-transform: uppercase; font-size: 14px; line-height: 1.4em; }
+d-article a { color: inherit; }
+d-article p, d-article ul, d-article ol, d-article blockquote { margin: 0px 0px 1em; }
+d-article blockquote { border-left: 2px solid rgba(0, 0, 0, 0.2); padding-left: 2em; font-style: italic; color: rgba(0, 0, 0, 0.6); }
+d-article a { border-bottom: 1px solid rgba(0, 0, 0, 0.4); text-decoration: none; }
+d-article a:hover { border-bottom: 1px solid rgba(0, 0, 0, 0.8); }
+d-article .link { text-decoration: underline; cursor: pointer; }
+d-article ul, d-article ol { padding-left: 24px; }
+d-article li { margin-bottom: 1em; margin-left: 0px; padding-left: 0px; }
+d-article li:last-child { margin-bottom: 0px; }
+d-article pre { font-size: 14px; margin-bottom: 20px; }
+d-article hr { grid-column: screen; width: 100%; border-width: medium medium 1px; border-style: none none solid; border-color: currentcolor currentcolor rgba(0, 0, 0, 0.1); border-image: none; margin-top: 60px; margin-bottom: 60px; }
+d-article section { margin-top: 60px; margin-bottom: 60px; }
+d-article span.equation-mimic { font-family: georgia; font-size: 115%; font-style: italic; }
+d-article > d-code, d-article section > d-code { display: block; }
+d-article > d-math[block], d-article section > d-math[block] { display: block; }
+@media (max-width: 768px) { d-article > d-code, d-article section > d-code, d-article > d-math[block], d-article section > d-math[block] { overflow-x: scroll; } }
+@media (max-width: 768px) { d-article > d-code::-webkit-scrollbar, d-article section > d-code::-webkit-scrollbar, d-article > d-math[block]::-webkit-scrollbar, d-article section > d-math[block]::-webkit-scrollbar { display: none; } }
+d-article .citation { color: rgb(102, 102, 136); cursor: pointer; }
+d-article table { border-collapse: collapse; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(0, 0, 0, 0.2); }
+d-article table th { border-bottom: 1px solid rgba(0, 0, 0, 0.2); }
+d-article table td { border-bottom: 1px solid rgba(0, 0, 0, 0.05); }
+d-article table tr:last-of-type td { border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor; }
+d-article table th, d-article table td { font-size: 15px; padding: 2px 8px; }
+d-article table tbody :first-child td { padding-top: 2px; }
+@media print { p, code { break-inside: avoid; } }
+@media print { h2, h3 { break-after: avoid; } }
+
+</style>
 <style>
 html{overflow:hidden}
 body{margin:0;padding:0;background:var(--global-bg-color);color:var(--global-text-color);font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Fira Sans","Droid Sans","Helvetica Neue",Arial,sans-serif}
 #frame-root{display:flow-root}
-details{color:var(--global-text-color);background-color:var(--global-code-bg-color);margin-top:0;padding:8px 12px;position:relative;border-radius:6px;display:block;margin-bottom:20px;overflow:auto;max-width:100%}
-details summary{color:var(--global-theme-color)}
-li{margin-bottom:1em;margin-left:0;padding-left:0}
-li:last-child{margin-bottom:0}
-ul,ol{margin:0 0 1em 0;padding-left:24px}
-details p{margin-top:.5rem;margin-bottom:.5rem}
-#frame-root > section, #frame-root > figure, #frame-root > div {margin-top:0 !important;margin-bottom:0 !important}
+d-article{display:contents}
+#frame-root > d-article > section, #frame-root > d-article > figure, #frame-root > d-article > div {margin-top:0 !important;margin-bottom:0 !important}
 </style>
 <script>(function () {
   var root = document.documentElement, parentDoc = null;
@@ -33,6 +94,8 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
       t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
     if (root.getAttribute("data-theme") !== t) root.setAttribute("data-theme", t);
+    var light = document.getElementById("highlight_theme_light"), dark = document.getElementById("highlight_theme_dark");
+    if (light && dark) { light.media = t === "dark" ? "none" : ""; dark.media = t === "dark" ? "" : "none"; }
   }
   function applyType() {
     if (!parentDoc) return;
@@ -41,13 +104,27 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
     var a = view.getComputedStyle(article), r = view.getComputedStyle(parentDoc.documentElement);
     root.style.fontSize = r.fontSize;
     root.style.fontFamily = a.fontFamily;
-    document.body.style.fontSize = a.fontSize;
-    document.body.style.lineHeight = a.lineHeight;
-    document.body.style.fontWeight = a.fontWeight;
-    document.body.style.fontFamily = a.fontFamily;
+    // keep a relative line height relative: measure how it scales with the font size
+    var lineHeight = a.lineHeight;
+    if (parentDoc.querySelector("d-article")) {
+      var probe = parentDoc.createElement("span");
+      probe.style.fontSize = "100px";
+      article.appendChild(probe);
+      var probed = view.getComputedStyle(probe).lineHeight;
+      article.removeChild(probe);
+      if (probed !== lineHeight && probed.slice(-2) === "px") lineHeight = String(parseFloat(probed) / 100);
+    }
+    [document.body, document.querySelector("#frame-root > d-article")].forEach(function (target) {
+      if (!target) return;
+      target.style.fontSize = a.fontSize;
+      target.style.lineHeight = lineHeight;
+      target.style.fontWeight = a.fontWeight;
+      target.style.fontFamily = a.fontFamily;
+    });
     document.body.style.color = "var(--global-text-color)";
   }
   applyTheme();
+  window.applyArticleType = applyType;
   document.addEventListener("DOMContentLoaded", function () {
     applyType();
     if (parentDoc) {
@@ -69,11 +146,13 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
 </head>
 <body>
 <div id="frame-root">
+<d-article>
+<script>applyArticleType();</script>
 <style>
   #sudoku-results { margin: 1.5rem 0 2rem; min-width: 0; container-type: inline-size; scroll-margin-top: 5rem; }
   #sudoku-results [hidden] { display: none !important; }
-  #sudoku-results .plot-keys { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 0.5rem 2rem; margin-top: 1.25rem; }
-  #sudoku-results .schedule-key, #sudoku-results .sampler-key { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; min-width: 0; max-width: 100%; gap: 0.5rem 0.75rem; font-size: 0.85rem; color: var(--global-text-color, #17181a); }
+  #sudoku-results .plot-keys { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.5rem 2rem; margin-top: 1.25rem; }
+  #sudoku-results .schedule-key, #sudoku-results .sampler-key { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; min-width: 0; max-width: 100%; gap: 0.5rem 0.75rem; font-size: 0.85rem; color: var(--global-text-color, #17181a); }
   #sudoku-results .key-label { font-weight: 700; }
   #sudoku-results .key-item { display: inline-flex; align-items: center; gap: 0.35rem; }
   #sudoku-results .swatch { flex: 0 0 10px; width: 10px; height: 10px; border-radius: 2px; }
@@ -88,13 +167,7 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
   #sudoku-results .load-status { margin: 0.75rem 0 0; font-size: 0.8rem; color: var(--global-text-color-light, #6b7280); }
   #sudoku-results .load-status:empty { display: none; }
   #sudoku-results .retry { margin-top: 0.5rem; }
-  #sudoku-results details { margin-top: 1.5rem; padding-top: 0.85rem; border-top: 1px solid var(--global-divider-color, #d1d5db); }
-  #sudoku-results summary { width: fit-content; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
-  #sudoku-results .full-table { overflow-x: auto; margin-top: 1rem; }
-  #sudoku-results table { width: 100%; margin: 0; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
-  #sudoku-results th, #sudoku-results td { padding: 0.55rem 0.65rem; text-align: left; white-space: nowrap; }
-  #sudoku-results .metric-cell { text-align: right; }
-  #sudoku-results summary:focus-visible, #sudoku-results .full-table:focus-visible, #sudoku-results .retry:focus-visible { outline: 2px solid var(--global-theme-color, #2f5d50); outline-offset: 2px; }
+  #sudoku-results .retry:focus-visible { outline: 2px solid var(--global-theme-color, #2f5d50); outline-offset: 2px; }
   @media (max-width: 652px) { #sudoku-results .metric-charts { grid-template-columns: minmax(0, 1fr); } }
   @container (max-width: 620px) {
     #sudoku-results .metric-charts { grid-template-columns: minmax(0, 1fr); }
@@ -125,78 +198,7 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
   </div>
   <p class="load-status" role="status"></p>
   <button class="retry" type="button" hidden>Retry</button>
-  <details open>
-    <summary>Full results table</summary>
-    <div class="full-table" tabindex="0" role="region" aria-label="All Sudoku generation metrics">
-      <table>
-        <thead><tr><th scope="col">Evaluation Schedule</th><th scope="col">Model</th><th scope="col">Number of clues</th><th scope="col" class="metric-cell">Puzzles</th><th scope="col" class="metric-cell">Exact solution match &uarr;</th><th scope="col" class="metric-cell">Valid Sudoku solutions &uarr;</th></tr></thead>
-        <tbody>
-          
-          
-          <tr><td>Log-linear</td><td>MDM</td><td>17–33</td><td class="metric-cell">7648</td><td class="metric-cell">63.09%</td><td class="metric-cell">73.65%</td></tr>
-          
-          <tr><td>Log-linear</td><td>MDM</td><td>34–40</td><td class="metric-cell">20462</td><td class="metric-cell">89.72%</td><td class="metric-cell">91.67%</td></tr>
-          
-          <tr><td>Log-linear</td><td>MDM</td><td>41–80</td><td class="metric-cell">21890</td><td class="metric-cell">98.77%</td><td class="metric-cell">99.69%</td></tr>
-          
-          <tr><td>Log-linear</td><td>MDM</td><td>Overall</td><td class="metric-cell">50000</td><td class="metric-cell">89.61%</td><td class="metric-cell">92.43%</td></tr>
-          
-          
-          
-          <tr><td>Log-linear</td><td>ReMDM-conf</td><td>17–33</td><td class="metric-cell">7648</td><td class="metric-cell">69.67%</td><td class="metric-cell">83.76%</td></tr>
-          
-          <tr><td>Log-linear</td><td>ReMDM-conf</td><td>34–40</td><td class="metric-cell">20462</td><td class="metric-cell">92.60%</td><td class="metric-cell">94.76%</td></tr>
-          
-          <tr><td>Log-linear</td><td>ReMDM-conf</td><td>41–80</td><td class="metric-cell">21890</td><td class="metric-cell">98.82%</td><td class="metric-cell">99.84%</td></tr>
-          
-          <tr><td>Log-linear</td><td>ReMDM-conf</td><td>Overall</td><td class="metric-cell">50000</td><td class="metric-cell">91.81%</td><td class="metric-cell">95.30%</td></tr>
-          
-          
-          
-          <tr><td>Cosine</td><td>MDM</td><td>17–33</td><td class="metric-cell">7648</td><td class="metric-cell">61.39%</td><td class="metric-cell">71.18%</td></tr>
-          
-          <tr><td>Cosine</td><td>MDM</td><td>34–40</td><td class="metric-cell">20462</td><td class="metric-cell">89.34%</td><td class="metric-cell">91.23%</td></tr>
-          
-          <tr><td>Cosine</td><td>MDM</td><td>41–80</td><td class="metric-cell">21890</td><td class="metric-cell">98.75%</td><td class="metric-cell">99.63%</td></tr>
-          
-          <tr><td>Cosine</td><td>MDM</td><td>Overall</td><td class="metric-cell">50000</td><td class="metric-cell">89.19%</td><td class="metric-cell">91.84%</td></tr>
-          
-          
-          
-          <tr><td>Cosine</td><td>ReMDM-conf</td><td>17–33</td><td class="metric-cell">7648</td><td class="metric-cell">69.39%</td><td class="metric-cell">83.42%</td></tr>
-          
-          <tr><td>Cosine</td><td>ReMDM-conf</td><td>34–40</td><td class="metric-cell">20462</td><td class="metric-cell">92.56%</td><td class="metric-cell">94.59%</td></tr>
-          
-          <tr><td>Cosine</td><td>ReMDM-conf</td><td>41–80</td><td class="metric-cell">21890</td><td class="metric-cell">98.89%</td><td class="metric-cell">99.81%</td></tr>
-          
-          <tr><td>Cosine</td><td>ReMDM-conf</td><td>Overall</td><td class="metric-cell">50000</td><td class="metric-cell">91.79%</td><td class="metric-cell">95.17%</td></tr>
-          
-          
-          
-          <tr><td>Cosine (DUO)</td><td>MDM</td><td>17–33</td><td class="metric-cell">7648</td><td class="metric-cell">62.30%</td><td class="metric-cell">73.48%</td></tr>
-          
-          <tr><td>Cosine (DUO)</td><td>MDM</td><td>34–40</td><td class="metric-cell">20462</td><td class="metric-cell">88.24%</td><td class="metric-cell">90.20%</td></tr>
-          
-          <tr><td>Cosine (DUO)</td><td>MDM</td><td>41–80</td><td class="metric-cell">21890</td><td class="metric-cell">97.46%</td><td class="metric-cell">98.37%</td></tr>
-          
-          <tr><td>Cosine (DUO)</td><td>MDM</td><td>Overall</td><td class="metric-cell">50000</td><td class="metric-cell">88.31%</td><td class="metric-cell">91.22%</td></tr>
-          
-          
-          
-          <tr><td>Cosine (DUO)</td><td>ReMDM-conf</td><td>17–33</td><td class="metric-cell">7648</td><td class="metric-cell">69.14%</td><td class="metric-cell">82.26%</td></tr>
-          
-          <tr><td>Cosine (DUO)</td><td>ReMDM-conf</td><td>34–40</td><td class="metric-cell">20462</td><td class="metric-cell">92.19%</td><td class="metric-cell">94.38%</td></tr>
-          
-          <tr><td>Cosine (DUO)</td><td>ReMDM-conf</td><td>41–80</td><td class="metric-cell">21890</td><td class="metric-cell">98.79%</td><td class="metric-cell">99.81%</td></tr>
-          
-          <tr><td>Cosine (DUO)</td><td>ReMDM-conf</td><td>Overall</td><td class="metric-cell">50000</td><td class="metric-cell">91.55%</td><td class="metric-cell">94.91%</td></tr>
-          
-          
-        </tbody>
-      </table>
-    </div>
-  </details>
-  <script type="application/json" class="results-data">{"model":"DDiT","sampling_steps":50,"dataset_split":"official test set","groups":["17–33","34–40","41–80","Overall"],"puzzle_counts":[7648,20462,21890,50000],"runs":[{"model":"MDM","schedule":"Log-linear","exact_match_percent":["63.09","89.72","98.77","89.61"],"solved_percent":["73.65","91.67","99.69","92.43"]},{"model":"ReMDM-conf","schedule":"Log-linear","exact_match_percent":["69.67","92.60","98.82","91.81"],"solved_percent":["83.76","94.76","99.84","95.30"]},{"model":"MDM","schedule":"Cosine","exact_match_percent":["61.39","89.34","98.75","89.19"],"solved_percent":["71.18","91.23","99.63","91.84"]},{"model":"ReMDM-conf","schedule":"Cosine","exact_match_percent":["69.39","92.56","98.89","91.79"],"solved_percent":["83.42","94.59","99.81","95.17"]},{"model":"MDM","schedule":"Cosine (DUO)","exact_match_percent":["62.30","88.24","97.46","88.31"],"solved_percent":["73.48","90.20","98.37","91.22"]},{"model":"ReMDM-conf","schedule":"Cosine (DUO)","exact_match_percent":["69.14","92.19","98.79","91.55"],"solved_percent":["82.26","94.38","99.81","94.91"]}]}</script>
+  <script type="application/json" class="results-data">{"model":"DDiT","sampling_steps":50,"dataset_split":"official test set","groups":["17–33","34–40","41–80","Overall"],"puzzle_counts":[7648,20462,21890,50000],"runs":[{"model":"MDM","schedule":"Log-linear","exact_match_percent":["62.55","89.94","98.65","89.56"],"solved_percent":["73.20","91.85","99.63","92.41"]},{"model":"ReMDM-conf","schedule":"Log-linear","exact_match_percent":["69.25","92.75","98.84","91.82"],"solved_percent":["81.26","94.74","99.75","94.87"]},{"model":"MDM","schedule":"Cosine","exact_match_percent":["60.89","89.19","98.68","89.02"],"solved_percent":["70.14","91.07","99.58","91.59"]},{"model":"ReMDM-conf","schedule":"Cosine","exact_match_percent":["68.72","92.30","98.87","91.57"],"solved_percent":["80.56","94.41","99.76","94.63"]},{"model":"MDM","schedule":"Cosine (DUO)","exact_match_percent":["62.07","88.37","97.40","88.30"],"solved_percent":["72.88","90.33","98.33","91.16"]},{"model":"ReMDM-conf","schedule":"Cosine (DUO)","exact_match_percent":["68.15","92.11","98.78","91.37"],"solved_percent":["79.34","94.11","99.72","94.31"]}]}</script>
 </section>
 
 <script>
@@ -205,7 +207,6 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
     const results = JSON.parse(root.querySelector(".results-data").textContent);
     const interactive = root.querySelector(".interactive-results");
     const charts = Array.from(root.querySelectorAll(".chart"));
-    const details = root.querySelector("details");
     const status = root.querySelector(".load-status");
     const retry = root.querySelector(".retry");
     const schedules = ["Log-linear", "Cosine", "Cosine (DUO)"];
@@ -276,8 +277,7 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
     function fail() {
       root.setAttribute("aria-busy", "false");
       interactive.hidden = true;
-      details.open = true;
-      status.textContent = "Charts unavailable. Full results are shown in the table below.";
+      status.textContent = "Charts unavailable.";
       retry.hidden = false;
     }
 
@@ -307,7 +307,6 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
         await render();
         root.setAttribute("aria-busy", "false");
         status.textContent = "";
-        details.open = false;
         if (observersReady) return;
         const resizeObserver = new ResizeObserver((entries) => {
           entries.forEach(({ target, contentRect }) => {
@@ -333,6 +332,9 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
 </script>
 
 
+</d-article>
 </div>
+<script>/* the article page gives its tables this class */ document.querySelectorAll("d-article table").forEach(function (t) { t.classList.add("table"); });</script>
+<script src="../../js/copy_code.js"></script>
 </body>
 </html>

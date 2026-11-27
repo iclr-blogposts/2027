@@ -456,7 +456,7 @@
     0.0
   ],
   "continuous": {
-    "title": "logSNR \u03b3(t)",
+    "title": "logSNR \u03bd(t)",
     "range": [
       -10,
       10

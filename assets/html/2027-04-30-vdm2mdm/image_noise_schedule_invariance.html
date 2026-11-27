@@ -4,25 +4,86 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CIFAR-10 noise schedule invariance</title>
-<style>
-:root{color-scheme:light;--global-bg-color: #ffffff;--global-code-bg-color: rgba(181, 9, 172, 0.05);--global-text-color: #000000;--global-text-color-light: #828282;--global-theme-color: #b509ac;--global-hover-color: #b509ac;--global-hover-text-color: #ffffff;--global-footer-bg-color: #1c1c1d;--global-footer-text-color: #e8e8e8;--global-footer-link-color: #ffffff;--global-distill-app-color: #828282;--global-divider-color: rgba(0, 0, 0, 0.1);--global-card-bg-color: #ffffff;--global-highlight-color: #b71c1c;--global-back-to-top-bg-color: rgba( 0, 0, 0, 0.4 );--global-back-to-top-text-color: #ffffff;--global-newsletter-bg-color: #ffffff;--global-newsletter-text-color: #000000;--global-tip-block: #42b983;--global-tip-block-bg: #e2f5ec;--global-tip-block-text: #215d42;--global-tip-block-title: #359469;--global-warning-block: #e7c000;--global-warning-block-bg: #fff8d8;--global-warning-block-text: #6b5900;--global-warning-block-title: #b29400;--global-danger-block: #c00;--global-danger-block-bg: #ffe0e0;--global-danger-block-text: #600;--global-danger-block-title: #c00}
-:root{--global-theme-color: #2698ba;--global-hover-color: #1688aa}
-html[data-theme=dark]{color-scheme:dark;--global-bg-color: #1c1c1d;--global-code-bg-color: #2c3237;--global-text-color: #e8e8e8;--global-text-color-light: #828282;--global-theme-color: #2698ba;--global-hover-color: #2698ba;--global-hover-text-color: #ffffff;--global-footer-bg-color: #e8e8e8;--global-footer-text-color: #1c1c1d;--global-footer-link-color: #000000;--global-distill-app-color: #e8e8e8;--global-divider-color: #424246;--global-card-bg-color: #212529;--global-back-to-top-bg-color: rgba( 255, 255, 255, 0.5 );--global-back-to-top-text-color: #000000;--global-newsletter-bg-color: #e8e8e8;--global-newsletter-text-color: #1c1c1d;--global-tip-block: #42b983;--global-tip-block-bg: #215d42;--global-tip-block-text: #beffe2;--global-tip-block-title: #e2f5ec;--global-warning-block: #e7c000;--global-warning-block-bg: #6b5900;--global-warning-block-text: #fff2af;--global-warning-block-title: #fff8d8;--global-danger-block: #c00;--global-danger-block-bg: #600;--global-danger-block-text: #ffb9b9;--global-danger-block-title: #ffe0e0}
-</style>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&amp;display=swap">
+<!-- the same stylesheets, in the same order, as the article page -->
 <link rel="stylesheet" href="../../css/tailwind.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&amp;display=swap">
+<link rel="stylesheet" href="../../css/jekyll-pygments-themes-github.css" id="highlight_theme_light">
 <link rel="stylesheet" href="../../css/main.css">
+<link rel="stylesheet" href="../../css/jekyll-pygments-themes-native.css" media="none" id="highlight_theme_dark">
+<link rel="stylesheet" href="../../css/al-folio-distill.css">
+<style>
+a { color: rgb(0, 66, 118); }
+figure { margin: 0px; }
+table { border-collapse: collapse; border-spacing: 0px; }
+table th { text-align: left; }
+table thead { border-bottom: 1px solid rgba(0, 0, 0, 0.05); }
+table thead th { padding-bottom: 0.5em; }
+table tbody :first-child td { padding-top: 0.5em; }
+pre { overflow: auto; max-width: 100%; }
+p { margin-top: 0px; margin-bottom: 1em; }
+figure { position: relative; margin-bottom: 2.5em; margin-top: 1.5em; }
+figcaption + figure {  }
+figure img { width: 100%; }
+figure svg text, figure svg tspan {  }
+figcaption { color: rgba(0, 0, 0, 0.6); font-size: 12px; line-height: 1.5em; }
+@media (min-width: 1024px) { figcaption { font-size: 13px; } }
+figure.external img { background: white; border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 8px; padding: 18px; box-sizing: border-box; }
+figcaption a { color: rgba(0, 0, 0, 0.6); }
+d-article { display: grid; justify-items: stretch; grid-template-columns: [screen-start] 8px [page-start kicker-start text-start gutter-start middle-start] 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr [text-end page-end gutter-end kicker-end middle-end] 8px [screen-end]; column-gap: 8px; }
+@media (min-width: 768px) { d-article { grid-template-columns: [screen-start] 1fr [page-start kicker-start middle-start text-start] 45px 45px 45px 45px 45px 45px 45px 45px [kicker-end text-end gutter-start] 45px [middle-end] 45px [page-end gutter-end] 1fr [screen-end]; column-gap: 16px; } }
+@media (min-width: 1000px) { d-article { grid-template-columns: [screen-start] 1fr [page-start kicker-start] 50px [middle-start] 50px [text-start kicker-end] 50px 50px 50px 50px 50px 50px 50px 50px [text-end gutter-start] 50px [middle-end] 50px [page-end gutter-end] 1fr [screen-end]; column-gap: 16px; } }
+@media (min-width: 1180px) { d-article { grid-template-columns: [screen-start] 1fr [page-start kicker-start] 60px [middle-start] 60px [text-start kicker-end] 60px 60px 60px 60px 60px 60px 60px 60px [text-end gutter-start] 60px [middle-end] 60px [page-end gutter-end] 1fr [screen-end]; column-gap: 32px; } }
+d-article aside { grid-column: gutter; font-size: 12px; line-height: 1.6em; color: rgba(0, 0, 0, 0.6); }
+d-article d-byline a { color: rgba(0, 0, 0, 0.8); text-decoration: none; border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor; }
+d-article d-byline a:hover { text-decoration: underline; border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor; }
+d-article { contain: layout style; overflow-x: hidden; border-top: 1px solid rgba(0, 0, 0, 0.1); padding-top: 2rem; color: rgba(0, 0, 0, 0.8); }
+d-article > * { grid-column: text; }
+@media (min-width: 768px) { d-article { font-size: 16px; } }
+@media (min-width: 1024px) { d-article { font-size: 1.06rem; line-height: 1.7em; } }
+d-article .marker { text-decoration: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; counter-reset: section 0; grid-column: kicker; line-height: 1.7em; }
+d-article .marker:hover { border-width: medium; border-style: none; border-color: currentcolor; border-image: none; }
+d-article .marker span { padding: 0px 3px 4px; border-bottom: 1px solid rgba(0, 0, 0, 0.2); position: relative; top: 4px; }
+d-article .marker:hover span { color: rgba(0, 0, 0, 0.7); border-bottom: 1px solid rgba(0, 0, 0, 0.7); }
+d-article h2 { font-weight: 600; font-size: 24px; line-height: 1.25em; margin: 2rem 0px 1.5rem; border-bottom: 1px solid rgba(0, 0, 0, 0.1); padding-bottom: 1rem; }
+@media (min-width: 1024px) { d-article h2 { font-size: 36px; } }
+d-article h3 { font-weight: 700; font-size: 18px; line-height: 1.4em; margin-bottom: 1em; margin-top: 2em; }
+@media (min-width: 1024px) { d-article h3 { font-size: 20px; } }
+d-article h4 { font-weight: 600; text-transform: uppercase; font-size: 14px; line-height: 1.4em; }
+d-article a { color: inherit; }
+d-article p, d-article ul, d-article ol, d-article blockquote { margin: 0px 0px 1em; }
+d-article blockquote { border-left: 2px solid rgba(0, 0, 0, 0.2); padding-left: 2em; font-style: italic; color: rgba(0, 0, 0, 0.6); }
+d-article a { border-bottom: 1px solid rgba(0, 0, 0, 0.4); text-decoration: none; }
+d-article a:hover { border-bottom: 1px solid rgba(0, 0, 0, 0.8); }
+d-article .link { text-decoration: underline; cursor: pointer; }
+d-article ul, d-article ol { padding-left: 24px; }
+d-article li { margin-bottom: 1em; margin-left: 0px; padding-left: 0px; }
+d-article li:last-child { margin-bottom: 0px; }
+d-article pre { font-size: 14px; margin-bottom: 20px; }
+d-article hr { grid-column: screen; width: 100%; border-width: medium medium 1px; border-style: none none solid; border-color: currentcolor currentcolor rgba(0, 0, 0, 0.1); border-image: none; margin-top: 60px; margin-bottom: 60px; }
+d-article section { margin-top: 60px; margin-bottom: 60px; }
+d-article span.equation-mimic { font-family: georgia; font-size: 115%; font-style: italic; }
+d-article > d-code, d-article section > d-code { display: block; }
+d-article > d-math[block], d-article section > d-math[block] { display: block; }
+@media (max-width: 768px) { d-article > d-code, d-article section > d-code, d-article > d-math[block], d-article section > d-math[block] { overflow-x: scroll; } }
+@media (max-width: 768px) { d-article > d-code::-webkit-scrollbar, d-article section > d-code::-webkit-scrollbar, d-article > d-math[block]::-webkit-scrollbar, d-article section > d-math[block]::-webkit-scrollbar { display: none; } }
+d-article .citation { color: rgb(102, 102, 136); cursor: pointer; }
+d-article table { border-collapse: collapse; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(0, 0, 0, 0.2); }
+d-article table th { border-bottom: 1px solid rgba(0, 0, 0, 0.2); }
+d-article table td { border-bottom: 1px solid rgba(0, 0, 0, 0.05); }
+d-article table tr:last-of-type td { border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor; }
+d-article table th, d-article table td { font-size: 15px; padding: 2px 8px; }
+d-article table tbody :first-child td { padding-top: 2px; }
+@media print { p, code { break-inside: avoid; } }
+@media print { h2, h3 { break-after: avoid; } }
+
+</style>
 <style>
 html{overflow:hidden}
 body{margin:0;padding:0;background:var(--global-bg-color);color:var(--global-text-color);font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Fira Sans","Droid Sans","Helvetica Neue",Arial,sans-serif}
 #frame-root{display:flow-root}
-details{color:var(--global-text-color);background-color:var(--global-code-bg-color);margin-top:0;padding:8px 12px;position:relative;border-radius:6px;display:block;margin-bottom:20px;overflow:auto;max-width:100%}
-details summary{color:var(--global-theme-color)}
-li{margin-bottom:1em;margin-left:0;padding-left:0}
-li:last-child{margin-bottom:0}
-ul,ol{margin:0 0 1em 0;padding-left:24px}
-details p{margin-top:.5rem;margin-bottom:.5rem}
-#frame-root > section, #frame-root > figure, #frame-root > div {margin-top:0 !important;margin-bottom:0 !important}
+d-article{display:contents}
+#frame-root > d-article > section, #frame-root > d-article > figure, #frame-root > d-article > div {margin-top:0 !important;margin-bottom:0 !important}
 </style>
 <script>(function () {
   var root = document.documentElement, parentDoc = null;
@@ -33,6 +94,8 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
       t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
     if (root.getAttribute("data-theme") !== t) root.setAttribute("data-theme", t);
+    var light = document.getElementById("highlight_theme_light"), dark = document.getElementById("highlight_theme_dark");
+    if (light && dark) { light.media = t === "dark" ? "none" : ""; dark.media = t === "dark" ? "" : "none"; }
   }
   function applyType() {
     if (!parentDoc) return;
@@ -41,13 +104,27 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
     var a = view.getComputedStyle(article), r = view.getComputedStyle(parentDoc.documentElement);
     root.style.fontSize = r.fontSize;
     root.style.fontFamily = a.fontFamily;
-    document.body.style.fontSize = a.fontSize;
-    document.body.style.lineHeight = a.lineHeight;
-    document.body.style.fontWeight = a.fontWeight;
-    document.body.style.fontFamily = a.fontFamily;
+    // keep a relative line height relative: measure how it scales with the font size
+    var lineHeight = a.lineHeight;
+    if (parentDoc.querySelector("d-article")) {
+      var probe = parentDoc.createElement("span");
+      probe.style.fontSize = "100px";
+      article.appendChild(probe);
+      var probed = view.getComputedStyle(probe).lineHeight;
+      article.removeChild(probe);
+      if (probed !== lineHeight && probed.slice(-2) === "px") lineHeight = String(parseFloat(probed) / 100);
+    }
+    [document.body, document.querySelector("#frame-root > d-article")].forEach(function (target) {
+      if (!target) return;
+      target.style.fontSize = a.fontSize;
+      target.style.lineHeight = lineHeight;
+      target.style.fontWeight = a.fontWeight;
+      target.style.fontFamily = a.fontFamily;
+    });
     document.body.style.color = "var(--global-text-color)";
   }
   applyTheme();
+  window.applyArticleType = applyType;
   document.addEventListener("DOMContentLoaded", function () {
     applyType();
     if (parentDoc) {
@@ -69,6 +146,8 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
 </head>
 <body>
 <div id="frame-root">
+<d-article>
+<script>applyArticleType();</script>
 <style>
   .noise-schedule-invariance {
     margin: 1.5rem 0 2rem;
@@ -141,15 +220,14 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
     font-weight: 600;
   }
   .noise-schedule-invariance .option input:disabled + span { opacity: 0.4; cursor: not-allowed; }
-  .noise-schedule-invariance .option input:focus-visible + span,
-  .noise-schedule-invariance summary:focus-visible,
-  .noise-schedule-invariance .table-scroll:focus-visible {
+  .noise-schedule-invariance .option input:focus-visible + span {
     outline: 2px solid var(--global-theme-color, #2f5d50);
     outline-offset: 2px;
   }
   .noise-schedule-invariance .evaluation-legend {
     display: flex;
     align-items: center;
+    justify-content: center;
     flex-wrap: wrap;
     gap: 0.5rem 1.25rem;
     margin: 1.25rem 0 0;
@@ -160,8 +238,7 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
   .noise-schedule-invariance .legend-item { display: inline-flex; align-items: center; gap: 0.35rem; }
   .noise-schedule-invariance .swatch { width: 10px; height: 10px; border-radius: 2px; }
   .noise-schedule-invariance .chart-panel { min-width: 0; }
-  .noise-schedule-invariance .chart-panel h4,
-  .noise-schedule-invariance .full-tables h4 {
+  .noise-schedule-invariance .chart-panel h4 {
     margin: 0 0 0.25rem;
     font-size: 1rem;
     font-weight: 500;
@@ -183,7 +260,6 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
     color: var(--global-text-color-light, #6b7280);
   }
   .noise-schedule-invariance .chart { width: 100%; height: 290px; }
-  .noise-schedule-invariance .measurement-note,
   .noise-schedule-invariance .load-status {
     margin: 1rem 0 0;
     font-size: 0.75rem;
@@ -191,18 +267,17 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
     color: var(--global-text-color-light, #6b7280);
   }
   .noise-schedule-invariance .load-status:empty { display: none; }
-  .noise-schedule-invariance details {
-    margin-top: 1.5rem;
-    padding-top: 0.85rem;
-    border-top: 1px solid var(--global-divider-color, #d1d5db);
-  }
-  .noise-schedule-invariance summary { width: fit-content; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
-  .noise-schedule-invariance .full-tables h4 { margin-top: 1.5rem; }
-  .noise-schedule-invariance .table-scroll { overflow-x: auto; margin-top: 0.5rem; }
-  .noise-schedule-invariance table { width: 100%; margin: 0; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
-  .noise-schedule-invariance th,
-  .noise-schedule-invariance td { padding: 0.55rem 0.65rem; text-align: right; white-space: nowrap; }
-  .noise-schedule-invariance th:first-child { text-align: left; }
+  .noise-schedule-invariance[data-view="compare"] .controls { grid-template-columns: minmax(0, 22rem); justify-content: center; }
+  .noise-schedule-invariance[data-view="compare"] legend { width: 100%; text-align: center; }
+  .noise-schedule-invariance .bound-results { margin-top: 1.5rem; }
+  .noise-schedule-invariance .bound-results summary { cursor: pointer; }
+  .noise-schedule-invariance .bound-table { max-width: 100%; overflow-x: auto; margin-top: 1.25rem; }
+  .noise-schedule-invariance .bound-table table { width: 100%; margin: 0; font-size: 0.85rem; }
+  .noise-schedule-invariance .bound-table caption { caption-side: top; padding: 0 0 0.5rem; color: inherit; font-weight: 600; text-align: left; }
+  .noise-schedule-invariance .bound-table th,
+  .noise-schedule-invariance .bound-table td { padding: 0.5rem; text-align: center; border-bottom: 1px solid var(--global-divider-color, #d1d5db); }
+  .noise-schedule-invariance .bound-table th:first-child { text-align: left; }
+  .noise-schedule-invariance .bound-table thead th { border-top: 2px solid var(--global-divider-color, #d1d5db); border-bottom-width: 2px; }
   @media (max-width: 652px) {
     .noise-schedule-invariance .charts { grid-template-columns: minmax(0, 1fr); }
   }
@@ -214,7 +289,7 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
 
 
 
-<section id="image-noise-schedule-invariance" class="noise-schedule-invariance" data-source-dataset="CIFAR-10" aria-label="CIFAR-10 noise schedule invariance results" aria-busy="false">
+<section id="image-noise-schedule-invariance" class="noise-schedule-invariance" data-view="compare" data-source-dataset="CIFAR-10" aria-label="CIFAR-10 noise schedule invariance results" aria-busy="false">
   <div class="interactive-invariance" hidden>
     <div class="controls" data-single-family="false" >
       <fieldset >
@@ -227,7 +302,7 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
           
         </div>
       </fieldset>
-      <fieldset >
+      <fieldset hidden>
         <legend>Architecture</legend>
         <div class="segments">
           
@@ -239,102 +314,186 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
       </fieldset>
     </div>
     <div class="charts">
+      
+      
       <div class="chart-panel">
-        <h4 class="chart-title">Expected Denoising Loss</h4>
-        <div class="chart" data-metric="means" role="img" aria-label="Mean denoising loss by training and evaluation schedule"></div>
+        <h4 class="chart-title">DDPM</h4>
+        <div class="chart" data-metric="variances" data-architecture="DDPM" role="img"></div>
       </div>
+      
       <div class="chart-panel">
-        <h4 class="chart-title">Variance of Denoising Estimator</h4>
-        <div class="chart" data-metric="variances" role="img" aria-label="Mean per-example Monte Carlo variance by training and evaluation schedule"></div>
+        <h4 class="chart-title">DUO</h4>
+        <div class="chart" data-metric="variances" data-architecture="DUO" role="img"></div>
       </div>
+      
+      
     </div>
     <div class="evaluation-legend" aria-label="Evaluation schedules"></div>
   </div>
   <p class="load-status" role="status"></p>
   <button type="button" class="retry" hidden>Retry</button>
-  <details open>
-    <summary>Full results table</summary>
-    <div class="full-tables">
-      <p class="measurement-note">Cells show mean BPD / mean per-example Monte Carlo variance (BPD&sup2;).</p>
-      
-      <h4>CIFAR-10 &middot; VDM &middot; U-Net (DDPM)</h4>
-      <div class="table-scroll" tabindex="0" role="region" aria-label="CIFAR-10 VDM DDPM measurements">
-        <table>
-          <thead><tr><th scope="col">Training &darr; / Evaluation &rarr;</th><th scope="col">Cosine</th><th scope="col">Linear</th><th scope="col">Quadratic</th></tr></thead>
-          <tbody>
+  
+  <details class="bound-results">
+    <summary>Denoising bound tables (BPD)</summary>
+    
+    <div class="bound-table">
+      <table>
+        <caption>VDM / DDPM</caption>
+        <thead>
+          <tr>
+            <th scope="col">Trained with &#8595; / Evaluated with &#8594;</th>
             
+            <th scope="col">Cosine</th>
             
-            <tr><th scope="row">Cosine</th><td>1.82 / 102.11</td><td>1.81 / 6.42</td><td>1.82 / 2.34</td></tr>
+            <th scope="col">Linear</th>
             
+            <th scope="col">Quadratic</th>
             
-            <tr><th scope="row">Linear</th><td>1.78 / 97.75</td><td>1.75 / 5.84</td><td>1.74 / 2.18</td></tr>
-            
-            
-            <tr><th scope="row">Quadratic</th><td>1.72 / 90.19</td><td>1.73 / 5.71</td><td>1.73 / 2.16</td></tr>
-            
-          </tbody>
-        </table>
-      </div>
-      
-      <h4>CIFAR-10 &middot; MDM &middot; U-Net (DDPM)</h4>
-      <div class="table-scroll" tabindex="0" role="region" aria-label="CIFAR-10 MDM DDPM measurements">
-        <table>
-          <thead><tr><th scope="col">Training &darr; / Evaluation &rarr;</th><th scope="col">Loglinear</th><th scope="col">Cosine</th><th scope="col">Cosine (DUO)</th></tr></thead>
-          <tbody>
-            
-            
-            <tr><th scope="row">Loglinear</th><td>3.12 / 2.02</td><td>3.12 / 7.35</td><td>3.12 / 1.32</td></tr>
-            
-            
-            <tr><th scope="row">Cosine</th><td>3.11 / 2.05</td><td>3.11 / 7.39</td><td>3.11 / 1.33</td></tr>
-            
-            
-            <tr><th scope="row">Cosine (DUO)</th><td>3.13 / 1.99</td><td>3.13 / 7.32</td><td>3.13 / 1.33</td></tr>
-            
-          </tbody>
-        </table>
-      </div>
-      
-      <h4>CIFAR-10 &middot; VDM &middot; U-Net (DUO)</h4>
-      <div class="table-scroll" tabindex="0" role="region" aria-label="CIFAR-10 VDM DUO measurements">
-        <table>
-          <thead><tr><th scope="col">Training &darr; / Evaluation &rarr;</th><th scope="col">Cosine</th><th scope="col">Linear</th><th scope="col">Quadratic</th></tr></thead>
-          <tbody>
-            
-            
-            <tr><th scope="row">Cosine</th><td>1.84 / 107.23</td><td>1.80 / 6.32</td><td>1.81 / 2.34</td></tr>
-            
-            
-            <tr><th scope="row">Linear</th><td>1.72 / 91.36</td><td>1.73 / 5.76</td><td>1.74 / 2.17</td></tr>
-            
-            
-            <tr><th scope="row">Quadratic</th><td>1.71 / 89.93</td><td>1.74 / 5.72</td><td>1.73 / 2.15</td></tr>
-            
-          </tbody>
-        </table>
-      </div>
-      
-      <h4>CIFAR-10 &middot; MDM &middot; U-Net (DUO)</h4>
-      <div class="table-scroll" tabindex="0" role="region" aria-label="CIFAR-10 MDM DUO measurements">
-        <table>
-          <thead><tr><th scope="col">Training &darr; / Evaluation &rarr;</th><th scope="col">Loglinear</th><th scope="col">Cosine</th><th scope="col">Cosine (DUO)</th></tr></thead>
-          <tbody>
-            
-            
-            <tr><th scope="row">Loglinear</th><td>3.13 / 2.00</td><td>3.13 / 7.34</td><td>3.13 / 1.33</td></tr>
-            
-            
-            <tr><th scope="row">Cosine</th><td>3.13 / 2.04</td><td>3.13 / 7.40</td><td>3.13 / 1.34</td></tr>
-            
-            
-            <tr><th scope="row">Cosine (DUO)</th><td>3.13 / 1.98</td><td>3.13 / 7.31</td><td>3.13 / 1.33</td></tr>
-            
-          </tbody>
-        </table>
-      </div>
-      
+          </tr>
+        </thead>
+        <tbody>
+          
+          
+          <tr>
+            <th scope="row">Cosine</th>
+            <td>1.82</td><td>1.81</td><td>1.82</td>
+          </tr>
+          
+          
+          <tr>
+            <th scope="row">Linear</th>
+            <td>1.78</td><td>1.75</td><td>1.74</td>
+          </tr>
+          
+          
+          <tr>
+            <th scope="row">Quadratic</th>
+            <td>1.72</td><td>1.73</td><td>1.73</td>
+          </tr>
+          
+        </tbody>
+      </table>
     </div>
+    
+    <div class="bound-table">
+      <table>
+        <caption>MDM / DDPM</caption>
+        <thead>
+          <tr>
+            <th scope="col">Trained with &#8595; / Evaluated with &#8594;</th>
+            
+            <th scope="col">Log-linear</th>
+            
+            <th scope="col">Cosine</th>
+            
+            <th scope="col">Cosine (DUO)</th>
+            
+          </tr>
+        </thead>
+        <tbody>
+          
+          
+          <tr>
+            <th scope="row">Log-linear</th>
+            <td>3.12</td><td>3.12</td><td>3.12</td>
+          </tr>
+          
+          
+          <tr>
+            <th scope="row">Cosine</th>
+            <td>3.11</td><td>3.11</td><td>3.11</td>
+          </tr>
+          
+          
+          <tr>
+            <th scope="row">Cosine (DUO)</th>
+            <td>3.13</td><td>3.13</td><td>3.13</td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="bound-table">
+      <table>
+        <caption>VDM / DUO</caption>
+        <thead>
+          <tr>
+            <th scope="col">Trained with &#8595; / Evaluated with &#8594;</th>
+            
+            <th scope="col">Cosine</th>
+            
+            <th scope="col">Linear</th>
+            
+            <th scope="col">Quadratic</th>
+            
+          </tr>
+        </thead>
+        <tbody>
+          
+          
+          <tr>
+            <th scope="row">Cosine</th>
+            <td>1.84</td><td>1.80</td><td>1.81</td>
+          </tr>
+          
+          
+          <tr>
+            <th scope="row">Linear</th>
+            <td>1.72</td><td>1.73</td><td>1.74</td>
+          </tr>
+          
+          
+          <tr>
+            <th scope="row">Quadratic</th>
+            <td>1.71</td><td>1.74</td><td>1.73</td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="bound-table">
+      <table>
+        <caption>MDM / DUO</caption>
+        <thead>
+          <tr>
+            <th scope="col">Trained with &#8595; / Evaluated with &#8594;</th>
+            
+            <th scope="col">Log-linear</th>
+            
+            <th scope="col">Cosine</th>
+            
+            <th scope="col">Cosine (DUO)</th>
+            
+          </tr>
+        </thead>
+        <tbody>
+          
+          
+          <tr>
+            <th scope="row">Log-linear</th>
+            <td>3.13</td><td>3.13</td><td>3.13</td>
+          </tr>
+          
+          
+          <tr>
+            <th scope="row">Cosine</th>
+            <td>3.13</td><td>3.13</td><td>3.13</td>
+          </tr>
+          
+          
+          <tr>
+            <th scope="row">Cosine (DUO)</th>
+            <td>3.13</td><td>3.13</td><td>3.13</td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+    
   </details>
+  
   <script type="application/json" class="invariance-data">[{"dataset":"CIFAR-10","family":"VDM","architecture":"DDPM","schedules":["Cosine","Linear","Quadratic"],"means":[["1.82","1.81","1.82"],["1.78","1.75","1.74"],["1.72","1.73","1.73"]],"variances":[["102.11","6.42","2.34"],["97.75","5.84","2.18"],["90.19","5.71","2.16"]]},{"dataset":"CIFAR-10","family":"MDM","architecture":"DDPM","schedules":["Loglinear","Cosine","DUO cosine"],"means":[["3.12","3.12","3.12"],["3.11","3.11","3.11"],["3.13","3.13","3.13"]],"variances":[["2.02","7.35","1.32"],["2.05","7.39","1.33"],["1.99","7.32","1.33"]]},{"dataset":"CIFAR-10","family":"VDM","architecture":"DUO","schedules":["Cosine","Linear","Quadratic"],"means":[["1.84","1.80","1.81"],["1.72","1.73","1.74"],["1.71","1.74","1.73"]],"variances":[["107.23","6.32","2.34"],["91.36","5.76","2.17"],["89.93","5.72","2.15"]]},{"dataset":"CIFAR-10","family":"MDM","architecture":"DUO","schedules":["Loglinear","Cosine","DUO cosine"],"means":[["3.13","3.13","3.13"],["3.13","3.13","3.13"],["3.13","3.13","3.13"]],"variances":[["2.00","7.34","1.33"],["2.04","7.40","1.34"],["1.98","7.31","1.33"]]}]</script>
 </section>
 
@@ -346,9 +505,10 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
     const charts = Array.from(root.querySelectorAll(".chart"));
     const status = root.querySelector(".load-status");
     const retry = root.querySelector(".retry");
-    const details = root.querySelector("details");
     const axisTitles = true;
-    const sharedArchitectureScale = false;
+    // Compare view: variance only, one chart per architecture on a shared scale.
+    const compare = true;
+    const sharedArchitectureScale = compare || false;
     const scheduleLabel = (schedule) => schedule === "DUO cosine" ? "Cosine (DUO)" : schedule;
     const colors = {
       VDM: { Cosine: "#e45756", Linear: "#3b82f6", Quadratic: "#26a269" },
@@ -365,6 +525,7 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
     function selection() {
       const family = checked("family");
       const models = results.filter((row) => row.family === family);
+      if (compare) return models[0];
       let architecture = checked("architecture");
       if (!models.some((row) => row.architecture === architecture)) architecture = models[0].architecture;
       root.querySelectorAll(`input[name="${root.id}-architecture"]`).forEach((input) => {
@@ -410,7 +571,7 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
           range: [0, maximum * 1.12],
           gridcolor: style.grid, zerolinecolor: style.grid, nticks: 5,
           ...(axisTitles ? { title: {
-            text: chart.dataset.metric === "means" ? "Expected denoising loss (BPD)" : "Variance of denoising estimator (BPD\u00b2)",
+            text: chart.dataset.metric === "means" ? "Expected denoising loss (BPD)" : "Variance of denoising bound estimate (BPD\u00b2)",
             standoff: 8, font: { size: 11 },
           } } : {}),
         },
@@ -425,25 +586,28 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
         if (current !== request) return;
         const style = theme();
         await Promise.all(charts.map((chart) => {
+          const model = compare
+            ? results.find((row) => row.family === result.family && row.architecture === chart.dataset.architecture)
+            : result;
           const variance = chart.dataset.metric === "variances";
-          const precision = result.precision ?? 2;
-          const traces = result.schedules.map((schedule, index) => ({
-            type: "bar", name: scheduleLabel(schedule), x: result.schedules,
-            customdata: result.schedules.map(scheduleLabel),
-            y: result[chart.dataset.metric].map((row) => Number(row[index])),
-            marker: { color: colors[result.family][schedule] },
+          const precision = model.precision ?? 2;
+          const traces = model.schedules.map((schedule, index) => ({
+            type: "bar", name: scheduleLabel(schedule), x: model.schedules,
+            customdata: model.schedules.map(scheduleLabel),
+            y: model[chart.dataset.metric].map((row) => Number(row[index])),
+            marker: { color: colors[model.family][schedule] },
             hovertemplate: axisTitles
               ? "%{y}<extra></extra>"
               : `<b>Evaluation: ${scheduleLabel(schedule)}</b><br>Training: %{customdata}<br>${variance ? "Variance" : "Mean"}: %{y:.${precision}f} ${variance ? "BPD\u00b2" : "BPD"}<extra></extra>`,
           }));
-          return Plotly.react(chart, traces, chartLayout(chart, result, style), {
+          return Plotly.react(chart, traces, chartLayout(chart, model, style), {
             displayModeBar: false, displaylogo: false, scrollZoom: false,
           });
         }));
         const legend = root.querySelector(".evaluation-legend");
         const label = document.createElement("span");
         label.className = "legend-title";
-        label.textContent = "Evaluation Schedule:";
+        label.textContent = compare ? "Evaluation Schedules:" : "Evaluation Schedule:";
         legend.replaceChildren(label);
         result.schedules.forEach((schedule) => {
           const item = document.createElement("span");
@@ -458,7 +622,7 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
         root.dataset.dataset = result.dataset;
         root.dataset.family = result.family;
         root.dataset.architecture = result.architecture;
-        charts.forEach((chart) => chart.setAttribute("aria-label", `${result.dataset}, ${result.family}, ${result.architecture}: ${chart.dataset.metric === "means" ? "mean denoising loss in BPD" : "estimator variance in BPD squared, linear scale"}`));
+        charts.forEach((chart) => chart.setAttribute("aria-label", `${result.dataset}, ${result.family}, ${chart.dataset.architecture || result.architecture}: ${chart.dataset.metric === "means" ? "mean denoising loss in BPD" : "variance of denoising bound estimate in BPD squared, linear scale"}`));
         if (current === request) {
           root.setAttribute("aria-busy", "false");
           status.textContent = "";
@@ -476,8 +640,7 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
     function fail() {
       root.setAttribute("aria-busy", "false");
       interactive.hidden = true;
-      details.open = true;
-      status.textContent = "Charts unavailable. Full measurements are shown below.";
+      status.textContent = "Charts unavailable.";
       retry.hidden = false;
     }
 
@@ -507,7 +670,6 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
         interactive.hidden = false;
         await render();
         if (interactive.hidden) return;
-        details.open = false;
         if (observersReady) return;
         const resizeObserver = new ResizeObserver((entries) => {
           entries.forEach(({ target, contentRect }) => {
@@ -540,6 +702,9 @@ details p{margin-top:.5rem;margin-bottom:.5rem}
 </script>
 
 
+</d-article>
 </div>
+<script>/* the article page gives its tables this class */ document.querySelectorAll("d-article table").forEach(function (t) { t.classList.add("table"); });</script>
+<script src="../../js/copy_code.js"></script>
 </body>
 </html>
