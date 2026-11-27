@@ -15,15 +15,7 @@ hidden: true
 #   - name: Anonymous
 
 authors:
-  - name: Hippolyte Verninas
-    affiliations:
-      name: Université Paris-Saclay, Inria, CEA, Palaiseau, 91120, France
-  - name: Hadrien Hendrikx
-    affiliations:
-      name: Université Grenoble Alpes, Inria, CNRS, Grenoble INP, LJK, Grenoble, 38000, France
-  - name: Thomas Moreau
-    affiliations:
-      name: Université Paris-Saclay, Inria, CEA, Palaiseau, 91120, France
+  - name: Anonymous
 
 # must be the exact same name as your blogpost
 bibliography: 2027-04-30-distributed-training.bib
