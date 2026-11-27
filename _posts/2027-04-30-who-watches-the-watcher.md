@@ -784,6 +784,8 @@ Decision-1 and τ² dev step AUROC (V0) unless a row says otherwise. Holm and Be
 Not drawn in Figure 11, and none better than `on_track`: other signals from the same calls (P(clean), expected severity, P(level ≥ 8, 6, 9), confidence, `on_track` × confidence, min and mean combinations), the mean, low-3 and min-2 aggregations of the per-rule questions, the `corrected`, `step_ok`, `grounded` and generic-progress wordings, and a rule-based grounding ledger (AUROC 0.52). Only P(clean), 0.036 below `on_track`, has an unadjusted interval that excludes 0.
 
 ### Table 16. Criteria and long runs on other benchmarks {#table-16-criteria-and-long-runs-on-other-benchmarks}
+Exploratory checks on R-Judge, TheAgentCompany, AMA-Bench and ITBench; intervals are paired bootstrap intervals.
+
 | Result | Setting | Numbers | Status |
 |---|---|---|---|
 | Criteria on R-Judge | 100 runs, 37 task clusters; Opus-written safety criteria; Decision-1 and Jev 1.14 | Run AUROC holistic / mean / min: Decision-1 0.906 / 0.967 / 0.936, Jev 0.941 / 0.958 / 0.959; planned comparison, Decision-1 `min` minus holistic, +0.030 [−0.079, +0.111] | Not separable |
