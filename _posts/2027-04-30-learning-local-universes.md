@@ -29,8 +29,8 @@ toc:
 _styles: |
   /* Post-specific refinements within the venue's Distill template.
      Retain its fonts, article grid, title, contents and citation styling. */
-  /* Open directly with the article title, without the large venue logo. */
-  body:has(.post.distill .lu-hero) > header:has(nav)::after { content: none; display: none; }
+  /* Keep the native venue logo fully visible on narrow screens. */
+  body:has(.post.distill .lu-hero) > header:has(nav)::after { background-size: min(400px, calc(100vw - 32px)); }
   /* Prevent scrolled content from showing through the fixed navigation. */
   body:has(.post.distill .lu-hero) #navbar { opacity: 1; }
   .post.distill > d-title { padding: 1.5rem 0 .75rem; }
@@ -305,14 +305,14 @@ _styles: |
 
 <p lang="en">Locality offers a natural principle for designing world models with real-world applicability. Molecules in a test tube continually collide and react, gradually transforming the mixture. A pebble breaks the surface of a pond, sending ripples towards the shore, by pushing neighboring layers of water against each other. Birds adjust their movements in response to a quick glance at their immediate neighbors, forming a coordinated flock. Across scales, real-world local interactions give rise to surprisingly complex global phenomena.</p>
 
+<p lang="en">Many environments, like the physical systems above, evolve mainly through local interactions. For instance, in the video game <em>Breakout</em>, the ball moves, bounces off walls, and destroys bricks through interactions with nearby elements. However, the game also maintains global state variables that break spatial locality. When the ball destroys a brick, the scoreboard must update in the corner of the screen, regardless of where the brick is located. To do that, the cells around the broken brick must send a 1-bit signal over a long distance to trigger a local change in the digits. This suggests a division of labor: dense local updates to model motion and collisions, complemented with low-bandwidth signals over distant regions.</p>
+
+<p lang="en" class="lu-question"><strong>Can we learn to simulate environments through repeated application of the same local rules,<br>with only limited global communication?</strong></p>
+
 <figure class="l-page lu-capacity-figure">
   <img data-zoomable title="Click to enlarge" src="{{ 'assets/img/2027-04-30-learning-local-universes/capacity_hypothesis.svg?v=7190d9b39e70b3bf' | relative_url }}" alt="Proposed allocation of interaction capacity across distance" width="730" height="365" loading="lazy" style="display:block;height:auto;">
   <figcaption>A schematic design of our hypothesis: W-NCA allocates most of its capacity to local interactions, using compact signals for distant coordination.</figcaption>
 </figure>
-
-<p lang="en">Many environments, like the physical systems above, evolve mainly through local interactions. For instance, in the video game <em>Breakout</em>, the ball moves, bounces off walls, and destroys bricks through interactions with nearby elements. However, the game also maintains global state variables that break spatial locality. When the ball destroys a brick, the scoreboard must update in the corner of the screen, regardless of where the brick is located. To do that, the cells around the broken brick must send a 1-bit signal over a long distance to trigger a local change in the digits. This suggests a division of labor: dense local updates to model motion and collisions, complemented with low-bandwidth signals over distant regions.</p>
-
-<p lang="en" class="lu-question"><strong>Can we learn to simulate environments through repeated application of the same local rules,<br>with only limited global communication?</strong></p>
 
 <p lang="en">We investigate Neural Cellular Automata (NCA)<d-cite key="mordvintsev2020growing"></d-cite> as a foundation for world modeling based on mostly local interactions. We introduce World-NCA (W-NCA), a novel variant which extends the original NCA architecture beyond static targets<d-cite key="mordvintsev2020growing,niklasson2021textures,randazzo2020selfclassifying"></d-cite> to support action conditioning and sequential generation, essential elements for world modeling. W-NCA represents the environment as a 2D grid where each cell updates its state using its immediate neighbors and a broadcast action vector. The same update rule applies both across space and time, and propagates information in the environment at a bounded speed, one cell at a time. To account for distant coordination, in <em>Breakout</em>, we introduce a small global communication channel, while preserving primarily local computation.</p>
 
