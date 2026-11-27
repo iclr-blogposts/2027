@@ -32,7 +32,11 @@
   color: #999999;
   font-weight: bold;
   font-style: italic;
-} /* Comment.Special */ /* Generic.Deleted */
+} /* Comment.Special */
+.highlight .gd {
+  color: #000000;
+  background-color: #ffdddd;
+} /* Generic.Deleted */
 .highlight .ge {
   color: #000000;
   font-style: italic;

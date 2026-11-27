@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robin Hood Transfers and Extrema</title>
+<style>
+  /* Colour, font, and panel tokens follow the supplied simplex widget. */
+  html, body { margin: 0; }
+  body.rh-preview { padding: 12px; background: #fff; }
+  .rh-embed {
+    --sc-ink: #2c3540;
+    --sc-muted: #687480;
+    --sc-rule: rgba(80,90,105,.22);
+    --sc-panel: rgba(125,140,160,.07);
+    --sc-pmf: #85a9c6;
+    --sc-accent: #527b99;
+    --sc-text-title: 20px;
+    --sc-text-primary: 18px;
+    --sc-text-secondary: 16px;
+    --sc-text-math: 18px;
+    --sc-math-font: "Latin Modern Math", "Computer Modern Serif", "CMU Serif", "STIX Two Math", "Cambria Math", "Times New Roman", serif;
+    width: 100%;
+    max-width: 720px;
+    margin-inline: auto;
+    font: 16px/1.43 -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+    color: var(--sc-ink);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    container: rh-root / inline-size;
+  }
+  .rh-embed, .rh-embed * { box-sizing: border-box; }
+  .rh-embed [hidden] { display: none !important; }
+  .rh-embed .rh-widget {
+    padding: 8px 14px;
+    width: 100%;
+    min-width: 0;
+    border: 1px solid var(--sc-rule);
+    border-radius: 12px;
+    background: var(--sc-panel);
+    overflow: hidden;
+  }
+  .rh-embed .rh-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 5px 20px;
+    padding: 2px 0 8px;
+    border-bottom: 1px solid var(--sc-rule);
+  }
+  .rh-embed h1 {
+    padding: 0; margin: 0;
+    font: 700 var(--sc-text-title)/1.3 -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+    letter-spacing: -.013em;
+    color: var(--sc-ink);
+  }
+  /* One uninterrupted workspace; even/odd navigation states change its content,
+     never its dimensions. Both PMFs are physical copies of the same component. */
+  .rh-embed .rh-workspace {
+    --pmf-width: 224px;
+    --pair-shift: 140px;
+    --pair-gap: 56px;
+    position: relative;
+    height: 316px;
+    min-width: 0;
+  }
+  .rh-embed .rh-annotation {
+    position: absolute;
+    inset: 9px 0 auto 0;
+    height: 44px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+  }
+  .rh-embed .rh-note {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    height: 44px;
+    opacity: 0;
+    transition: opacity 160ms ease;
+    pointer-events: none;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .rh-embed .rh-note.rh-shown { opacity: 1; }
+  /* Endpoint captions inhabit the existing, fixed annotation row. */
+  .rh-embed .rh-extremum {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: var(--sc-muted);
+    font-size: var(--sc-text-secondary);
+    font-weight: 500;
+    opacity: 0;
+    transition: opacity 160ms ease;
+    pointer-events: none;
+  }
+  .rh-embed .rh-extremum.rh-shown { opacity: 1; }
+  .rh-embed .rh-boundary-warning {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: max-content;
+    max-width: calc(100% - 16px);
+    padding: 7px 14px;
+    border: 1px solid #df9da5;
+    border-radius: 7px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    white-space: nowrap;
+    color: #a52f40;
+    background: #fff0f1;
+    box-shadow: 0 1px 3px rgba(113, 35, 48, .07);
+    font-size: var(--sc-text-secondary);
+    font-weight: 600;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 140ms ease, visibility 140ms ease;
+    pointer-events: none;
+  }
+  .rh-embed .rh-boundary-warning.rh-shown { opacity: 1; visibility: visible; }
+
+  .rh-embed .rh-confidence { font-size: var(--sc-text-math); font-weight: 500; line-height: 1.48; }
+  .rh-embed .rh-actors {
+    position: absolute;
+    top: 52px;
+    left: 0;
+    right: 0;
+    height: 245px;
+    min-width: 0;
+  }
+  .rh-embed .rh-pmf-actor {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: var(--pmf-width);
+    opacity: 0;
+    transform: translateX(-50%) translateX(var(--shift, 0px));
+    transition: transform 285ms cubic-bezier(.22,.72,.23,1), opacity 225ms ease;
+    pointer-events: none;
+    will-change: transform, opacity;
+  }
+  .rh-embed .rh-pmf-head {
+    height: 28px;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: var(--sc-text-math);
+    font-weight: 500;
+    line-height: 1.3;
+  }
+  .rh-embed .rh-bars {
+    height: 165px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0,1fr));
+    column-gap: 16px;
+    align-items: end;
+    padding: 0 8px;
+    border-bottom: 1.6px solid #9bb3c6;
+  }
+  .rh-embed .rh-bar-track {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    min-width: 0;
+    height: 100%;
+  }
+  .rh-embed .rh-bar {
+    position: relative;
+    width: 100%;
+    background: var(--sc-pmf);
+    border-radius: 3px 3px 0 0;
+    overflow: hidden;
+  }
+  /* Same exact hatch on both sides, clipped to the transfer amount.
+     In each comparison the concentrated left PMF donates to the right. */
+  .rh-embed .rh-hatch {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 0;
+    opacity: 0;
+    background: repeating-linear-gradient(
+      153deg,
+      rgba(240,247,250,.92) 0px,
+      rgba(240,247,250,.92) 4px,
+      #527b99 4px,
+      #527b99 6px,
+      rgba(240,247,250,.92) 6px,
+      rgba(240,247,250,.92) 9px
+    );
+    transition: opacity 125ms ease;
+  }
+  .rh-embed .rh-hatch.rh-hatched { opacity: 1; }
+  .rh-embed .rh-label-grid {
+    display: grid;
+    grid-template-columns: repeat(4,minmax(0,1fr));
+    column-gap: 16px;
+    padding: 5px 8px 0;
+    text-align: center;
+    font-size: var(--sc-text-secondary);
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+  }
+  .rh-embed .rh-label-grid > div { min-width: 0; }
+  .rh-embed .rh-class-label { display: block; color: var(--sc-muted); font-size: var(--sc-text-secondary); }
+  .rh-embed .rh-prob-label { display: block; color: var(--sc-ink); font-size: var(--sc-text-secondary); font-weight: 500; }
+  .rh-embed .rh-transfer-arrow {
+    position: absolute;
+    left: 50%;
+    top: 187px;
+    width: max(26px, calc(var(--pair-gap) - 9px));
+    height: 23px;
+    transform: translate(-50%,-50%);
+    opacity: 0;
+    transition: opacity 160ms ease;
+    pointer-events: none;
+    overflow: visible;
+    color: var(--sc-accent);
+  }
+  .rh-embed .rh-transfer-arrow.rh-shown { opacity: 1; }
+  .rh-embed .rh-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 10px;
+    align-items: center;
+    border-top: 1px solid var(--sc-rule);
+    padding-top: 8px;
+  }
+  .rh-embed button.rh-nav {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    max-width: 100%;
+    min-height: 44px;
+    padding: 7px 14px;
+    gap: 9px;
+    text-align: center;
+    border: 1px solid rgba(82,123,153,.33);
+    border-radius: 8px;
+    background: rgba(82,123,153,.075);
+    color: var(--sc-accent);
+    cursor: pointer;
+    font: 600 var(--sc-text-primary)/1.3 -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+  }
+  .rh-embed button.rh-nav:hover:not(:disabled) { background: rgba(82,123,153,.15); border-color: rgba(82,123,153,.5); }
+  .rh-embed button.rh-nav:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; }
+  /* Both boundary buttons remain active; trying to move beyond an extremum
+     shows a warning rather than silently disabling the control. */
+  .rh-embed button.rh-nav.rh-boundary-hit {
+    background: rgba(174,65,77,.095);
+    border-color: rgba(174,65,77,.45);
+    color: #ae414d;
+  }
+  .rh-embed .rh-prev { justify-self: start; }
+  .rh-embed .rh-next { justify-self: end; }
+  .rh-embed .rh-nav-arrow { flex: 0 0 auto; font: 500 27px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .rh-embed .rh-nav-label { font-size: var(--sc-text-primary); line-height: 1.22; }
+  /* Keep navigation changes available to screen readers without a visible step count. */
+  .rh-embed .rh-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  /* MathJax provides Computer Modern-style TeX. The legible serif HTML fallback
+     only appears when the CDN is unavailable (e.g. offline file preview). */
+  .rh-embed .rh-math { position: relative; display: inline-block; font: 400 var(--sc-text-math)/1.42 var(--sc-math-font); }
+  .rh-embed .rh-math-fallback { display: inline; white-space: nowrap; }
+  .rh-embed .rh-math-fallback i { font-style: italic; }
+  .rh-embed .rh-math-fallback sup { font-size: .70em; vertical-align: .45em; }
+  .rh-embed .rh-math-tex { position: absolute; top: 0; left: 0; visibility: hidden; white-space: nowrap; }
+  .rh-embed.rh-math-ready .rh-math-fallback { display: none; }
+  .rh-embed.rh-math-ready .rh-math-tex { position: static; visibility: visible; }
+  .rh-embed mjx-container { color: inherit; margin: 0 !important; }
+  @container rh-root (max-width: 520px) {
+    .rh-embed .rh-widget { padding: 8px 13px; }
+    .rh-embed .rh-bars, .rh-embed .rh-label-grid { column-gap: 10px; padding-left: 4px; padding-right: 4px; }
+    .rh-embed .rh-controls { gap: 5px; }
+    .rh-embed button.rh-nav { width: 100%; min-height: 56px; padding: 7px 9px; gap: 6px; }
+    .rh-embed .rh-nav-label { font-size: 16px; }
+  }
+  @container rh-root (max-width: 395px) {
+    .rh-embed .rh-heading { align-items: flex-start; }
+    .rh-embed .rh-bars, .rh-embed .rh-label-grid { column-gap: 6px; padding-left: 2px; padding-right: 2px; }
+    .rh-embed .rh-label-grid { font-size: 15px; }
+    .rh-embed .rh-class-label, .rh-embed .rh-prob-label { font-size: 15px; }
+    .rh-embed .rh-nav-arrow { font-size: 20px; }
+    .rh-embed button.rh-nav { font-size: 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .rh-embed .rh-pmf-actor, .rh-embed .rh-hatch,
+    .rh-embed .rh-note, .rh-embed .rh-transfer-arrow,
+    .rh-embed .rh-extremum, .rh-embed .rh-boundary-warning { transition-duration: 1ms !important; }
+  }
+</style>
+</head>
+<body class="rh-preview">
+<main class="rh-embed" id="robin-hood-extrema">
+  <section class="rh-widget" role="group" aria-label="Interactive Robin Hood transfers toward the uniform and one-hot distributions">
+    <header class="rh-heading">
+      <h1>Robin Hood Transfers and Extrema</h1>
+    </header>
+    <div class="rh-workspace" id="rh-workspace" aria-label="Probability distribution and transfer diagrams">
+      <div class="rh-annotation" id="rh-annotation" aria-live="off">
+        <div class="rh-extremum" id="rh-uniform-label">Uniform · minimum confidence</div>
+        <div class="rh-extremum" id="rh-onehot-label">One-hot · maximum confidence</div>
+        <div class="rh-boundary-warning" id="rh-boundary-warning" role="status" aria-live="polite" aria-atomic="true"></div>
+      </div>
+      <div class="rh-actors" id="rh-actors"></div>
+      <svg class="rh-transfer-arrow" id="rh-arrow" viewBox="0 0 64 23" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M 4 11.5 H 60 M 14 4 L 4 11.5 L 14 19 M 50 4 L 60 11.5 L 50 19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      </svg>
+    </div>
+    <nav class="rh-controls" aria-label="Robin Hood transfer navigation">
+      <button class="rh-nav rh-prev" id="rh-prev" type="button" aria-label="Increase confidence" title="Reverse Robin Hood transfers · toward one-hot"><span class="rh-nav-arrow" aria-hidden="true">←</span><span class="rh-nav-label">Increase confidence</span></button>
+      <span class="rh-status" id="rh-status" aria-live="polite">Starting distribution</span>
+      <button class="rh-nav rh-next" id="rh-next" type="button" aria-label="Reduce confidence" title="Robin Hood transfers · toward uniformity"><span class="rh-nav-label">Reduce confidence</span><span class="rh-nav-arrow" aria-hidden="true">→</span></button>
+    </nav>
+  </section>
+</main>
+<script>
+(() => {
+  'use strict';
+
+  // Consistent with Widget 1: confidence strictly decreases left to right.
+  // The arbitrary PMF is in the middle (index 3). Moving RIGHT applies a
+  // Robin Hood transfer toward uniformity; moving LEFT reverses it toward one-hot.
+  // Each transfer's donor loses delta in the LEFT PMF and its recipient gains
+  // the same delta in the RIGHT PMF.
+  const PMFS = [
+    [1.00,.00,.00,.00], // one-hot: maximum confidence
+    [.71,.29,.00,.00],
+    [.60,.29,.11,.00],
+    [.52,.29,.11,.08], // arbitrary starting point
+    [.42,.29,.21,.08],
+    [.42,.25,.25,.08],
+    [.25,.25,.25,.25]  // uniform: minimum confidence
+  ];
+  const TRANSFERS = [
+    { donor: 0, recipient: 1, delta: .29 },
+    { donor: 0, recipient: 2, delta: .11 },
+    { donor: 0, recipient: 3, delta: .08 },
+    { donor: 0, recipient: 2, delta: .10 },
+    { donor: 1, recipient: 2, delta: .04 },
+    { donor: 0, recipient: 3, delta: .17 }
+  ];
+  const BAR_SCALE = 164; // exactly the same pixels of height / unit probability
+  const TRANSITION_MS = 285;
+  const HATCH_EXIT_MS = 90;
+  const root = document.querySelector('#robin-hood-extrema');
+  const workspace = root.querySelector('#rh-workspace');
+  const actorsHost = root.querySelector('#rh-actors');
+  const annotationsHost = root.querySelector('#rh-annotation');
+  const arrow = root.querySelector('#rh-arrow');
+  const status = root.querySelector('#rh-status');
+  const uniformLabel = root.querySelector('#rh-uniform-label');
+  const onehotLabel = root.querySelector('#rh-onehot-label');
+  const boundaryWarning = root.querySelector('#rh-boundary-warning');
+  const prev = root.querySelector('#rh-prev');
+  const next = root.querySelector('#rh-next');
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Validate exact Robin Hood transfers and strictly DECREASING quadratic
+  // concentration left-to-right; the reverse traversal is equally valid.
+  const quadratic = p => p.reduce((s,v) => s + v*v,0);
+  const epsilon = 1e-9;
+  PMFS.forEach(p => {
+    if (p.length !== 4 || Math.abs(p.reduce((s,v)=>s+v,0)-1)>epsilon || p.some((v,i)=>i>0&&v>p[i-1]+epsilon)) {
+      throw new Error('Invalid sorted four-class probability distribution');
+    }
+  });
+  TRANSFERS.forEach((t,i) => {
+    const a=PMFS[i],b=PMFS[i+1];
+    if (!(a[t.donor]>a[t.recipient]) || !(quadratic(a)>quadratic(b)+epsilon) ||
+      a.some((v,j)=>Math.abs(b[j]-v - (j===t.donor?-t.delta:j===t.recipient?t.delta:0))>epsilon)) {
+      throw new Error('Invalid Robin Hood / reverse transfer at index '+i);
+    }
+  });
+
+  const escapeHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const piTex = i => i===0 ? `\\boldsymbol{e}_{1}` : i===PMFS.length-1
+    ? `\\boldsymbol{u}` : i===3 ? `\\boldsymbol{\\pi}`
+    : `\\boldsymbol{\\pi}^{(${i-3})}`;
+  const piFallback = i => i===0 ? `<b><i>e</i></b><sub>1</sub>` : i===PMFS.length-1
+    ? `<b><i>u</i></b>` : i===3 ? `<b><i>π</i></b>`
+    : `<b><i>π</i></b><sup>(${i-3})</sup>`;
+  const piName = i => i===0 ? 'one-hot distribution' : i===PMFS.length-1
+    ? 'uniform distribution' : i===3 ? 'starting distribution' : `distribution ${i-3}`;
+  const math = (tex, fallback, ariaLabel='mathematical expression') => `<span class="rh-math" aria-label="${escapeHtml(ariaLabel)}"><span class="rh-math-fallback" aria-hidden="true">${fallback}</span><span class="rh-math-tex" aria-hidden="true">\\(${tex}\\)</span></span>`;
+
+  const actors = PMFS.map((probabilities,i) => {
+    const article = document.createElement('div');
+    article.className = 'rh-pmf-actor';
+    article.style.setProperty('--shift','0px');
+    article.style.opacity = '0';
+    article.setAttribute('aria-hidden','true');
+    article.innerHTML = `
+      <div class="rh-pmf-head">${math(piTex(i),piFallback(i),piName(i))}</div>
+      <div class="rh-bars" aria-hidden="true">
+        ${probabilities.map(v=>`<div class="rh-bar-track"><div class="rh-bar" style="height:${(v*BAR_SCALE).toFixed(3)}px"><div class="rh-hatch"></div></div></div>`).join('')}
+      </div>
+      <div class="rh-label-grid" aria-label="Class probabilities">
+        ${probabilities.map((v,j)=>`<div><span class="rh-class-label">${math('\\pi_{'+(j+1)+'}','<i>π</i><sub>'+(j+1)+'</sub>','Class '+(j+1))}</span><span class="rh-prob-label">${v.toFixed(2)}</span></div>`).join('')}
+      </div>`;
+    actorsHost.appendChild(article);
+    return { node: article, hatch: Array.from(article.querySelectorAll('.rh-hatch')) };
+  });
+
+  const notes = TRANSFERS.map((t,i) => {
+    const div = document.createElement('div');
+    div.className = 'rh-note';
+    const inequalityTex = `C(${piTex(i)}) > C(${piTex(i+1)})`;
+    const inequalityFallback = `<i>C</i>(${piFallback(i)}) &gt; <i>C</i>(${piFallback(i+1)})`;
+    div.innerHTML = `
+      <span class="rh-confidence">${math(inequalityTex, inequalityFallback, `Confidence of ${piName(i)} is strictly greater than confidence of ${piName(i+1)}`)}</span>`;
+    annotationsHost.appendChild(div);
+    return div;
+  });
+
+  let state = 6; // start at the arbitrary PMF (index 3), not an extremum
+  let busy = false;
+  const queued = [];
+  const numStates = PMFS.length * 2 - 1;
+  let pairShift = 140;
+
+  function layout() {
+    const width = actorsHost.getBoundingClientRect().width;
+    if (!width) return;
+    const gap = Math.max(20,Math.min(60.8, width*.085));
+    const pmfWidth = Math.min(227.2,Math.max(0,(width-gap-4)/2));
+    pairShift = (pmfWidth+gap)/2;
+    workspace.style.setProperty('--pmf-width', pmfWidth.toFixed(2)+'px');
+    workspace.style.setProperty('--pair-shift', pairShift.toFixed(2)+'px');
+    workspace.style.setProperty('--pair-gap', gap.toFixed(2)+'px');
+    // All transforms are positions relative to the exact midpoint, not to a
+    // hidden grid column; a single distribution is mathematically centred.
+    const active = visiblePositions(state);
+    for (const [i,shift] of active) actors[i].node.style.setProperty('--shift',shift.toFixed(2)+'px');
+  }
+  function visiblePositions(index) {
+    const i=Math.floor(index/2);
+    return index%2===0 ? new Map([[i,0]]) : new Map([[i,-pairShift],[i+1,pairShift]]);
+  }
+  function hideHatches() {
+    for (const actor of actors) for (const hatch of actor.hatch) hatch.classList.remove('rh-hatched');
+  }
+  function showHatches(index) {
+    hideHatches();
+    if (index%2===0) return;
+    const i=Math.floor(index/2), t=TRANSFERS[i];
+    // Left (more concentrated) is the Robin Hood donor; right receives it.
+    // Both highlights have exact height delta times the shared bar scale.
+    for (const [actorIdx,classIdx] of [[i,t.donor],[i+1,t.recipient]]) {
+      const hatch=actors[actorIdx].hatch[classIdx];
+      hatch.style.height=(t.delta*BAR_SCALE).toFixed(3)+'px';
+      hatch.classList.add('rh-hatched');
+    }
+  }
+  function setAnnotations(index) {
+    for (let i=0;i<notes.length;i++) notes[i].classList.toggle('rh-shown',index===2*i+1);
+    arrow.classList.toggle('rh-shown',index%2===1);
+    onehotLabel.classList.toggle('rh-shown',index===0);
+    uniformLabel.classList.toggle('rh-shown',index===numStates-1);
+  }
+  function updateNav(index) {
+    const i=Math.floor(index/2);
+    status.textContent=index===0?'One-hot distribution; maximum confidence'
+      :index===numStates-1?'Uniform distribution; minimum confidence'
+      :index%2===0?`Distribution ${i+1} of ${PMFS.length}`
+      :`Bidirectional transfer between ${piName(i)} and ${piName(i+1)}`;
+  }
+  function prepositionIncoming(oldMap,newMap) {
+    for (const [i,shift] of newMap) {
+      if (oldMap.has(i)) continue;
+      const node = actors[i].node;
+      const previousTransition=node.style.transition;
+      node.style.transition='none';
+      node.style.setProperty('--shift',shift.toFixed(2)+'px');
+      node.style.opacity='0';
+      void node.offsetWidth;
+      node.style.transition=previousTransition;
+    }
+  }
+  function commit(target,oldMap) {
+    const newMap=visiblePositions(target);
+    prepositionIncoming(oldMap,newMap);
+    // The next frame guarantees incoming distributions fade into their exact
+    // comparison slot rather than drifting visibly from an old offscreen slot.
+    requestAnimationFrame(() => {
+      for (let i=0;i<actors.length;i++) {
+        const node=actors[i].node;
+        if (newMap.has(i)) node.style.setProperty('--shift',newMap.get(i).toFixed(2)+'px');
+        node.style.opacity=newMap.has(i)?'1':'0';
+        node.setAttribute('aria-hidden',String(!newMap.has(i)));
+      }
+      state=target;
+      updateNav(target);
+      if(target%2===1) {
+        setAnnotations(target);
+        window.setTimeout(()=>showHatches(target),reducedMotion?0:105);
+      } else {
+        setAnnotations(target);
+        hideHatches();
+      }
+      window.setTimeout(()=>{
+        busy=false;
+        if(queued.length) advance(queued.shift());
+      },reducedMotion?10:TRANSITION_MS+30);
+    });
+  }
+  let warningTimer = null;
+  function clearWarning() {
+    if (warningTimer!==null) { clearTimeout(warningTimer); warningTimer=null; }
+    boundaryWarning.classList.remove('rh-shown');
+    prev.classList.remove('rh-boundary-hit');
+    next.classList.remove('rh-boundary-hit');
+  }
+  function showBoundaryWarning(direction) {
+    clearWarning();
+    boundaryWarning.textContent='No more transfers possible';
+    boundaryWarning.classList.add('rh-shown');
+    (direction<0 ? prev : next).classList.add('rh-boundary-hit');
+    warningTimer=window.setTimeout(()=>{
+      clearWarning();
+      boundaryWarning.textContent='';
+    },2100);
+  }
+  function advance(direction) {
+    if(busy) { if(queued.length<12) queued.push(direction); return; }
+    const target=state+direction;
+    if(target<0||target>=numStates) { showBoundaryWarning(direction); return; }
+    clearWarning();
+    busy=true;
+    const oldMap=visiblePositions(state);
+    if(state%2===1) {
+      // Hide markings before moving away from a comparison. This sequencing
+      // also holds when navigating backwards from the very same comparison.
+      hideHatches();
+      setAnnotations(-1);
+      window.setTimeout(()=>commit(target,oldMap),reducedMotion?0:HATCH_EXIT_MS);
+    } else {
+      commit(target,oldMap);
+    }
+  }
+  prev.addEventListener('click',()=>advance(-1));
+  next.addEventListener('click',()=>advance(1));
+  root.addEventListener('keydown',event=>{
+    if(event.key!=='ArrowLeft' && event.key!=='ArrowRight') return;
+    if(event.altKey||event.ctrlKey||event.metaKey) return;
+    event.preventDefault();
+    advance(event.key==='ArrowRight'?1:-1);
+  });
+  new ResizeObserver(layout).observe(actorsHost);
+  layout();
+  actors[3].node.style.opacity='1';
+  actors[3].node.setAttribute('aria-hidden','false');
+  updateNav(state);
+  setAnnotations(state);
+
+  // Inspection hooks, including a precise inventory of all nine states.
+  window.robinHoodWidget2 = {
+    getState:()=>({ index:state, phase:state%2?'comparison':'individual',
+      distribution:Math.floor(state/2),
+      visible:Array.from(visiblePositions(state).keys()),
+      transfer:state%2?{...TRANSFERS[Math.floor(state/2)]}:null,
+      extremum:state===0?'one-hot':state===numStates-1?'uniform':null,
+      warning:boundaryWarning.classList.contains('rh-shown') }),
+    getDistributions:()=>PMFS.map(p=>[...p]),
+    getTransfers:()=>TRANSFERS.map(t=>({...t})),
+    left:()=>advance(-1), right:()=>advance(1)
+  };
+})();
+</script>
+<script>
+// Identical MathJax v3 SVG+boldsymbol strategy to the supplied reference.
+(() => {
+  const root=document.querySelector('#robin-hood-extrema');
+  const typeset=() => {
+    if(!window.MathJax || typeof window.MathJax.typesetPromise!=='function') return;
+    window.MathJax.typesetPromise([root]).then(()=>root.classList.add('rh-math-ready'))
+      .catch(error=>console.warn('Widget MathJax:',error));
+  };
+  if(window.MathJax && typeof window.MathJax.typesetPromise==='function') typeset();
+  else if(window.MathJax && window.MathJax.startup?.promise) window.MathJax.startup.promise.then(typeset);
+  else {
+    window.MathJax={
+      loader: {load:['[tex]/boldsymbol']},
+      tex: {inlineMath:[['\\(','\\)']],processEscapes:true,packages:{'[+]':['boldsymbol']}},
+      svg: {fontCache:'local'},
+      startup: {ready:()=>{MathJax.startup.defaultReady();}}
+    };
+    const script=document.createElement('script');
+    script.src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js';
+    script.async=true;
+    script.onload=()=>window.MathJax.startup.promise.then(typeset);
+    script.onerror=()=>console.warn('MathJax unavailable; HTML mathematical fallback stays visible.');
+    document.head.appendChild(script);
+  }
+})();
+</script>
+<script>
+// Keep the site's same-origin iframe fitted after layout and MathJax updates.
+(() => {
+  const frame = window.frameElement;
+  if (!frame) return;
+  const fitFrame = () => {
+    const height = `${Math.ceil(document.body.getBoundingClientRect().height)}px`;
+    if (frame.style.height !== height) frame.style.height = height;
+  };
+  new ResizeObserver(fitFrame).observe(document.body);
+  window.addEventListener('resize', fitFrame);
+  fitFrame();
+})();
+</script>
+</body>
+</html>

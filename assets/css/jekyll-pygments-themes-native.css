@@ -48,7 +48,10 @@
   color: #e50808;
   font-weight: bold;
   background-color: #520000;
-} /* Comment.Special */ /* Generic.Deleted */
+} /* Comment.Special */
+.highlight .gd {
+  color: #d22323;
+} /* Generic.Deleted */
 .highlight .ge {
   color: #d0d0d0;
   font-style: italic;
