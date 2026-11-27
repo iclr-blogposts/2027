@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where zeros come from</title>
+<style>
+  :root { --bg:#fff; --fg:#1f2328; --muted:#6a737d; --grid:#e4e7eb; --panel:#fafbfc; --fr:#ff7f0e; --fs:#1f77b4; --w2:#2ca02c; --zero:#d62728; --ghost:#b8bec6; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --grid:#2a2f37; --panel:#161a20; --fr:#ffa04a; --fs:#5aa7e0; --w2:#5cc85c; --zero:#ff6b6b; --ghost:#4a525c; } }
+  :root[data-theme="dark"] { --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --grid:#2a2f37; --panel:#161a20; --fr:#ffa04a; --fs:#5aa7e0; --w2:#5cc85c; --zero:#ff6b6b; --ghost:#4a525c; }
+  html,body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:980px; margin:0 auto; padding:8px 16px 10px; box-sizing:border-box; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; margin-bottom:8px; }
+  .controls label { display:flex; align-items:center; gap:8px; white-space:nowrap; }
+  select, button { font:inherit; color:var(--fg); background:var(--panel); border:1px solid var(--grid); border-radius:6px; padding:3px 8px; }
+  button { cursor:pointer; }
+  .val { font-variant-numeric:tabular-nums; color:var(--muted); min-width:2.6em; display:inline-block; }
+  .grid { display:grid; grid-template-columns:170px 1fr 120px; gap:6px 12px; align-items:center; }
+  .lab b { display:block; } .lab span { font-size:12px; color:var(--muted); }
+  canvas { width:100%; height:124px; display:block; background:var(--panel); border:1px solid var(--grid); border-radius:4px; }
+  .read { font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums; } .read b { color:var(--fg); }
+  .note { font-size:12.5px; color:var(--muted); margin-top:8px; }
+  @media (max-width:640px) { .grid { grid-template-columns:1fr; } canvas { height:110px; } }
+  /* legend swatches, shared by every widget of this post: line, dashed line, filled area, outline, dot, ring, triangle */
+  .lg { display:inline-block; vertical-align:middle; margin:0 4px 0 8px; box-sizing:border-box; }
+  .lg-line { width:16px; height:0; border-top:2.5px solid currentColor; }
+  .lg-dash { width:16px; height:0; border-top:2px dashed currentColor; }
+  .lg-fill { width:12px; height:10px; border:1.5px solid currentColor; border-radius:2px; background:color-mix(in srgb, currentColor 35%, transparent); }
+  .lg-box { width:12px; height:10px; border:1.5px solid currentColor; border-radius:2px; }
+  .lg-dot { width:9px; height:9px; border-radius:50%; background:currentColor; }
+  .lg-ring { width:9px; height:9px; border-radius:50%; border:1.5px solid currentColor; }
+  .lg-tri { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:9px solid currentColor; }
+  /* ---- shared look of every widget in this post (keep identical across widgets) ---- */
+  :root { --grid:#e4e7eb; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --grid:#2a2f37; } }
+  :root[data-theme="dark"] { --grid:#2a2f37; }
+  .wrap { max-width:1040px; padding:8px 16px 10px; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; margin-bottom:8px; font-size:14px; }
+  .controls label { display:flex; align-items:center; gap:7px; white-space:nowrap; }
+  .controls input[type=range] { width:120px; }
+  select, button { font:inherit; font-size:13px; color:var(--fg); background:var(--panel); border:1px solid var(--grid); border-radius:6px; padding:3px 9px; cursor:pointer; }
+  canvas { box-sizing:border-box; background:var(--panel); border:1px solid var(--grid); border-radius:4px; }
+  canvas.wheel, .ahead canvas { background:none; border:0; border-radius:0; }
+  .cap, .ttl { font-size:12px; color:var(--muted); margin:0 0 3px; text-align:left; }
+  .cap b, .ttl b { color:var(--fg); font-weight:600; }
+  .note { font-size:12.5px; color:var(--muted); margin-top:8px; line-height:1.45; }
+  .lgrow { margin:2px 0; } .lgrow > b:first-child { color:var(--fg); font-weight:600; margin-right:3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="controls">
+    <label>end <select id="n"><option value="1">one zero</option><option value="2" selected>two zeros</option><option value="3">three zeros</option></select></label>
+    <label>network smoothness ℓ <input id="eps" type="range" min="0" max="0.4" step="0.01" value="0.05"><span class="val" id="ev"></span></label>
+    <label>t <input id="t" type="range" min="0" max="1" step="any" value="0.9"><span class="val" id="tv"></span></label>
+    <button id="play">play</button>
+  </div>
+  <div class="grid">
+    <div class="lab"><b style="color:var(--w2)">Wasserstein</b><span>the map T, from the velocity field; ticks are particles</span></div>
+    <canvas id="cw"></canvas><div class="read" id="rw"></div>
+    <div class="lab"><b style="color:var(--fr)">Fisher-Rao</b><span>√μ<sub>t</sub> = a√μ<sub>0</sub> + b√μ<sub>1</sub>, a, b ≥ 0</span></div>
+    <canvas id="cr"></canvas><div class="read" id="rr"></div>
+    <div class="lab"><b style="color:var(--fs)">Fubini-Study</b><span>ψ<sub>t</sub> = aψ<sub>0</sub> + bψ<sub>1</sub>; thin line: ψ<sub>t</sub></span></div>
+    <canvas id="cs"></canvas><div class="read" id="rs"></div>
+  </div>
+  <div class="note">
+    <div class="lgrow"><b>Endpoints:</b> start, a Gaussian with no zeros, centred at x = 0.5; end, |h<sub>n</sub>|², the n-th Hermite function squared, with n zeros.</div>
+    <div class="lgrow"><b>Each row:</b> <span class="lg lg-fill" style="color:var(--muted)"></span>μ<sub>t</sub> along the geodesic, in the row's colour; <span class="lg lg-dash" style="color:var(--ghost)"></span>both endpoints; <span class="lg lg-tri" style="color:var(--zero)"></span>zeros of μ<sub>t</sub>.</div>
+    <div class="lgrow"><b>Slider ℓ:</b> each geometry's output is blurred at scale ℓ: the transport map T for Wasserstein, √μ for Fisher-Rao and ψ for Fubini-Study. ℓ = 0 gives the exact geodesics.</div>
+  </div>
+</div>
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const C0 = 0.5, XL = -8, XR = 8, N = 3201, dx = (XR - XL) / (N - 1), x = new Float64Array(N);
+  for (let i = 0; i < N; i++) x[i] = XL + i * dx;
+  const XV = 4.5;
+  function herm(n, X) {                                                // normalised Hermite function h_n(X)
+    let a = Math.pow(Math.PI, -0.25) * Math.exp(-X * X / 2), b = 0;
+    for (let k = 0; k < n; k++) { const c = Math.sqrt(2 / (k + 1)) * X * a - Math.sqrt(k / (k + 1)) * b; b = a; a = c; }
+    return a; }
+  const psi0 = (X) => herm(0, X - C0);
+  let S;
+  function cdf(f) { const F = new Float64Array(N); for (let i = 1; i < N; i++) F[i] = F[i - 1] + 0.5 * (f[i] + f[i - 1]) * dx;
+    for (let i = 0; i < N; i++) F[i] /= F[N - 1]; return F; }
+  function invcdf(F, u) { let lo = 0, hi = N - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (F[m] < u) lo = m; else hi = m; }
+    const d = F[hi] - F[lo]; return x[lo] + (d > 0 ? (u - F[lo]) / d : 0.5) * dx; }
+  function blur(f, h, eps) {                                          // Gaussian blur at scale eps on a uniform grid of step h
+    if (eps <= 0) return Float64Array.from(f);
+    const r = Math.ceil(4 * eps / h), k = new Float64Array(2 * r + 1); for (let j = -r; j <= r; j++) k[j + r] = Math.exp(-0.5 * (j * h / eps) ** 2);
+    const out = new Float64Array(f.length);
+    for (let i = 0; i < f.length; i++) { let s = 0, w = 0; const lo = Math.max(0, i - r), hi = Math.min(f.length - 1, i + r);
+      for (let j = lo; j <= hi; j++) { const kk = k[j - i + r]; s += kk * f[j]; w += kk; } out[i] = s / w; }
+    return out; }
+  const unitL2 = (f) => { let s = 0; for (let i = 0; i < N; i++) s += f[i] * f[i]; s = Math.sqrt(s * dx); return f.map((v) => v / s); };
+  // everything that depends only on the target (n): computed once per target
+  let B;
+  function buildBase() {
+    const n = +$("n").value;
+    const a0 = x.map(psi0); let a1 = x.map((X) => herm(n, X));
+    let ov = 0; for (let i = 0; i < N; i++) ov += a0[i] * a1[i]; ov *= dx;
+    if (ov < 0) { a1 = a1.map((v) => -v); ov = -ov; }                 // align the global phase (a sign, for real states)
+    const m0 = a0.map((v) => v * v), m1 = a1.map((v) => v * v), r1 = a1.map(Math.abs);
+    // exact zeros of the target: sign changes of h_n, refined by bisection
+    const xs = []; for (let i = 0; i < N - 1; i++) if (a1[i] === 0 || a1[i] * a1[i + 1] < 0) { let lo = x[i], hi = x[i + 1];
+      for (let k = 0; k < 50; k++) { const m = 0.5 * (lo + hi); if (herm(n, lo) * herm(n, m) <= 0) hi = m; else lo = m; } xs.push(0.5 * (lo + hi)); }
+    // Wasserstein: exact monotone map T = F1^{-1} ∘ F0, on a fine z grid with the preimages of the zeros inserted
+    const F0 = cdf(m0), F1 = cdf(m1), T = (z) => invcdf(F1, Math.min(1 - 1e-15, Math.max(1e-15, F0lerp(z))));
+    function F0lerp(z) { const u = (z - XL) / dx, j = Math.max(0, Math.min(N - 2, Math.floor(u))), f = u - j; return F0[j] * (1 - f) + F0[j + 1] * f; }
+    const zstar = xs.map((xz) => { const j = Math.round((xz - XL) / dx); return invcdf(F0, F1[j]); });
+    const zz = []; for (let z = -5.5; z <= 6.5; z += 0.0015) zz.push(z); for (const z of zstar) zz.push(z); zz.sort((p, q) => p - q);
+    const W = zz.map((z) => { const tz = T(z), p0 = psi0(z) ** 2, p1 = herm(n, tz) ** 2; return [z, tz, p0, p1]; });
+    // the exact map on a uniform z grid, ready to be blurred
+    const hz = 0.0015, ZU0 = -4, NU = Math.round(9 / hz) + 1, zu = new Float64Array(NU);
+    for (let i = 0; i < NU; i++) zu[i] = ZU0 + i * hz;
+    const Tu = zu.map(T), mu0u = zu.map((z) => psi0(z) ** 2);
+    const pz = []; for (let k = 0; k < 60; k++) { const z = invcdf(F0, (k + 0.5) / 60); pz.push([z, T(z)]); }
+    let ym = 0; for (let i = 0; i < N; i++) ym = Math.max(ym, m0[i], m1[i]); ym *= 1.3;
+    B = { n, a0, a1, r1, m0, m1, F0exact: Math.min(1, ov), xs, zstar, W, hz, ZU0, NU, zu, Tu, mu0u, pz, ym };
+  }
+  // the network's version of each geometry's target-side output, blurred at scale eps: recomputed when eps moves
+  function build() {
+    const eps = +$("eps").value, { a0, a1, r1, hz, ZU0, NU, zu, Tu, mu0u, pz } = B;
+    const s1 = unitL2(blur(r1, dx, eps));                               // Fisher-Rao: blurred √μ1 (stays > 0 for eps > 0)
+    let p1 = unitL2(blur(a1, dx, eps)), F = 0; for (let i = 0; i < N; i++) F += a0[i] * p1[i]; F *= dx;
+    if (F < 0) { p1 = p1.map((v) => -v); F = -F; }                     // Fubini-Study: blurred ψ1, phase-aligned
+    let bc = 0; for (let i = 0; i < N; i++) bc += a0[i] * s1[i]; bc *= dx;
+    let Ws = null, parts = pz;
+    if (eps > 0) {                                                      // Wasserstein: blurred map, finite slope, density mu0 / ((1-t) + t T')
+      const Te = blur(Tu, hz, eps), Tp = new Float64Array(NU);
+      for (let i = 0; i < NU; i++) { const lo = Math.max(0, i - 1), hi = Math.min(NU - 1, i + 1); Tp[i] = Math.max(1e-9, (Te[hi] - Te[lo]) / ((hi - lo) * hz)); }
+      Ws = Array.from(zu, (z, i) => [z, Te[i], mu0u[i], Tp[i]]);
+      const Tsm = (z) => { const u = (z - ZU0) / hz, j = Math.max(0, Math.min(NU - 2, Math.floor(u))), f = u - j; return Te[j] * (1 - f) + Te[j + 1] * f; };
+      parts = pz.map(([z]) => [z, Tsm(z)]); }
+    S = { ...B, eps, s1, p1, bc: Math.min(1, bc), F: Math.min(1, F), Ws, parts };
+  }
+  function setup(cv) { const r = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * r) || cv.height !== Math.round(h * r)) { cv.width = Math.round(w * r); cv.height = Math.round(h * r); }
+    const g = cv.getContext("2d"); g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, w, h); return [g, w, h]; }
+  const slerp = (t, c) => { const th = Math.acos(Math.max(-1, Math.min(1, c))); return th < 1e-9 ? [1 - t, t] : [Math.sin((1 - t) * th) / Math.sin(th), Math.sin(t * th) / Math.sin(th)]; };
+  // x-axis tick labels, shared by every widget of this post
+  const xTicks = (g, w, h, base, X, lo, hi, name) => { g.strokeStyle = css("--grid"); g.lineWidth = 1; g.beginPath(); g.moveTo(X(lo), base + 0.5); g.lineTo(X(hi), base + 0.5); g.stroke();
+    g.fillStyle = css("--muted"); g.font = "10px system-ui, sans-serif"; g.textAlign = "center"; const st = (hi - lo) > 9 ? 2 : 1;
+    for (let v = Math.ceil(lo / st) * st; v <= hi + 1e-9; v += st) g.fillText(Math.abs(v) < 1e-9 ? (name || "x") + " = 0" : String(v), X(v), h - 3); };
+  function panel(cv, curve, col, zeros, extra) {         // curve: [[x, mu], ...]
+    const [g, w, h] = setup(cv), p = 5, base = h - 28, X = (v) => p + (v + XV) / (2 * XV) * (w - 2 * p), Y = (v) => base - Math.min(1, v / S.ym) * (base - p);
+    xTicks(g, w, h, base, X, -XV, XV);
+    for (const m of [S.m0, S.m1]) { g.beginPath(); let on = false;
+      for (let i = 0; i < N; i++) { if (Math.abs(x[i]) > XV) continue; on ? g.lineTo(X(x[i]), Y(m[i])) : g.moveTo(X(x[i]), Y(m[i])); on = true; }
+      g.strokeStyle = css("--ghost"); g.setLineDash([3, 3]); g.stroke(); g.setLineDash([]); }
+    if (extra) extra(g, X, base, p);
+    g.beginPath(); g.moveTo(X(-XV), base); for (const [xx, m] of curve) if (Math.abs(xx) <= XV) g.lineTo(X(xx), Y(m)); g.lineTo(X(XV), base);
+    g.globalAlpha = 0.25; g.fillStyle = col; g.fill(); g.globalAlpha = 1;
+    g.beginPath(); let on = false; for (const [xx, m] of curve) { if (Math.abs(xx) > XV) continue; on ? g.lineTo(X(xx), Y(m)) : g.moveTo(X(xx), Y(m)); on = true; }
+    g.strokeStyle = col; g.lineWidth = 1.8; g.stroke();
+    g.fillStyle = css("--zero"); for (const z of zeros) if (Math.abs(z) <= XV) { g.beginPath(); g.moveTo(X(z), base + 2); g.lineTo(X(z) - 5, base + 11); g.lineTo(X(z) + 5, base + 11); g.closePath(); g.fill(); }
+  }
+  // sign changes of f, including ones where f is exactly zero on a grid point (h_n vanishes at x = 0 for odd n)
+  const signZeros = (f) => { let m = 0; for (let i = 0; i < N; i++) m = Math.max(m, Math.abs(f[i])); const eps = 1e-12 * m, out = [];
+    let li = -1; for (let i = 0; i < N; i++) { if (Math.abs(f[i]) <= eps) continue;
+      if (li >= 0 && f[li] * f[i] < 0) out.push(i === li + 1 ? x[li] + dx * f[li] / (f[li] - f[i]) : 0.5 * (x[li + 1] + x[i - 1]));
+      li = i; }
+    return out; };
+  function render() {
+    const t = +$("t").value; $("tv").textContent = t.toFixed(2); $("ev").textContent = S.eps ? S.eps.toFixed(2) : "0 (exact)";
+    // Wasserstein
+    const wc = S.eps > 0
+      ? S.Ws.map(([z, tz, p0, tp]) => [(1 - t) * z + t * tz, p0 / ((1 - t) + t * tp)])
+      : S.W.map(([z, tz, p0, p1]) => [(1 - t) * z + t * tz, t === 0 ? p0 : (t === 1 ? p1 : p0 * p1 / ((1 - t) * p1 + t * p0))]);
+    const wz = t > 0 && S.eps === 0 ? S.xs.map((xz, j) => (1 - t) * S.zstar[j] + t * xz) : [];
+    panel($("cw"), wc, css("--w2"), wz, (g, X, base) => { g.strokeStyle = css("--w2"); g.globalAlpha = 0.7; g.lineWidth = 1;
+      for (const [z, tz] of S.parts) { const xp = (1 - t) * z + t * tz; if (Math.abs(xp) > XV) continue; g.beginPath(); g.moveTo(X(xp), base - 7); g.lineTo(X(xp), base); g.stroke(); } g.globalAlpha = 1; });
+    // Fisher-Rao
+    const [ar, br] = slerp(t, S.bc), fr = []; for (let i = 0; i < N; i++) { const s = ar * S.a0[i] + br * S.s1[i]; fr.push([x[i], s * s]); }
+    const frz = t >= 1 && S.eps === 0 ? S.xs : [];
+    panel($("cr"), fr, css("--fr"), frz);
+    // Fubini-Study (real endpoints, phase-aligned: the geodesic stays real)
+    const [as, bs] = slerp(t, S.F), ps = new Float64Array(N); for (let i = 0; i < N; i++) ps[i] = as * S.a0[i] + bs * S.p1[i];
+    const fsz = signZeros(ps), fs = Array.from(ps, (v, i) => [x[i], v * v]);
+    let am = 0; for (let i = 0; i < N; i++) am = Math.max(am, Math.abs(ps[i]));
+    panel($("cs"), fs, css("--fs"), fsz, (g, X, base, p) => { const mid = (base + p) / 2, A = (base - p) / 2 / Math.max(am, 1e-9);
+      g.strokeStyle = css("--grid"); g.beginPath(); g.moveTo(X(-XV), mid); g.lineTo(X(XV), mid); g.stroke();
+      g.beginPath(); let on = false; for (let i = 0; i < N; i++) { if (Math.abs(x[i]) > XV) continue; const P = [X(x[i]), mid - ps[i] * A]; on ? g.lineTo(...P) : g.moveTo(...P); on = true; }
+      g.strokeStyle = css("--fs"); g.globalAlpha = 0.55; g.lineWidth = 1; g.stroke(); g.globalAlpha = 1; });
+    const inView = (zs) => zs.filter((z) => Math.abs(z) <= XV).length;
+    $("rw").innerHTML = `zeros: <b>${wz.length}</b>`;
+    $("rr").innerHTML = `zeros: <b>${frz.length}</b>`;
+    $("rs").innerHTML = `zeros: <b>${fsz.length}</b>${fsz.length > inView(fsz) ? ` (${fsz.length - inView(fsz)} out of view)` : ""}`;
+  }
+  let playing = false, dir = 1, last = 0;
+  function tick(ts) { if (!playing) return; if (last) { let v = +$("t").value + dir * (ts - last) / 5000;
+      if (v >= 1) { v = 1; dir = -1; } if (v <= 0) { v = 0; dir = 1; } $("t").value = v; render(); } last = ts; requestAnimationFrame(tick); }
+  $("play").onclick = (e) => { playing = !playing; e.target.textContent = playing ? "pause" : "play"; last = 0; if (playing) requestAnimationFrame(tick); };
+  // live updates; at most one rebuild per animation frame however fast the slider moves
+  let pending = false;
+  const schedule = () => { if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; build(); render(); }); };
+  $("t").oninput = render; $("eps").oninput = schedule;
+  $("n").onchange = () => { buildBase(); build(); render(); };
+  window.addEventListener("resize", render);
+  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+  try { const q = new URLSearchParams(location.search); if (q.has("n")) $("n").value = q.get("n"); if (q.has("t")) $("t").value = q.get("t"); if (q.has("eps")) $("eps").value = q.get("eps"); } catch (e) {}
+  buildBase(); build(); render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Three geodesics between Gaussians</title>
+<style>
+  :root { --bg:#fff; --fg:#1f2328; --muted:#6a737d; --grid:#e4e7eb; --panel:#fafbfc; --w2:#2ca02c; --fr:#ff7f0e; --mix:#9467bd; --ghost:#b8bec6; --end:#1f2328; --p0:#4a7fc1; --p1:#d4515f; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --grid:#2a2f37; --panel:#161a20; --w2:#5cc85c; --fr:#ffa04a; --mix:#b48ae0; --ghost:#4a525c; --end:#e6e8eb; --p0:#6f9fe0; --p1:#e8707c; } }
+  :root[data-theme="dark"] { --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --grid:#2a2f37; --panel:#161a20; --w2:#5cc85c; --fr:#ffa04a; --mix:#b48ae0; --ghost:#4a525c; --end:#e6e8eb; --p0:#6f9fe0; --p1:#e8707c; }
+  html,body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:1040px; margin:0 auto; padding:8px 16px 10px; box-sizing:border-box; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; margin-bottom:8px; }
+  .controls label { display:flex; align-items:center; gap:8px; white-space:nowrap; }
+  button { font:inherit; color:var(--fg); background:var(--panel); border:1px solid var(--grid); border-radius:6px; padding:3px 10px; cursor:pointer; }
+  .val { font-variant-numeric:tabular-nums; color:var(--muted); min-width:2.6em; display:inline-block; }
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .cap { font-size:12px; color:var(--muted); margin:0 0 3px; }
+  .cap b { color:var(--fg); font-weight:600; }
+  canvas { width:100%; display:block; background:var(--panel); border:1px solid var(--grid); border-radius:4px; }
+  #plane { height:330px; touch-action:none; cursor:default; }
+  .row { display:grid; grid-template-columns:1fr 112px; gap:8px; align-items:center; margin-bottom:6px; }
+  .row canvas { height:104px; }
+  .read { font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; } .read b { color:var(--fg); }
+  .note { font-size:12.5px; color:var(--muted); margin-top:8px; }
+  @media (max-width:700px) { .cols { grid-template-columns:1fr; } }
+  /* legend swatches, shared by every widget of this post: line, dashed line, filled area, outline, dot, ring, triangle */
+  .lg { display:inline-block; vertical-align:middle; margin:0 4px 0 8px; box-sizing:border-box; }
+  .lg-line { width:16px; height:0; border-top:2.5px solid currentColor; }
+  .lg-dash { width:16px; height:0; border-top:2px dashed currentColor; }
+  .lg-fill { width:12px; height:10px; border:1.5px solid currentColor; border-radius:2px; background:color-mix(in srgb, currentColor 35%, transparent); }
+  .lg-box { width:12px; height:10px; border:1.5px solid currentColor; border-radius:2px; }
+  .lg-dot { width:9px; height:9px; border-radius:50%; background:currentColor; }
+  .lg-ring { width:9px; height:9px; border-radius:50%; border:1.5px solid currentColor; }
+  .lg-tri { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:9px solid currentColor; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="controls">
+    <label>t <input id="t" type="range" min="0" max="1" step="any" value="0.5"><span class="val" id="tv"></span></label>
+    <button id="play">play</button>
+    <button id="reset">reset endpoints</button>
+  </div>
+  <div class="cols">
+    <div>
+      <div class="cap"><b>The Gaussians 𝒩(m, w²) as points.</b> Drag μ₀ and μ₁.</div>
+      <canvas id="plane"></canvas>
+    </div>
+    <div>
+      <div class="cap"><b>μ<sub>t</sub> as a density on x</b><span class="lg lg-dash" style="color:var(--p0)"></span>μ₀<span class="lg lg-dash" style="color:var(--p1)"></span>μ₁</div>
+      <div class="row"><canvas id="dw"></canvas><div class="read" id="rw"></div></div>
+      <div class="row"><canvas id="dm"></canvas><div class="read" id="rm"></div></div>
+      <div class="row"><canvas id="df"></canvas><div class="read" id="rf"></div></div>
+    </div>
+  </div>
+  <div class="note">
+    Each marker is a Gaussian component of μ<sub>t</sub>; marker area is proportional to its weight.
+    <span class="lg lg-dot" style="color:var(--w2)"></span>Wasserstein: one component.
+    <span class="lg lg-ring" style="color:var(--mix)"></span>Mixture: (1 − t)μ₀ + tμ₁, components at μ₀ and μ₁.
+    <span class="lg lg-dot" style="color:var(--fr)"></span>Fisher-Rao: (a√μ₀ + b√μ₁)² = a²μ₀ + b²μ₁ + 2ab·BC·ν, components at μ₀, μ₁ and ν, the normalised √(μ₀μ₁).
+  </div>
+</div>
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const DEF = [[-1.75, 0.7], [1.75, 0.7]], MR = [-3.6, 3.6], SR = [0, 1.6], SMIN = 0.15;
+  let P = DEF.map((p) => p.slice());
+  const SQ2PI = Math.sqrt(2 * Math.PI);
+  const gauss = (x, m, s) => Math.exp(-0.5 * ((x - m) / s) ** 2) / (s * SQ2PI);
+  // closed forms for two Gaussians
+  function geom() {
+    const [[m0, s0], [m1, s1]] = P, v = s0 * s0 + s1 * s1;
+    const bc = Math.sqrt(2 * s0 * s1 / v) * Math.exp(-((m0 - m1) ** 2) / (4 * v));             // Bhattacharyya coefficient
+    const ss = Math.sqrt(2 / (1 / (s0 * s0) + 1 / (s1 * s1))), ms = ss * ss * (m0 / (s0 * s0) + m1 / (s1 * s1)) / 2;  // nu = normalised sqrt(mu0 mu1)
+    const om = Math.acos(Math.min(1, bc));
+    const l2 = Math.sqrt(Math.max(0, 1 / (2 * Math.sqrt(Math.PI) * s0) + 1 / (2 * Math.sqrt(Math.PI) * s1) - 2 * Math.exp(-((m0 - m1) ** 2) / (2 * v)) / Math.sqrt(2 * Math.PI * v)));
+    return { m0, s0, m1, s1, bc, om, ms, ss, l2, w2: Math.hypot(m1 - m0, s1 - s0) };
+  }
+  const frW = (G, t) => { if (G.om < 1e-9) return [1 - t, t, 0];
+    const a = Math.sin((1 - t) * G.om) / Math.sin(G.om), b = Math.sin(t * G.om) / Math.sin(G.om); return [a * a, b * b, 2 * a * b * G.bc]; };
+  function setup(cv) { const r = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * r) || cv.height !== Math.round(h * r)) { cv.width = Math.round(w * r); cv.height = Math.round(h * r); }
+    const g = cv.getContext("2d"); g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, w, h); return [g, w, h]; }
+  const disc = (g, x, y, r, fill, stroke, lw) => { g.beginPath(); g.arc(x, y, Math.max(r, 0.01), 0, 2 * Math.PI);
+    if (fill) { g.fillStyle = fill; g.fill(); } if (stroke) { g.strokeStyle = stroke; g.lineWidth = lw || 1.5; g.stroke(); } };
+  // ---- the (m, s) plane ----
+  let PL = null;   // plane transform, kept for dragging
+  function drawPlane(G, t) {
+    const cv = $("plane"), [g, w, h] = setup(cv), pl = 26, pr = 10, pt = 10, pb = 26;
+    const X = (m) => pl + (m - MR[0]) / (MR[1] - MR[0]) * (w - pl - pr), Y = (s) => h - pb - (s - SR[0]) / (SR[1] - SR[0]) * (h - pt - pb);
+    PL = { X, Y, Xi: (px) => MR[0] + (px - pl) / (w - pl - pr) * (MR[1] - MR[0]), Yi: (py) => SR[0] + (h - pb - py) / (h - pt - pb) * (SR[1] - SR[0]) };
+    g.strokeStyle = css("--muted"); g.lineWidth = 1.1; g.beginPath(); g.moveTo(X(MR[0]), Y(0)); g.lineTo(X(MR[1]), Y(0)); g.moveTo(X(0), Y(0)); g.lineTo(X(0), Y(SR[1])); g.stroke();
+    g.fillStyle = css("--muted"); g.font = "11px system-ui, sans-serif"; g.textAlign = "right"; g.fillText("mean m", X(MR[1]), Y(0) + 16);
+    g.textAlign = "left"; g.fillText("width w", X(0) + 4, Y(SR[1]) + 9);
+    const R = 15;                                                     // radius of a weight-1 marker
+    // Wasserstein: straight path and its moving point
+    g.strokeStyle = css("--w2"); g.globalAlpha = 0.45; g.lineWidth = 2; g.beginPath(); g.moveTo(X(G.m0), Y(G.s0)); g.lineTo(X(G.m1), Y(G.s1)); g.stroke(); g.globalAlpha = 1;
+    // Fisher-Rao: three components, area proportional to weight; nu linked to the endpoints
+    const [f0, f1, fs] = frW(G, t);
+    g.strokeStyle = css("--fr"); g.globalAlpha = 0.35; g.setLineDash([3, 3]); g.lineWidth = 1;
+    g.beginPath(); g.moveTo(X(G.m0), Y(G.s0)); g.lineTo(X(G.ms), Y(G.ss)); g.lineTo(X(G.m1), Y(G.s1)); g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+    g.globalAlpha = 0.85;
+    disc(g, X(G.m0), Y(G.s0), R * Math.sqrt(f0), css("--fr")); disc(g, X(G.m1), Y(G.s1), R * Math.sqrt(f1), css("--fr")); disc(g, X(G.ms), Y(G.ss), R * Math.sqrt(fs), css("--fr"));
+    g.globalAlpha = 1;
+    g.fillStyle = css("--fr"); g.font = "11px system-ui, sans-serif"; g.textAlign = "center"; g.fillText("ν", X(G.ms), Y(G.ss) - Math.max(8, R * Math.sqrt(fs) + 4));
+    // mixture: rings at the endpoints
+    disc(g, X(G.m0), Y(G.s0), R * Math.sqrt(1 - t), null, css("--mix"), 2.2); disc(g, X(G.m1), Y(G.s1), R * Math.sqrt(t), null, css("--mix"), 2.2);
+    // Wasserstein point
+    const mw = (1 - t) * G.m0 + t * G.m1, sw = (1 - t) * G.s0 + t * G.s1; disc(g, X(mw), Y(sw), 6.5, css("--w2"), css("--bg"), 1.5);
+    // endpoint handles
+    [[G.m0, G.s0, "μ₀"], [G.m1, G.s1, "μ₁"]].forEach(([m, s, lab], k) => { disc(g, X(m), Y(s), 4, css(k ? "--p1" : "--p0"));
+      g.fillStyle = css(k ? "--p1" : "--p0"); g.font = "bold 12px system-ui, sans-serif"; g.textAlign = k ? "left" : "right"; g.fillText(lab, X(m) + (k ? 1 : -1) * (R + 4), Y(s) + 4); });
+  }
+  // ---- densities ----
+  const NX = 400, XR = [-5, 5], xs = Array.from({ length: NX }, (_, i) => XR[0] + (XR[1] - XR[0]) * i / (NX - 1));
+  function drawRow(id, ys, ymax, col, G) {
+    const [g, w, h] = setup($(id)), p = 4, X = (x) => p + (x - XR[0]) / (XR[1] - XR[0]) * (w - 2 * p), Y = (v) => h - p - Math.min(1, v / ymax) * (h - 2 * p);
+    for (const [m, s, c] of [[G.m0, G.s0, "--p0"], [G.m1, G.s1, "--p1"]]) { g.beginPath(); xs.forEach((x, i) => (i ? g.lineTo : g.moveTo).call(g, X(x), Y(gauss(x, m, s))));
+      g.strokeStyle = css(c); g.globalAlpha = 0.8; g.lineWidth = 1.3; g.setLineDash([4, 3]); g.stroke(); g.setLineDash([]); g.globalAlpha = 1; }
+    g.beginPath(); g.moveTo(X(XR[0]), Y(0)); xs.forEach((x, i) => g.lineTo(X(x), Y(ys[i]))); g.lineTo(X(XR[1]), Y(0));
+    g.globalAlpha = 0.25; g.fillStyle = col; g.fill(); g.globalAlpha = 1;
+    g.beginPath(); xs.forEach((x, i) => (i ? g.lineTo : g.moveTo).call(g, X(x), Y(ys[i]))); g.strokeStyle = col; g.lineWidth = 1.8; g.stroke();
+  }
+  function render() {
+    const t = +$("t").value; $("tv").textContent = t.toFixed(2);
+    const G = geom(), [f0, f1, fs] = frW(G, t), mw = (1 - t) * G.m0 + t * G.m1, sw = (1 - t) * G.s0 + t * G.s1;
+    const W = xs.map((x) => gauss(x, mw, sw)), Mx = xs.map((x) => (1 - t) * gauss(x, G.m0, G.s0) + t * gauss(x, G.m1, G.s1)),
+          Fr = xs.map((x) => f0 * gauss(x, G.m0, G.s0) + f1 * gauss(x, G.m1, G.s1) + fs * gauss(x, G.ms, G.ss));
+    const ymax = 1.12 / (Math.min(G.s0, G.s1) * SQ2PI);              // the tallest any of the three can be: fixed while t moves
+    drawPlane(G, t);
+    drawRow("dw", W, ymax, css("--w2"), G); drawRow("dm", Mx, ymax, css("--mix"), G); drawRow("df", Fr, ymax, css("--fr"), G);
+    $("rw").innerHTML = `<b style="color:var(--w2)">Wasserstein</b><br>one Gaussian<br>W₂ = <b>${G.w2.toFixed(2)}</b>`;
+    $("rm").innerHTML = `<b style="color:var(--mix)">Mixture</b><br>weights ${(1 - t).toFixed(2)}, ${t.toFixed(2)}<br>‖μ₁ − μ₀‖ = <b>${G.l2.toFixed(2)}</b>`;
+    $("rf").innerHTML = `<b style="color:var(--fr)">Fisher-Rao</b><br>weights ${f0.toFixed(2)}, ${f1.toFixed(2)}, ${fs.toFixed(2)}<br>d<sub>FR</sub> = <b>${(2 * G.om).toFixed(2)}</b>, BC = ${G.bc.toFixed(3)}`;
+  }
+  // ---- dragging the endpoints ----
+  let drag = -1;
+  const pos = (e) => { const r = $("plane").getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  $("plane").addEventListener("pointerdown", (e) => { if (!PL) return; const [px, py] = pos(e); let best = -1, bd = 22;
+    P.forEach(([m, s], k) => { const d = Math.hypot(PL.X(m) - px, PL.Y(s) - py); if (d < bd) { bd = d; best = k; } });
+    if (best >= 0) { drag = best; $("plane").setPointerCapture(e.pointerId); e.preventDefault(); } });
+  $("plane").addEventListener("pointermove", (e) => { const [px, py] = pos(e);
+    if (drag < 0) { const near = PL && P.some(([m, s]) => Math.hypot(PL.X(m) - px, PL.Y(s) - py) < 22); $("plane").style.cursor = near ? "grab" : "default"; return; }
+    P[drag] = [Math.min(MR[1] - 0.3, Math.max(MR[0] + 0.3, PL.Xi(px))), Math.min(SR[1] - 0.05, Math.max(SMIN, PL.Yi(py)))]; render(); });
+  const end = () => { drag = -1; }; $("plane").addEventListener("pointerup", end); $("plane").addEventListener("pointercancel", end);
+  $("reset").onclick = () => { P = DEF.map((p) => p.slice()); render(); };
+  let playing = false, dir = 1, last = 0;
+  function tick(ts) { if (!playing) return; if (last) { let v = +$("t").value + dir * (ts - last) / 3000;
+      if (v >= 1) { v = 1; dir = -1; } if (v <= 0) { v = 0; dir = 1; } $("t").value = v; render(); } last = ts; requestAnimationFrame(tick); }
+  $("play").onclick = (e) => { playing = !playing; e.target.textContent = playing ? "pause" : "play"; last = 0; if (playing) requestAnimationFrame(tick); };
+  $("t").oninput = render;
+  window.addEventListener("resize", render);
+  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+  try { const q = new URLSearchParams(location.search); if (q.has("t")) $("t").value = q.get("t");
+    if (q.has("p")) { const v = q.get("p").split(",").map(Number); if (v.length === 4 && v.every(isFinite)) P = [[v[0], v[1]], [v[2], v[3]]]; } } catch (e) {}
+  render();
+})();
+</script>
+</body>
+</html>

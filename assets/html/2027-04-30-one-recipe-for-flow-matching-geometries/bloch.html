@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two overlapping waves on the Bloch sphere</title>
+<style>
+  :root { --bg:#fff; --fg:#1f2328; --muted:#6a737d; --grid:#d5d9de; --panel:#fafbfc; --fs:#1f77b4; --neg:#d62728; --p1:#d3d7dd; --e1:#7d8590; --p2:#bfe7ee; --e2:#1597a8; --ghost:#9aa1aa; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --grid:#3a414b; --panel:#161a20; --fs:#5aa7e0; --neg:#ff6b6b; --p1:#3a414b; --e1:#9aa4af; --p2:#1d4a52; --e2:#3fc1d6; --ghost:#6b737d; } }
+  :root[data-theme="dark"] { --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --grid:#3a414b; --panel:#161a20; --fs:#5aa7e0; --neg:#ff6b6b; --p1:#3a414b; --e1:#9aa4af; --p2:#1d4a52; --e2:#3fc1d6; --ghost:#6b737d; }
+  html,body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:1040px; margin:0 auto; padding:8px 16px 10px; box-sizing:border-box; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; margin-bottom:8px; }
+  .controls label { display:flex; align-items:center; gap:8px; white-space:nowrap; }
+  select, button { font:inherit; font-size:12.5px; color:var(--fg); background:var(--panel); border:1px solid var(--grid); border-radius:6px; padding:3px 9px; cursor:pointer; }
+  .val { font-variant-numeric:tabular-nums; color:var(--muted); min-width:2.6em; display:inline-block; }
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .cap { font-size:12px; color:var(--muted); margin:0 0 3px; } .cap b { color:var(--fg); font-weight:600; }
+  canvas { width:100%; display:block; background:var(--panel); border:1px solid var(--grid); border-radius:4px; }
+  #cv { height:400px; cursor:grab; touch-action:none; }
+  #dn { height:190px; cursor:ew-resize; touch-action:none; }
+  .ph { display:grid; grid-template-columns:190px 1fr; gap:10px; align-items:center; margin-top:10px; }
+  #ar { height:170px; }
+  .key label { display:inline-flex; align-items:center; margin-right:12px; cursor:pointer; white-space:nowrap; } .key input { margin:0 1px 0 0; }
+  .read { font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums; line-height:1.55; } .read b { color:var(--fg); }
+
+  .note { font-size:12.5px; color:var(--muted); margin-top:8px; }
+  @media (max-width:700px) { .cols { grid-template-columns:1fr; } #cv { height:330px; } }
+  @media (max-width:420px) { .ph { grid-template-columns:1fr; } }
+  /* legend swatches, shared by every widget of this post: line, dashed line, filled area, outline, dot, ring, triangle */
+  .lg { display:inline-block; vertical-align:middle; margin:0 4px 0 8px; box-sizing:border-box; }
+  .lg-line { width:16px; height:0; border-top:2.5px solid currentColor; }
+  .lg-dash { width:16px; height:0; border-top:2px dashed currentColor; }
+  .lg-fill { width:12px; height:10px; border:1.5px solid currentColor; border-radius:2px; background:color-mix(in srgb, currentColor 35%, transparent); }
+  .lg-box { width:12px; height:10px; border:1.5px solid currentColor; border-radius:2px; }
+  .lg-dot { width:9px; height:9px; border-radius:50%; background:currentColor; }
+  .lg-ring { width:9px; height:9px; border-radius:50%; border:1.5px solid currentColor; }
+  .lg-tri { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:9px solid currentColor; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="controls">
+    <label>t <input id="t" type="range" min="0" max="1" step="any" value="0.5"><span class="val" id="tv"></span></label>
+    <button id="play">play</button>
+    <label>basis <select id="bsel"></select></label>
+    <button data-p="sbs" id="pole">the path of Figure 6</button>
+    <button data-p="eq">equal weights, other phase</button>
+    <button id="resetview">reset view</button>
+  </div>
+  <div class="cols">
+    <div>
+      <div class="cap"><b>Amplitudes a·e₁ + b·e<sup>iγ</sup>e₂, as the Bloch sphere.</b> Drag ψ₀ and ψ₁; grab the sphere anywhere else to turn it.</div>
+      <canvas id="cv"></canvas>
+      <div class="read" id="rs" style="margin-top:6px"></div>
+      <div class="read" id="hint" style="margin-top:6px"></div>
+    </div>
+    <div>
+      <div class="cap"><b>The density of ψ<sub>t</sub> as a sum of three terms.</b> The line is the sum of the ticked terms; drag along it to choose a point x.</div>
+      <canvas id="dn"></canvas>
+      <div class="read key" style="margin-top:4px"><label><input type="checkbox" id="L1" checked><span class="lg lg-fill" style="color:var(--e1)"></span>|a e₁(x)|²</label><label><input type="checkbox" id="L2" checked><span class="lg lg-fill" style="color:var(--e2)"></span>|b e₂(x)|²</label><label><input type="checkbox" id="Lc" checked><span class="lg lg-fill" style="color:var(--fs)"></span><span class="lg lg-fill" style="color:var(--neg);margin-left:0"></span>cross term 2|A(x)||B(x)| cos Δ(x) (+ / −)</label><span style="white-space:nowrap"><span class="lg lg-line" style="color:var(--fg)"></span>sum of the ticked terms; area <b id="area"></b></span></div>
+      <div class="cap" style="margin-top:10px"><b>ψ(x) at the chosen x, in the complex plane:</b> each value below is one complex number, drawn as an arrow.<span class="lg lg-line" style="color:var(--e1)"></span>A(x) = a·e₁(x)<span class="lg lg-line" style="color:var(--e2)"></span>B(x) = b·e<sup>iγ</sup>e₂(x), drawn from the tip of A(x)<span class="lg lg-line" style="color:var(--fs)"></span>ψ(x) = A(x) + B(x)</div>
+      <div class="ph">
+        <canvas id="ar"></canvas>
+        <div class="read" id="ra"></div>
+      </div>
+    </div>
+  </div>
+  <div class="note">Every point of the sphere is ψ = a·e₁ + b·e<sup>iγ</sup>e₂ with a = cos(ϑ/2) and b = sin(ϑ/2): height sets the weights a² and b², and longitude is the relative phase γ. The basis states e₁ and e₂ sit at the poles; choose them with the selector.
+    ψ₀ and ψ₁ can be any two points, and the blue great circle between them is the Fubini-Study geodesic.
+    A(x) = a·e₁(x) and B(x) = b·e<sup>iγ</sup>e₂(x) are the two terms of ψ(x), complex numbers at each x; Δ(x) is the angle between them, and the density is |A(x) + B(x)|² = |A(x)|² + |B(x)|² + 2|A(x)||B(x)| cos Δ(x).</div>
+</div>
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id), D = Math.PI / 180;
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]], sc = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const bloch = (th, ph) => [Math.sin(th) * Math.cos(ph), Math.sin(th) * Math.sin(ph), Math.cos(th)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  // ---- shared by basis.html and bloch.html: four pairs of orthonormal basis states on a grid in x ----
+  const NX = 640, XR = [-4, 4], DX = (XR[1] - XR[0]) / (NX - 1), xs = Array.from({ length: NX }, (_, i) => XR[0] + DX * i);
+  const sqN = (m, sg) => xs.map((x) => Math.sqrt(Math.exp(-0.5 * ((x - m) / sg) ** 2) / (sg * Math.sqrt(2 * Math.PI))));
+  // e2 := the part of (pr + i pi) orthogonal to the real e1, after aligning its global phase so that <e1, psi> >= 0; normalised
+  // (both inputs are first normalised on the grid, so F is the true overlap and the target's polar angle 2 arccos F is right)
+  function gramSchmidt(e1, pr, pi) {
+    const nrm = (ar, ai) => { let s = 0; for (let i = 0; i < NX; i++) s += ar[i] ** 2 + (ai ? ai[i] ** 2 : 0); return Math.sqrt(s * DX); };
+    { const a = nrm(e1), b = nrm(pr, pi); e1 = e1.map((v) => v / a); pr = pr.map((v) => v / b); pi = pi.map((v) => v / b); }
+    let or = 0, oi = 0; for (let i = 0; i < NX; i++) { or += e1[i] * pr[i]; oi += e1[i] * pi[i]; } or *= DX; oi *= DX; const F = Math.hypot(or, oi);
+    if (F > 1e-15) { const c = or / F, s = -oi / F, qr = pr.map((v, i) => v * c - pi[i] * s), qi = pr.map((v, i) => v * s + pi[i] * c); pr = qr; pi = qi; }
+    let nn = 0; const nr = pr.map((v, i) => v - F * e1[i]); for (let i = 0; i < NX; i++) nn += nr[i] ** 2 + pi[i] ** 2; nn = Math.sqrt(nn * DX);
+    return { e1, e2r: nr.map((v) => v / nn), e2i: pi.map((v) => v / nn), F, t1r: pr, t1i: pi };   // t1: the target itself, phase-aligned
+  }
+  const zeros = () => new Float64Array(NX);
+  // each basis is the sphere spanned by the source of the side-by-side figure, a Gaussian amplitude at -d/2 (sigma 0.7), and one of
+  // that figure's targets at +d/2, made orthogonal to the source (Gram-Schmidt); "the side-by-side path" runs from e1 to that target
+  const SG = 0.7, sqNs = (m) => sqN(m, SG);
+  const BASES = {
+    sep: { label: "two separate bumps", d: 5.6, make() { const e1 = sqNs(-2.8); return { e1, ...gramSchmidt(e1, sqNs(2.8), zeros()) }; },
+      hint: "e₁: the Gaussian start amplitude at x = −2.8. e₂: a Gaussian at x = +2.8, 8σ away, made orthogonal to e₁." },
+    wave: { label: "a bump and a wave packet", d: 1.4, make() { const e1 = sqNs(-0.7), g = sqNs(0.7);
+        return { e1, ...gramSchmidt(e1, g.map((v, i) => v * Math.cos(6 * xs[i])), g.map((v, i) => v * Math.sin(6 * xs[i]))) }; },
+      hint: "e₁: the Gaussian start amplitude at x = −0.7. e₂: the wave packet, a Gaussian at x = +0.7 times e⁶ⁱˣ, made orthogonal to e₁, a change of order 10⁻⁴." },
+    excited: { label: "a bump and a signed state", d: 1.4, make() { const e1 = sqNs(-0.7), t = xs.map((x) => (x - 0.7) * Math.exp(-((x - 0.7) ** 2) / (4 * SG * SG)));
+        return { e1, ...gramSchmidt(e1, t, zeros()) }; },
+      hint: "e₁: the Gaussian start amplitude at x = −0.7. e₂: the signed end, (x − 0.7) times a Gaussian, with one zero at x = 0.7, made orthogonal to e₁ (which subtracts a copy of e₁)." },
+  };
+  const BASIS_ORDER = ["sep", "wave", "excited"];
+  for (const k of BASIS_ORDER) { const b = BASES[k], m = b.make(); Object.assign(b, m);
+    let ov = 0, cr = 0, ci = 0; for (let i = 0; i < NX; i++) { ov += Math.abs(m.e1[i]) * Math.hypot(m.e2r[i], m.e2i[i]); cr += m.e1[i] * m.e2r[i]; ci += m.e1[i] * m.e2i[i]; }
+    b.pointwise = ov * DX; b.inner = Math.hypot(cr, ci) * DX; b.TH1 = 2 * Math.acos(Math.min(1, m.F)); }
+  let BS = "wave", e1, e2r, e2i, TH1;
+  function useBasis(k) { BS = k; ({ e1, e2r, e2i, TH1 } = BASES[k]); }
+  useBasis(BS);
+  // the density of the point (th, ph), split into part 1, part 2 and the cross term
+  function layers(th, ph) { const a = Math.cos(th / 2), b = Math.sin(th / 2), c = Math.cos(ph), s = Math.sin(ph);
+    const p1 = new Float64Array(NX), p2 = new Float64Array(NX), cr = new Float64Array(NX);
+    for (let i = 0; i < NX; i++) { const Br = b * (c * e2r[i] - s * e2i[i]), Bi = b * (s * e2r[i] + c * e2i[i]), A = a * e1[i];
+      p1[i] = A * A; p2[i] = Br * Br + Bi * Bi; cr[i] = 2 * A * Br; }                    // A is real, so 2 Re(conj(A) B) = 2 A Re(B)
+    return { a, b, p1, p2, cr }; }
+  // ---- state ----
+  const presets = { sbs: () => [[0, 0], [TH1, 0]], eq: () => [[90 * D, -60 * D], [90 * D, 60 * D]] };   // from e1 (the source) to the side-by-side figure's target, at polar angle 2 arccos F
+  let S = presets.sbs(), xstar = 0;
+  function initialView() { const yaw = 35 * D, pitch = 18 * D, cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+    return [[cy, -sy, 0], [-sp * sy, -sp * cy, cp], [cp * sy, cp * cy, sp]]; }
+  let M = initialView();
+  const view = (v) => M.map((r) => dot(r, v));
+  const matmul = (A, B) => A.map((r) => [0, 1, 2].map((j) => r[0] * B[0][j] + r[1] * B[1][j] + r[2] * B[2][j]));
+  function rotMat(axis, ang) { const [x, y, z] = axis, c = Math.cos(ang), s = Math.sin(ang), C = 1 - c;
+    return [[c + x * x * C, x * y * C - z * s, x * z * C + y * s], [y * x * C + z * s, c + y * y * C, y * z * C - x * s], [z * x * C - y * s, z * y * C + x * s, c + z * z * C]]; }
+  const unview = (q) => [0, 1, 2].map((j) => M[0][j] * q[0] + M[1][j] * q[1] + M[2][j] * q[2]);
+  function setup(cv) { const r = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * r) || cv.height !== Math.round(h * r)) { cv.width = Math.round(w * r); cv.height = Math.round(h * r); }
+    const g = cv.getContext("2d"); g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, w, h); g.font = "12px system-ui, sans-serif"; return [g, w, h]; }
+  function geodesic(t) {
+    const a = bloch(...S[0]), b = bloch(...S[1]), ang = Math.acos(clamp(dot(a, b), -1, 1));
+    const at = (s) => { if (ang < 1e-9) return a; if (Math.PI - ang < 1e-7) { const n = Math.abs(a[2]) < 0.99 ? [0, 0, 1] : [1, 0, 0], u = add(n, sc(a, -dot(n, a))), un = sc(u, 1 / Math.hypot(...u));
+        return add(sc(a, Math.cos(s * Math.PI)), sc(un, Math.sin(s * Math.PI))); }
+      return add(sc(a, Math.sin((1 - s) * ang) / Math.sin(ang)), sc(b, Math.sin(s * ang) / Math.sin(ang))); };
+    const v = at(t); return { a, b, ang, at, v, th: Math.acos(clamp(v[2], -1, 1)), ph: Math.atan2(v[1], v[0]) };
+  }
+  // ---- sphere ----
+  let PR = null;
+  function drawSphere(G) {
+    const [g, w, h] = setup($("cv")), R = Math.min(w * 0.36, h * 0.37), cx = w / 2, cy = h / 2 + 4;
+    const P = (v) => { const q = view(v); return [cx + R * q[0], cy - R * q[1], q[2]]; };
+    PR = { P, R, cx, cy };
+    const curve = (pts, col, lw, dash) => { for (const front of [false, true]) { g.beginPath(); let on = false;
+        for (const p of pts) { const q = P(p); if ((q[2] >= 0) === front) { on ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); on = true; } else on = false; }
+        g.strokeStyle = col; g.lineWidth = front ? lw : Math.max(1, lw * 0.6); g.globalAlpha = front ? 1 : 0.28; g.setLineDash(dash || []); g.stroke(); }
+      g.globalAlpha = 1; g.setLineDash([]); };
+    const mark = (v, r, fill, stroke, lw) => { const q = P(v); g.globalAlpha = q[2] >= 0 ? 1 : 0.4; g.beginPath(); g.arc(q[0], q[1], r, 0, 2 * Math.PI);
+      if (fill) { g.fillStyle = fill; g.fill(); } if (stroke) { g.strokeStyle = stroke; g.lineWidth = lw || 1.5; g.stroke(); } g.globalAlpha = 1; return q; };
+    g.strokeStyle = css("--grid"); g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, R, 0, 2 * Math.PI); g.stroke();
+    for (const lat of [-60, -30, 0, 30, 60]) { const pts = []; for (let i = 0; i <= 96; i++) pts.push(bloch((90 - lat) * D, i / 96 * 2 * Math.PI)); curve(pts, css("--grid"), 1); }
+    for (const lon of [0, 45, 90, 135]) { const pts = []; for (let i = 0; i <= 96; i++) pts.push(bloch(i / 96 * 2 * Math.PI, lon * D)); curve(pts, css("--grid"), 1); }
+    const zt = P([0, 0, 1.2]), zb = P([0, 0, -1.2]);
+    g.strokeStyle = css("--muted"); g.lineWidth = 1; g.beginPath(); g.moveTo(zb[0], zb[1]); g.lineTo(zt[0], zt[1]); g.stroke();
+    g.fillStyle = css("--muted"); g.textAlign = "center"; g.fillText("e₁", zt[0], zt[1] - 6); g.fillText("e₂", zb[0], zb[1] + 15);
+    const gp = []; for (let i = 0; i <= 160; i++) gp.push(G.at(i / 160)); curve(gp, css("--fs"), 3.2);
+    mark(G.v, 6, css("--fs"), css("--bg"), 1.5);
+    [[G.a, "ψ₀"], [G.b, "ψ₁"]].forEach(([v, lab]) => { const q = mark(v, 5, css("--fg"));
+      g.fillStyle = css("--fg"); g.font = "bold 12px system-ui, sans-serif"; g.textAlign = "left"; g.fillText(lab, q[0] + 8, q[1] - 7); });
+  }
+  // ---- density: the sum of the ticked terms (part from e1, part from e2, cross term) ----
+  const XV = [-3.2, 3.2]; let DN = null;
+  let SC = { key: "", ym: 1, cm: 0 };
+  function pathScale() { const key = BS + JSON.stringify(S); if (SC.key === key) return SC;
+    let ym = 0.3, cm = 0; for (let k = 0; k <= 40; k++) { const G = geodesic(k / 40), L = layers(G.th, G.ph);
+      for (let i = 0; i < NX; i++) { ym = Math.max(ym, L.p1[i] + L.p2[i], L.p1[i] + L.p2[i] + L.cr[i]); cm = Math.max(cm, Math.abs(L.cr[i])); } }
+    SC = { key, ym: ym * 1.08, cm: cm * 1.08 }; return SC; }
+  function drawDensity(L) {
+    // the line is the sum of the ticked terms; the bands show each ticked term stacked in order: e1 part, e2 part, then the cross
+    // term on top (blue where it adds, red where it removes). All three ticked gives |psi_t(x)|^2.
+    const on1 = $("L1").checked, on2 = $("L2").checked, onc = $("Lc").checked;
+    const [g, w, h] = setup($("dn")), p = 6, X = (x) => p + (x - XV[0]) / (XV[1] - XV[0]) * (w - 2 * p);
+    const tot = L.p1.map((v, i) => v + L.p2[i] + L.cr[i]);
+    const sc = pathScale(), neg = onc && !(on1 && on2) ? sc.cm : 0, top = Math.max(sc.ym, sc.cm), base = h - 18 - (h - 24 - p) * neg / (top + neg);
+    const Y = (v) => base - v / (top + neg) * (h - 24 - p);
+    DN = { X, Xi: (px) => XV[0] + (px - p) / (w - 2 * p) * (XV[1] - XV[0]) };
+    const inV = (i) => xs[i] >= XV[0] && xs[i] <= XV[1];
+    const band = (lo, hi, col, alpha) => { g.beginPath(); let started = false;
+      for (let i = 0; i < NX; i++) if (inV(i)) { started ? g.lineTo(X(xs[i]), Y(hi[i])) : g.moveTo(X(xs[i]), Y(hi[i])); started = true; }
+      for (let i = NX - 1; i >= 0; i--) if (inV(i)) g.lineTo(X(xs[i]), Y(lo[i]));
+      g.closePath(); g.globalAlpha = alpha; g.fillStyle = col; g.fill(); g.globalAlpha = 1; };
+    const zero = new Float64Array(NX), b1 = on1 ? L.p1 : zero, b2 = b1.map((v, i) => v + (on2 ? L.p2[i] : 0));
+    if (on1) band(zero, b1, css("--p1"), 1); if (on2) band(b1, b2, css("--p2"), 1);
+    const sum = b2.map((v, i) => v + (onc ? L.cr[i] : 0));
+    if (onc) { band(b2, b2.map((v, i) => Math.max(v, sum[i])), css("--fs"), 0.45); band(b2.map((v, i) => Math.min(v, sum[i])), b2, css("--neg"), 0.45); }
+    g.strokeStyle = css("--grid"); g.beginPath(); g.moveTo(p, base); g.lineTo(w - p, base); g.stroke();
+    g.beginPath(); let on = false; for (let i = 0; i < NX; i++) if (inV(i)) { on ? g.lineTo(X(xs[i]), Y(sum[i])) : g.moveTo(X(xs[i]), Y(sum[i])); on = true; }
+    g.strokeStyle = css("--fg"); g.lineWidth = 2; g.stroke();
+    g.strokeStyle = css("--fg"); g.globalAlpha = 0.6; g.lineWidth = 1.2; g.setLineDash([4, 3]); g.beginPath(); g.moveTo(X(xstar), p); g.lineTo(X(xstar), h - 18); g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+    g.fillStyle = css("--fg"); g.textAlign = "center"; g.fillText("x", X(xstar), h - 4);
+    let area = 0; for (let i = 0; i < NX; i++) area += sum[i]; $("area").textContent = (area * DX).toFixed(2);
+    return tot;
+  }
+  // ---- the two arrows at x* ----
+  function drawArrows(L) {
+    const i = clamp(Math.round((xstar - XR[0]) / DX), 0, NX - 1);
+    const A = [L.a * e1[i], 0];
+    const c = Math.cos(G0.ph), s = Math.sin(G0.ph), Bv = [L.b * (c * e2r[i] - s * e2i[i]), L.b * (s * e2r[i] + c * e2i[i])], Sv = [A[0] + Bv[0], A[1] + Bv[1]];
+    const [g, w, h] = setup($("ar")), cx = w / 2, cy = h / 2, rmax = Math.max(0.05, ...L.p1.map((v, k) => Math.sqrt(v) + Math.sqrt(L.p2[k]))) * 1.05, sc2 = Math.min(w, h) * 0.46 / rmax;   // longest |A| + |B| for this state
+    const P = (v) => [cx + v[0] * sc2, cy - v[1] * sc2];
+    g.strokeStyle = css("--grid"); g.lineWidth = 1; g.beginPath(); g.moveTo(8, cy); g.lineTo(w - 8, cy); g.moveTo(cx, 8); g.lineTo(cx, h - 8); g.stroke();
+    g.fillStyle = css("--muted"); g.font = "10px system-ui, sans-serif"; g.textAlign = "right"; g.fillText("Re", w - 10, cy - 4); g.textAlign = "left"; g.fillText("Im", cx + 4, 16);
+    const arrow = (from, to, col, lw) => { const a = P(from), b = P(to), ang = Math.atan2(b[1] - a[1], b[0] - a[0]), L2 = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      g.strokeStyle = col; g.fillStyle = col; g.lineWidth = lw; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke();
+      if (L2 > 4) { const hs = Math.min(8, L2 * 0.4); g.beginPath(); g.moveTo(b[0], b[1]); g.lineTo(b[0] - hs * Math.cos(ang - 0.45), b[1] - hs * Math.sin(ang - 0.45)); g.lineTo(b[0] - hs * Math.cos(ang + 0.45), b[1] - hs * Math.sin(ang + 0.45)); g.closePath(); g.fill(); } };
+    arrow([0, 0], A, css("--e1"), 3); arrow(A, Sv, css("--e2"), 3); arrow([0, 0], Sv, css("--fs"), 2.4);
+    g.font = "bold 12px system-ui, sans-serif"; const pa = P([A[0] / 2, A[1] / 2]), pb = P([A[0] + Bv[0] / 2, A[1] + Bv[1] / 2]);
+    g.textAlign = "center"; g.fillStyle = css("--e1"); g.fillText("A", pa[0], pa[1] - 6); g.fillStyle = css("--e2"); g.fillText("B", pb[0] + 8, pb[1] - 6);
+    const nA = Math.hypot(...A), nB = Math.hypot(...Bv), cosD = nA * nB > 1e-12 ? (A[0] * Bv[0] + A[1] * Bv[1]) / (nA * nB) : NaN;
+    let integ = 0; for (let k = 0; k < NX; k++) integ += L.cr[k]; integ *= DX;
+    $("ra").innerHTML = `at x = <b>${xstar.toFixed(2)}</b>: ψ(x) = A(x) + B(x)<br>|A(x)|² = ${(nA * nA).toFixed(3)}, |B(x)|² = ${(nB * nB).toFixed(3)}<br>` +
+      `cross term 2|A(x)||B(x)| cos Δ(x) = <b style="color:${L.cr[i] >= 0 ? "var(--fs)" : "var(--neg)"}">${L.cr[i] >= 0 ? "+" : "−"}${Math.abs(L.cr[i]).toFixed(3)}</b>` +
+      `${isFinite(cosD) ? ` (Δ = ${Math.round(Math.acos(clamp(cosD, -1, 1)) / D)}°)` : ""}<br>density |A(x) + B(x)|² = <b>${(Sv[0] ** 2 + Sv[1] ** 2).toFixed(3)}</b><br>` +
+      `the cross term over all x: ∫ = ${Math.abs(integ) < 5e-4 ? "0.000" : integ.toFixed(3)}`;
+  }
+  let G0 = null;
+  function render() {
+    const t = +$("t").value; $("tv").textContent = t.toFixed(2);
+    G0 = geodesic(t); drawSphere(G0);
+    $("hint").textContent = `Basis: ${BASES[BS].label}. ${BASES[BS].hint}`;
+    const L = layers(G0.th, G0.ph); drawDensity(L); drawArrows(L);
+    const pole = G0.v[0] ** 2 + G0.v[1] ** 2 < 1e-8;
+    $("rs").innerHTML = `ψ<sub>t</sub>: a² = ${(L.a * L.a).toFixed(2)} on e₁, b² = ${(L.b * L.b).toFixed(2)} on e₂, phase γ = ${pole ? "undefined at a pole" : Math.round(G0.ph / D) + "°"} · d<sub>FS</sub>(ψ₀, ψ₁) = <b>${(G0.ang / 2).toFixed(2)}</b>`;
+  }
+  // ---- interaction ----
+  const cv = $("cv"); let mode = null;
+  const local = (e, el) => { const r = el.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  function ball(px, py) { let x = (px - PR.cx) / PR.R, u = (PR.cy - py) / PR.R; const r2 = x * x + u * u;
+    if (r2 >= 1) { const r = Math.sqrt(r2); return [x / r, u / r, 0]; } return [x, u, Math.sqrt(1 - r2)]; }
+  function pick(px, py) { if (!PR) return -1; let best = -1, bd = 16;
+    S.forEach(([th, ph], k) => { const q = PR.P(bloch(th, ph)); if (q[2] < -0.05) return; const d = Math.hypot(q[0] - px, q[1] - py); if (d < bd) { bd = d; best = k; } });
+    return best; }
+  cv.addEventListener("pointerdown", (e) => { const [px, py] = local(e, cv), k = pick(px, py);
+    mode = k >= 0 ? { k } : { rot: ball(px, py), M0: M.map((r) => r.slice()) }; cv.setPointerCapture(e.pointerId); cv.style.cursor = "grabbing"; e.preventDefault(); });
+  cv.addEventListener("pointermove", (e) => { const [px, py] = local(e, cv);
+    if (!mode) { cv.style.cursor = pick(px, py) >= 0 ? "pointer" : "grab"; return; }
+    if (mode.rot) { const p1 = ball(px, py), r0 = mode.rot, ax = [r0[1] * p1[2] - r0[2] * p1[1], r0[2] * p1[0] - r0[0] * p1[2], r0[0] * p1[1] - r0[1] * p1[0]];
+      const n = Math.hypot(...ax), ang = Math.acos(clamp(dot(r0, p1), -1, 1)); if (n > 1e-9) M = matmul(rotMat(ax.map((v) => v / n), ang), mode.M0); render(); return; }
+    let x = (px - PR.cx) / PR.R, u = (PR.cy - py) / PR.R; const r2 = x * x + u * u; if (r2 > 1) { const r = Math.sqrt(r2); x /= r; u /= r; }
+    const v = unview([x, u, Math.sqrt(Math.max(0, 1 - x * x - u * u))]); S[mode.k] = [Math.acos(clamp(v[2], -1, 1)), Math.atan2(v[1], v[0])]; render(); });
+  const end = () => { mode = null; cv.style.cursor = "grab"; }; cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
+  // choose x on the density
+  const dn = $("dn"); let xd = false;
+  const setX = (e) => { if (!DN) return; xstar = clamp(DN.Xi(local(e, dn)[0]), XV[0], XV[1]); render(); };
+  dn.addEventListener("pointerdown", (e) => { xd = true; dn.setPointerCapture(e.pointerId); setX(e); e.preventDefault(); });
+  dn.addEventListener("pointermove", (e) => { if (xd) setX(e); });
+  dn.addEventListener("pointerup", () => { xd = false; }); dn.addEventListener("pointercancel", () => { xd = false; });
+  document.querySelectorAll("button[data-p]").forEach((el) => el.onclick = () => { S = presets[el.dataset.p](); render(); });
+  const sel = $("bsel"); for (const k of BASIS_ORDER) { const o = document.createElement("option"); o.value = k; o.textContent = BASES[k].label; sel.appendChild(o); }
+  function switchBasis(k) { if (!BASES[k]) return; useBasis(k); sel.value = k; S = presets.sbs(); render(); }
+  sel.onchange = () => switchBasis(sel.value);
+  $("resetview").onclick = () => { M = initialView(); render(); };
+  let playing = false, dir = 1, last = 0;
+  function tick(ts) { if (!playing) return; if (last) { let v = +$("t").value + dir * (ts - last) / 3500;
+      if (v >= 1) { v = 1; dir = -1; } if (v <= 0) { v = 0; dir = 1; } $("t").value = v; render(); } last = ts; requestAnimationFrame(tick); }
+  $("play").onclick = (e) => { playing = !playing; e.target.textContent = playing ? "pause" : "play"; last = 0; if (playing) requestAnimationFrame(tick); };
+  $("t").oninput = render;
+  window.addEventListener("resize", render);
+  for (const id of ["L1", "L2", "Lc"]) $(id).onchange = render;
+  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+  try { const q = new URLSearchParams(location.search); if (BASES[q.get("basis")]) useBasis(q.get("basis")); S = presets.sbs(); if (q.has("t")) $("t").value = q.get("t"); if (q.has("p") && presets[q.get("p")]) S = presets[q.get("p")](); if (q.has("x")) xstar = +q.get("x"); } catch (e) {}
+  sel.value = BS;
+  render();
+})();
+</script>
+</body>
+</html>

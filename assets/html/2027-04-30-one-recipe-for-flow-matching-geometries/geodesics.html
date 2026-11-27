@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Three geodesics between Gaussians</title>
+<style>
+  :root { --bg:#fff; --fg:#1f2328; --muted:#6a737d; --grid:#e4e7eb; --panel:#fafbfc; --w2:#2ca02c; --fr:#ff7f0e; --mix:#9467bd; --p0:#4a7fc1; --p1:#d4515f; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --grid:#2a2f37; --panel:#161a20; --w2:#5cc85c; --fr:#ffa04a; --mix:#b48ae0; --p0:#6f9fe0; --p1:#e8707c; } }
+  :root[data-theme="dark"] { --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --grid:#2a2f37; --panel:#161a20; --w2:#5cc85c; --fr:#ffa04a; --mix:#b48ae0; --p0:#6f9fe0; --p1:#e8707c; }
+  html,body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:1040px; margin:0 auto; padding:8px 16px 10px; box-sizing:border-box; }
+  .val { font-variant-numeric:tabular-nums; color:var(--muted); min-width:2.6em; display:inline-block; }
+  .fig { display:grid; grid-template-columns:1.35fr 1fr 1fr 1fr; grid-template-rows:auto 46px 230px 46px auto; column-gap:10px; }
+  .fig > * { grid-column:var(--c); min-width:0; }
+  .ttl4 { grid-row:1; font-size:12.5px; font-weight:600; margin:0 0 3px; align-self:end; }
+  #plane { grid-row:2 / 5; touch-action:none; }
+  .e0 { grid-row:2; } .fl { grid-row:3; } .e1 { grid-row:4; } .rd { grid-row:5; }
+  canvas { width:100%; height:100%; display:block; }
+  .read { font-size:11.5px; color:var(--muted); font-variant-numeric:tabular-nums; margin-top:3px; } .read b { color:var(--fg); }
+.sub { grid-row:5; font-size:12px; color:var(--muted); margin-top:6px; line-height:1.45; }
+  @media (max-width:560px) {
+    .fig { grid-template-columns:1fr 1fr 1fr; grid-template-rows:auto 200px 0 auto 46px 200px 46px auto; }
+    .fig > * { grid-column:var(--m); }
+    .ttl4.pl { grid-row:1; } #plane { grid-row:2; margin-bottom:8px; }
+    .ttl4.gm { grid-row:4; } .e0 { grid-row:5; } .fl { grid-row:6; } .e1 { grid-row:7; } .rd { grid-row:8; } }
+  /* legend swatches, shared by every widget of this post: line, dashed line, filled area, outline, dot, ring, triangle */
+  .lg { display:inline-block; vertical-align:middle; margin:0 4px 0 8px; box-sizing:border-box; }
+  .lg-line { width:16px; height:0; border-top:2.5px solid currentColor; }
+  .lg-dash { width:16px; height:0; border-top:2px dashed currentColor; }
+  .lg-fill { width:12px; height:10px; border:1.5px solid currentColor; border-radius:2px; background:color-mix(in srgb, currentColor 35%, transparent); }
+  .lg-box { width:12px; height:10px; border:1.5px solid currentColor; border-radius:2px; }
+  .lg-dot { width:9px; height:9px; border-radius:50%; background:currentColor; }
+  .lg-ring { width:9px; height:9px; border-radius:50%; border:1.5px solid currentColor; }
+  .lg-tri { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:9px solid currentColor; }
+  /* ---- shared look of every widget in this post (keep identical across widgets) ---- */
+  :root { --grid:#e4e7eb; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --grid:#2a2f37; } }
+  :root[data-theme="dark"] { --grid:#2a2f37; }
+  .wrap { max-width:1040px; padding:8px 16px 10px; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; margin-bottom:8px; font-size:14px; }
+  .controls label { display:flex; align-items:center; gap:7px; white-space:nowrap; }
+  .controls input[type=range] { width:120px; }
+  select, button { font:inherit; font-size:13px; color:var(--fg); background:var(--panel); border:1px solid var(--grid); border-radius:6px; padding:3px 9px; cursor:pointer; }
+  canvas { box-sizing:border-box; background:var(--panel); border:1px solid var(--grid); border-radius:4px; }
+  canvas.wheel, .ahead canvas { background:none; border:0; border-radius:0; }
+  .cap, .ttl { font-size:12px; color:var(--muted); margin:0 0 3px; text-align:left; }
+  .cap b, .ttl b { color:var(--fg); font-weight:600; }
+  .note { font-size:12.5px; color:var(--muted); margin-top:8px; line-height:1.45; }
+  .lgrow { margin:2px 0; } .lgrow > b:first-child { color:var(--fg); font-weight:600; margin-right:3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="controls">
+    <button id="reset">reset endpoints</button>
+    <label>t <input id="t" type="range" min="0" max="1" step="any" value="0.5"><span class="val" id="tv"></span></label>
+    <button id="play">play</button>
+  </div>
+  <div class="fig">
+    <div class="ttl4 pl" style="--c:1;--m:1/4"><span class="cap"><b>The Gaussians 𝒩(m, w²) as points.</b> Drag μ₀ and μ₁.</span></div>
+    <canvas id="plane" style="--c:1;--m:1/4"></canvas>
+    <b class="ttl4 gm" style="--c:2;--m:1;color:var(--w2)">Wasserstein</b>
+    <canvas id="e0w" class="e0" style="--c:2;--m:1"></canvas><canvas id="fw" class="fl" style="--c:2;--m:1"></canvas><canvas id="e1w" class="e1" style="--c:2;--m:1"></canvas><div class="read rd" id="rw" style="--c:2;--m:1"></div>
+    <b class="ttl4 gm" style="--c:3;--m:2;color:var(--mix)">Mixture</b>
+    <canvas id="e0m" class="e0" style="--c:3;--m:2"></canvas><canvas id="fm" class="fl" style="--c:3;--m:2"></canvas><canvas id="e1m" class="e1" style="--c:3;--m:2"></canvas><div class="read rd" id="rm" style="--c:3;--m:2"></div>
+    <b class="ttl4 gm" style="--c:4;--m:3;color:var(--fr)">Fisher-Rao</b>
+    <canvas id="e0f" class="e0" style="--c:4;--m:3"></canvas><canvas id="ff" class="fl" style="--c:4;--m:3"></canvas><canvas id="e1f" class="e1" style="--c:4;--m:3"></canvas><div class="read rd" id="rf" style="--c:4;--m:3"></div>
+  </div>
+  <div class="note">
+    <div class="lgrow"><b>Left, the plane:</b> each marker is a Gaussian component of μ<sub>t</sub> at the current t, with area proportional to its weight. <span class="lg lg-dot" style="color:var(--w2)"></span>Wasserstein: one component. <span class="lg lg-ring" style="color:var(--mix)"></span>Mixture: (1 − t)μ₀ + tμ₁, components at μ₀ and μ₁. <span class="lg lg-dot" style="color:var(--fr)"></span>Fisher-Rao: a²μ₀ + b²μ₁ + 2ab·BC·ν, components at μ₀, μ₁ and ν, the normalised √(μ₀μ₁).</div>
+    <div class="lgrow"><b>Right, three columns:</b> μ(x, t) over x for each geometry, time running down. Colour: √μ(x, t), dark to bright. White line: the current t, with μ<sub>t</sub>(x) drawn on it. <span class="lg lg-fill" style="color:var(--p0)"></span>μ₀ (top) <span class="lg lg-fill" style="color:var(--p1)"></span>μ₁ (bottom).</div>
+  </div>
+</div>
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const DEF = [[-1.25, 0.7], [1.25, 0.7]], MR = [-3.2, 3.2], SR = [0, 1.6], SMIN = 0.15;
+  let P = DEF.map((p) => p.slice());
+  const SQ2PI = Math.sqrt(2 * Math.PI), gauss = (x, m, s) => Math.exp(-0.5 * ((x - m) / s) ** 2) / (s * SQ2PI);
+  // closed forms for two Gaussians
+  function geom() {
+    const [[m0, s0], [m1, s1]] = P, v = s0 * s0 + s1 * s1;
+    const bc = Math.sqrt(2 * s0 * s1 / v) * Math.exp(-((m0 - m1) ** 2) / (4 * v));             // Bhattacharyya coefficient
+    const ss = Math.sqrt(2 / (1 / (s0 * s0) + 1 / (s1 * s1))), ms = ss * ss * (m0 / (s0 * s0) + m1 / (s1 * s1)) / 2;  // nu = normalised sqrt(mu0 mu1)
+    const om = Math.acos(Math.min(1, bc));
+    const l2 = Math.sqrt(Math.max(0, 1 / (2 * Math.sqrt(Math.PI) * s0) + 1 / (2 * Math.sqrt(Math.PI) * s1) - 2 * Math.exp(-((m0 - m1) ** 2) / (2 * v)) / Math.sqrt(2 * Math.PI * v)));
+    return { m0, s0, m1, s1, bc, om, ms, ss, l2, w2: Math.hypot(m1 - m0, s1 - s0) };
+  }
+  const frW = (G, t) => { if (G.om < 1e-9) return [1 - t, t, 0];
+    const a = Math.sin((1 - t) * G.om) / Math.sin(G.om), b = Math.sin(t * G.om) / Math.sin(G.om); return [a * a, b * b, 2 * a * b * G.bc]; };
+  function setup(cv) { const r = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * r) || cv.height !== Math.round(h * r)) { cv.width = Math.round(w * r); cv.height = Math.round(h * r); }
+    const g = cv.getContext("2d"); g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, w, h); return [g, w, h, r]; }
+  const disc = (g, x, y, r, fill, stroke, lw) => { g.beginPath(); g.arc(x, y, Math.max(r, 0.01), 0, 2 * Math.PI);
+    if (fill) { g.fillStyle = fill; g.fill(); } if (stroke) { g.strokeStyle = stroke; g.lineWidth = lw || 1.5; g.stroke(); } };
+  // ---- the (m, w) plane ----
+  let PL = null;
+  function drawPlane(G, t) {
+    const cv = $("plane"), [g, w, h] = setup(cv), pl = 26, pr = 10, pt = 10, pb = 26;
+    const X = (m) => pl + (m - MR[0]) / (MR[1] - MR[0]) * (w - pl - pr), Y = (s) => h - pb - (s - SR[0]) / (SR[1] - SR[0]) * (h - pt - pb);
+    PL = { X, Y, Xi: (px) => MR[0] + (px - pl) / (w - pl - pr) * (MR[1] - MR[0]), Yi: (py) => SR[0] + (h - pb - py) / (h - pt - pb) * (SR[1] - SR[0]) };
+    g.strokeStyle = css("--muted"); g.lineWidth = 1.1; g.beginPath(); g.moveTo(X(MR[0]), Y(0)); g.lineTo(X(MR[1]), Y(0)); g.moveTo(X(0), Y(0)); g.lineTo(X(0), Y(SR[1])); g.stroke();
+    g.fillStyle = css("--muted"); g.font = "11px system-ui, sans-serif"; g.textAlign = "right"; g.fillText("mean m", X(MR[1]), Y(0) + 16);
+    g.textAlign = "left"; g.fillText("width w", X(0) + 4, Y(SR[1]) + 9);
+    const R = 11;
+    g.strokeStyle = css("--w2"); g.globalAlpha = 0.45; g.lineWidth = 2; g.beginPath(); g.moveTo(X(G.m0), Y(G.s0)); g.lineTo(X(G.m1), Y(G.s1)); g.stroke(); g.globalAlpha = 1;
+    const [f0, f1, fs] = frW(G, t);
+    g.strokeStyle = css("--fr"); g.globalAlpha = 0.35; g.setLineDash([3, 3]); g.lineWidth = 1;
+    g.beginPath(); g.moveTo(X(G.m0), Y(G.s0)); g.lineTo(X(G.ms), Y(G.ss)); g.lineTo(X(G.m1), Y(G.s1)); g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+    g.globalAlpha = 0.85;
+    disc(g, X(G.m0), Y(G.s0), R * Math.sqrt(f0), css("--fr")); disc(g, X(G.m1), Y(G.s1), R * Math.sqrt(f1), css("--fr")); disc(g, X(G.ms), Y(G.ss), R * Math.sqrt(fs), css("--fr"));
+    g.globalAlpha = 1;
+    g.fillStyle = css("--fr"); g.font = "11px system-ui, sans-serif"; g.textAlign = "center"; g.fillText("ν", X(G.ms), Y(G.ss) - Math.max(8, R * Math.sqrt(fs) + 4));
+    disc(g, X(G.m0), Y(G.s0), R * Math.sqrt(1 - t), null, css("--mix"), 2.2); disc(g, X(G.m1), Y(G.s1), R * Math.sqrt(t), null, css("--mix"), 2.2);
+    const mw = (1 - t) * G.m0 + t * G.m1, sw = (1 - t) * G.s0 + t * G.s1; disc(g, X(mw), Y(sw), 6.5, css("--w2"), css("--bg"), 1.5);
+    [[G.m0, G.s0, "μ₀"], [G.m1, G.s1, "μ₁"]].forEach(([m, s, lab], k) => { disc(g, X(m), Y(s), 4, css(k ? "--p1" : "--p0"));
+      g.fillStyle = css(k ? "--p1" : "--p0"); g.font = "bold 12px system-ui, sans-serif"; g.textAlign = k ? "left" : "right"; g.fillText(lab, X(m) + (k ? 1 : -1) * (R + 4), Y(s) + 4); });
+  }
+  // ---- the paths over x, time running down ----
+  const N = 400, XL = -5, XR = 5, dx = (XR - XL) / (N - 1), NT = 101, xs = Array.from({ length: N }, (_, i) => XL + dx * i);
+  let H = null;   // heatmap rows per geometry, rebuilt when the endpoints move
+  function build(G) {
+    const A = xs.map((x) => gauss(x, G.m0, G.s0)), B = xs.map((x) => gauss(x, G.m1, G.s1)), rows = { w: [], m: [], f: [] }; let hmax = 0;
+    for (let n = 0; n < NT; n++) { const t = n / (NT - 1), [f0, f1, fs] = frW(G, t);
+      const W = xs.map((x) => gauss(x, (1 - t) * G.m0 + t * G.m1, (1 - t) * G.s0 + t * G.s1));
+      const Mx = A.map((a, i) => (1 - t) * a + t * B[i]);
+      const F = xs.map((x, i) => f0 * A[i] + f1 * B[i] + fs * gauss(x, G.ms, G.ss));
+      for (const [k, r] of [["w", W], ["m", Mx], ["f", F]]) { rows[k].push(r); for (const v of r) hmax = Math.max(hmax, v); } }
+    H = { A, B, rows, hmax, img: {} };
+  }
+  const VIR = [[68, 1, 84], [59, 82, 139], [33, 145, 140], [94, 201, 98], [253, 231, 37]];
+  const vir = (v) => { v = Math.max(0, Math.min(1, v)) * 4; const i = Math.min(3, Math.floor(v)), f = v - i, a = VIR[i], b = VIR[i + 1]; return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]; };
+  const PLG = 22, PRG = 3;   // left gutter for the t labels; every panel of a column shares the x range
+  const XP = (x, w) => PLG + (x - XL) / (XR - XL) * (w - PLG - PRG);
+  function flow(id, k, t) {
+    const cv = $(id), [g, w, h, r] = setup(cv), x0 = Math.round(PLG * r), pw = Math.round((w - PLG - PRG) * r), ph = Math.round((h - 2) * r), ik = k + ":" + pw + "x" + ph, sc = Math.sqrt(H.hmax);
+    if (!H.img[ik]) { const imd = g.createImageData(pw, ph), R = H.rows[k];
+      for (let py = 0; py < ph; py++) { const ft = (py + 0.5) / ph * (NT - 1), n = Math.min(NT - 2, Math.floor(ft)), a = ft - n;
+        for (let px = 0; px < pw; px++) { const fi = (px + 0.5) / pw * (N - 1), i = Math.min(N - 2, Math.floor(fi)), b = fi - i;
+          const v = (1 - a) * ((1 - b) * R[n][i] + b * R[n][i + 1]) + a * ((1 - b) * R[n + 1][i] + b * R[n + 1][i + 1]), c = vir(Math.sqrt(Math.max(0, v)) / sc), o = 4 * (py * pw + px);
+          imd.data[o] = c[0]; imd.data[o + 1] = c[1]; imd.data[o + 2] = c[2]; imd.data[o + 3] = 255; } }
+      H.img[ik] = imd; }
+    g.putImageData(H.img[ik], x0, Math.round(r));
+    g.fillStyle = css("--muted"); g.font = "10px system-ui, sans-serif"; g.textAlign = "right"; g.fillText("t = 0", PLG - 2, 11); g.fillText("0.5", PLG - 2, h / 2 + 3); g.fillText("1", PLG - 2, h - 3);
+    const y = 1 + t * (h - 2); g.strokeStyle = "rgba(255,255,255,0.9)"; g.lineWidth = 1.2; g.beginPath(); g.moveTo(PLG, y); g.lineTo(w - PRG, y); g.stroke();
+    // mu_t over x, rising from the line: one scale for all three columns (a quarter of the panel at the tallest density)
+    const R = H.rows[k], ft = t * (NT - 1), n0 = Math.min(NT - 2, Math.floor(ft)), a = ft - n0, A = 0.25 * (h - 2) / H.hmax;
+    g.beginPath(); g.moveTo(XP(XL, w), y); xs.forEach((x, i) => g.lineTo(XP(x, w), y - A * ((1 - a) * R[n0][i] + a * R[n0 + 1][i]))); g.lineTo(XP(XR, w), y);
+    g.fillStyle = "rgba(255,255,255,0.18)"; g.fill(); g.strokeStyle = "rgba(255,255,255,0.85)"; g.lineWidth = 1.3; g.stroke(); }
+  function endDensity(id, m, col) { const [g, w, h] = setup($(id)), ym = H.hmax * 1.05, b = h - 14;
+    g.beginPath(); g.moveTo(XP(XL, w), b); xs.forEach((x, i) => g.lineTo(XP(x, w), b - m[i] / ym * (b - 3))); g.lineTo(XP(XR, w), b);
+    g.globalAlpha = 0.25; g.fillStyle = col; g.fill(); g.globalAlpha = 1; g.strokeStyle = col; g.lineWidth = 1.5; g.stroke();
+    g.strokeStyle = css("--grid"); g.lineWidth = 1; g.beginPath(); g.moveTo(PLG, b + 0.5); g.lineTo(w - PRG, b + 0.5); g.stroke();
+    // tick labels: every 2 units, or every 4 when the panel is narrow; "x = 0" shortened to "0" when space is tight
+    const px2 = XP(2, w) - XP(0, w), st = px2 < 30 ? 4 : 2, zero = px2 < 44 ? "0" : "x = 0";
+    g.fillStyle = css("--muted"); g.font = "10px system-ui, sans-serif"; g.textAlign = "center"; for (let v = -4; v <= 4; v += st) g.fillText(v === 0 ? zero : String(v), XP(v, w), h - 3); }
+  let dirty = true;
+  function render() {
+    const t = +$("t").value, G = geom(); $("tv").textContent = t.toFixed(2);
+    if (dirty) { build(G); dirty = false; }
+    drawPlane(G, t);
+    for (const k of ["w", "m", "f"]) { flow("f" + k, k, t); endDensity("e0" + k, H.A, css("--p0")); endDensity("e1" + k, H.B, css("--p1")); }
+    $("rw").innerHTML = `W₂ = <b>${G.w2.toFixed(2)}</b>`;
+    $("rm").innerHTML = `‖μ₁ − μ₀‖ = <b>${G.l2.toFixed(2)}</b>`;
+    $("rf").innerHTML = `d<sub>FR</sub> = <b>${(2 * G.om).toFixed(2)}</b>, BC = ${G.bc.toFixed(2)}`;
+  }
+  // ---- dragging the endpoints ----
+  let drag = -1;
+  const pos = (e) => { const r = $("plane").getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  $("plane").addEventListener("pointerdown", (e) => { if (!PL) return; const [px, py] = pos(e); let best = -1, bd = 22;
+    P.forEach(([m, s], k) => { const d = Math.hypot(PL.X(m) - px, PL.Y(s) - py); if (d < bd) { bd = d; best = k; } });
+    if (best >= 0) { drag = best; $("plane").setPointerCapture(e.pointerId); e.preventDefault(); } });
+  $("plane").addEventListener("pointermove", (e) => { const [px, py] = pos(e);
+    if (drag < 0) { const near = PL && P.some(([m, s]) => Math.hypot(PL.X(m) - px, PL.Y(s) - py) < 22); $("plane").style.cursor = near ? "grab" : "default"; return; }
+    P[drag] = [Math.min(MR[1] - 0.3, Math.max(MR[0] + 0.3, PL.Xi(px))), Math.min(SR[1] - 0.05, Math.max(SMIN, PL.Yi(py)))]; dirty = true; render(); });
+  const end = () => { drag = -1; }; $("plane").addEventListener("pointerup", end); $("plane").addEventListener("pointercancel", end);
+  $("reset").onclick = () => { P = DEF.map((p) => p.slice()); dirty = true; render(); };
+  // play: back and forth between t = 0 and t = 1 until paused (the same in every widget of the post)
+  let playing = false, dir = 1, last = 0;
+  function tick(ts) { if (!playing) return; if (last) { let v = +$("t").value + dir * (ts - last) / 5000;
+      if (v >= 1) { v = 1; dir = -1; } if (v <= 0) { v = 0; dir = 1; } $("t").value = v; render(); } last = ts; requestAnimationFrame(tick); }
+  $("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "pause" : "play"; last = 0; if (playing) requestAnimationFrame(tick); };
+  $("t").oninput = render;
+  let rz = 0; window.addEventListener("resize", () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { if (H) H.img = {}; render(); }); });
+  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+  try { const q = new URLSearchParams(location.search); if (q.has("t")) $("t").value = q.get("t");
+    if (q.has("p")) { const v = q.get("p").split(",").map(Number); if (v.length === 4 && v.every(isFinite)) P = [[v[0], v[1]], [v[2], v[3]]]; } } catch (e) {}
+  render();
+})();
+</script>
+</body>
+</html>
