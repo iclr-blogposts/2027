@@ -541,7 +541,7 @@ _styles: |
 <p lang="en">To simulate Snake, the cells must remember the trajectory taken by the snake to predict how its tail advances. In fact, when the snake is tightly folded, its previous trajectory becomes ambiguous from the RGB channels alone. For accurate simulation, W-NCA must store information about its path within its hidden channels, implementing a distributed memory across the grid.</p>
 
 <figure class="l-page lu-wide-diagram">
-  <img data-zoomable title="Click to enlarge" src="{{ 'assets/img/2027-04-30-learning-local-universes/ambiguous.svg' | relative_url }}" alt="Ambiguous Snake Configuration" width="660" height="264" loading="lazy" style="display:block;width:100%;height:auto;">
+  <img data-zoomable title="Click to enlarge" src="{{ 'assets/img/2027-04-30-learning-local-universes/ambiguous.svg?v=6b6dafd6fa18aa8f' | relative_url }}" alt="Ambiguous Snake Configuration" width="660" height="264" loading="lazy" style="display:block;width:100%;height:auto;">
   <figcaption>The trajectory taken by the snake is ambiguous from the RGB channels alone. Advancing the tail correctly requires implementing a memory that stores previous movements.</figcaption>
 </figure>
 
