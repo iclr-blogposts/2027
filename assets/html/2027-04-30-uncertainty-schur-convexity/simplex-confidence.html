@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Power Score on the Simplex (K=3)</title>
+<style>
+  /* All widget styles are scoped: the surrounding blog theme is untouched. */
+  body.sc-preview { margin: 0; padding: 12px; background: #fff; }
+  .sc-embed {
+    --sc-ink: #2c3540;
+    --sc-muted: #687480;
+    --sc-rule: rgba(80, 90, 105, .22);
+    --sc-panel: rgba(125, 140, 160, .07);
+    --sc-pmf: #85a9c6;
+    --sc-accent: #527b99;
+    /* Text: ink, secondary grey, and one interactive accent; keep hierarchy consistent. */
+    --sc-text-title: 20px;
+    --sc-text-primary: 18px;
+    --sc-text-secondary: 16px;
+    --sc-text-metric: 38px;
+    --sc-text-math: 18px;
+    --sc-math-font: "Latin Modern Math", "Computer Modern Serif", "CMU Serif", "STIX Two Math", "Cambria Math", "Times New Roman", serif;
+    width: 100%;
+    max-width: 900px;
+    margin-inline: auto;
+    font: 16px/1.43 -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+    color: var(--sc-ink);
+    container: sc-root / inline-size;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  .sc-embed, .sc-embed * { box-sizing: border-box; }
+  .sc-embed .widget {
+    width: 100%;
+    min-width: 0;
+    padding: 12px 18px 13px;
+    border: 1px solid var(--sc-rule);
+    border-radius: 12px;
+    background: var(--sc-panel);
+  }
+  .sc-embed .heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px 22px;
+    padding: 3px 0 12px;
+    border-bottom: 1px solid var(--sc-rule);
+  }
+  .sc-embed .heading h1 {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font: 700 var(--sc-text-title)/1.3 -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+    letter-spacing: -.013em;
+    color: var(--sc-ink);
+  }
+  .sc-embed .heading p { margin: 0; padding: 0; }
+  /* MathJax uses its own Computer Modern-style TeX glyphs; do not force CSS fonts. */
+  .sc-embed .heading-formula {
+    flex: 0 1 auto;
+    text-align: right;
+    white-space: nowrap;
+    font-size: var(--sc-text-math);
+    line-height: 1.4;
+    min-width: 0;
+  }
+  .sc-embed mjx-container { color: inherit; }
+  .sc-embed .heading-formula mjx-container { margin: 0 !important; }
+
+  /* Three low-saturation tab colours; only tabs and corresponding simplex
+     markers use green/red. The underlying score visualisation remains blue. */
+  /* Independent mode-selector pills, detached from the two-column workspace.
+     The active tint identifies the mode without implying that a tab belongs
+     to either column. */
+  .sc-embed .tab-strip {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 9px;
+    padding: 13px 0 14px;
+  }
+  .sc-embed .view-tab {
+    --tab-color: var(--sc-accent);
+    --tab-tint: rgba(82,123,153,.09);
+    --tab-outline: rgba(82,123,153,.32);
+    min-width: 0;
+    flex: 0 1 auto;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--sc-muted);
+    font: 600 var(--sc-text-secondary)/1.4 -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+    padding: 8px 17px;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .sc-embed .view-tab[data-view="majorisation"] { --tab-color: #4e886b; --tab-tint: rgba(78,136,107,.11); --tab-outline: rgba(78,136,107,.33); }
+  .sc-embed .view-tab[data-view="incomparable"] { --tab-color: #b16569; --tab-tint: rgba(177,101,105,.11); --tab-outline: rgba(177,101,105,.33); }
+  .sc-embed .view-tab:hover { color: var(--tab-color); background: var(--tab-tint); }
+  .sc-embed .view-tab[aria-selected="true"] {
+    color: var(--tab-color);
+    background: var(--tab-tint);
+    border-color: var(--tab-outline);
+  }
+  .sc-embed .view-tab:focus-visible { outline: 2px solid var(--tab-color); outline-offset: 2px; }
+  .sc-embed .view-tab .tab-dot { display: inline-block; width: 7px; height: 7px; margin-right: 7px; vertical-align: 2px; background: var(--tab-color); border-radius: 50%; }
+  .sc-embed [hidden] { display: none !important; }
+
+  .sc-embed .workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 34fr) minmax(0, 66fr);
+    column-gap: 28px;
+    align-items: stretch;
+    min-width: 0;
+  }
+  .sc-embed .readout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 8px 0 16px;
+    min-width: 0;
+  }
+  /* Reserve the height of the tallest left-hand tab at every viewport width.
+     Overlapping panels remain measurable, but inactive ones are visually hidden
+     and made inert by setView(), so tab changes never move the slider. */
+  .sc-embed .readout > [role="tabpanel"] { grid-area: 1 / 1; min-width: 0; }
+  .sc-embed .readout > .is-inactive { visibility: hidden; pointer-events: none; }
+  .sc-embed .explore-panel { display: flex; flex-direction: column; gap: 22px; }
+  .sc-embed .compare-panel { min-width: 0; }
+  .sc-embed .compare-intro { margin-bottom: 12px; min-height: 54px; }
+  .sc-embed .compare-title { font-size: var(--sc-text-secondary); color: var(--sc-muted); font-weight: 500; line-height: 1.3; }
+  .sc-embed .compare-equation { margin-top: 4px; color: var(--sc-ink); font-size: var(--sc-text-math); line-height: 1.45; white-space: nowrap; }
+  .sc-embed .compare-equation mjx-container { margin: 0 !important; }
+  .sc-embed .compare-row {
+    min-width: 0;
+    padding: 7px 10px 6px;
+    margin: 0 0 7px;
+    border-radius: 8px;
+    border: 1px solid rgba(82,123,153,.10);
+    background: rgba(82,123,153,.025);
+    transition: background-color .12s ease, border-color .12s ease;
+  }
+  /* Two redundant rank cues: progressively darker background and a high-contrast badge.
+     The bar fills stay identical so the probability comparison remains unbiased. */
+  .sc-embed .compare-row[data-rank="1"] { background: rgba(82,123,153,.155); border-color: rgba(82,123,153,.27); }
+  .sc-embed .compare-row[data-rank="2"] { background: rgba(82,123,153,.075); border-color: rgba(82,123,153,.17); }
+  .sc-embed .compare-row[data-rank="3"] { background: rgba(82,123,153,.018); border-color: rgba(82,123,153,.10); }
+  .sc-embed .compare-row-head { display: flex; justify-content: space-between; align-items: center; gap: 7px; min-width: 0; }
+  .sc-embed .compare-name { font-size: var(--sc-text-primary); font-weight: 600; white-space: nowrap; line-height: 1.35; }
+  .sc-embed .compare-name mjx-container { margin: 0 !important; }
+  .sc-embed .compare-metrics { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .sc-embed .compare-rank {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 34px; height: 28px; padding: 0 5px; border-radius: 5px;
+    font-size: var(--sc-text-primary); font-weight: 700; line-height: 1;
+    font-variant-numeric: tabular-nums;
+    background: #dce8f0; color: #345873;
+  }
+  .sc-embed .compare-row[data-rank="1"] .compare-rank { background: #426e8d; color: white; }
+  .sc-embed .compare-row[data-rank="2"] .compare-rank { background: #a3bfd2; color: #24465f; }
+  .sc-embed .compare-row[data-rank="3"] .compare-rank { background: #dce8f0; color: #44667e; }
+  .sc-embed .compare-percentile { font-size: var(--sc-text-secondary); font-variant-numeric: tabular-nums; color: var(--sc-muted); min-width: 57px; text-align: right; }
+  .sc-embed .compare-bars {
+    display: grid; grid-template-columns: repeat(3,minmax(0,1fr));
+    align-items: end; column-gap: 14px;
+    height: 60px; border-bottom: 1.5px solid rgba(80,90,105,.55);
+    padding: 0 12px; margin-top: 5px;
+  }
+  .sc-embed .compare-bars .mini-bar {
+    background: var(--sc-pmf); width: 100%; align-self: end;
+    border-radius: 2px 2px 0 0;
+  }
+  .sc-embed .compare-values {
+    display: grid; grid-template-columns: repeat(3,minmax(0,1fr));
+    column-gap: 14px; padding: 3px 12px 0;
+    font-size: var(--sc-text-secondary); color: var(--sc-muted);
+    text-align: center; font-variant-numeric: tabular-nums;
+  }
+  .sc-embed .compare-footnote { color: var(--sc-muted); font-size: var(--sc-text-secondary); line-height: 1.35; margin-top: 9px; }
+  .sc-embed .label { color: var(--sc-muted); font-size: var(--sc-text-secondary); line-height: 1.35; letter-spacing: .005em; font-weight: 500; }
+  .sc-embed .pmf {
+    height: 135px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 12px;
+    align-items: end;
+    padding: 0 7px;
+    border-bottom: 2px solid rgba(80, 90, 105, .55);
+    margin-top: 10px;
+  }
+  .sc-embed .pmf .bar {
+    height: 100%;
+    width: 100%;
+    align-self: end;
+    background: var(--sc-pmf);
+    border-radius: 4px 4px 0 0;
+    transition: none;
+  }
+  .sc-embed .pmf-values {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 12px;
+    padding: 5px 7px 0;
+    font-size: var(--sc-text-secondary);
+    color: var(--sc-muted);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .sc-embed .pmf-values .v { display: block; color: var(--sc-ink); font-weight: 500; }
+  .sc-embed .metric { min-width: 0; }
+  .sc-embed .metric-main { display: flex; align-items: baseline; }
+  .sc-embed .rank {
+    font-size: var(--sc-text-metric);
+    font-weight: 700;
+    letter-spacing: -.045em;
+    line-height: 1.18;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .sc-embed .rank .percent { font-size: .57em; font-weight: 600; letter-spacing: -.02em; }
+  .sc-embed .rank-detail { color: var(--sc-muted); font-size: var(--sc-text-secondary); max-width: 30ch; line-height: 1.4; }
+  .sc-embed .score-line { margin-top: 9px; color: var(--sc-ink); font-size: var(--sc-text-secondary); font-variant-numeric: tabular-nums; }
+  .sc-embed .score-line strong { font-weight: 600; color: var(--sc-ink); }
+
+  .sc-embed .plot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    padding: 8px 0;
+  }
+  .sc-embed .plot-head {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+    min-width: 0;
+    margin: 0 0 5px;
+  }
+  .sc-embed .contour-note {
+    position: static;
+    max-width: 100%;
+    font-size: var(--sc-text-secondary);
+    line-height: 1.32;
+    text-align: right;
+    color: var(--sc-muted);
+  }
+  .sc-embed .simplex-stack { position: relative; width: 100%; max-width: 520px; min-width: 0; }
+  .sc-embed canvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
+  .sc-embed #simplex-svg {
+    display: block;
+    position: relative;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    touch-action: none;
+    cursor: crosshair;
+    user-select: none;
+  }
+  .sc-embed #simplex-svg:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; border-radius: 6px; }
+  .sc-embed .triangle-outline { fill: none; stroke: #58768e; stroke-width: 2.8; stroke-linejoin: round; }
+  .sc-embed .contour { fill: none; stroke: #648aa6; stroke-width: 1.9; opacity: .78; stroke-linejoin: round; stroke-linecap: round; pointer-events: none; }
+  .sc-embed .contour.mid { stroke-width: 2.8; stroke: #4e7593; opacity: .96; }
+  /* HTML overlays stay anchored to SVG viewBox coordinates at every scale. */
+  .sc-embed .vertex-math {
+    position: absolute;
+    z-index: 2;
+    color: var(--sc-muted);
+    font-size: var(--sc-text-secondary);
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+  }
+  .sc-embed .vertex-math mjx-container { margin: 0 !important; }
+  .sc-embed .vertex-top { left: 50%; top: 3.5%; transform: translate(-50%, -50%); }
+  .sc-embed .vertex-left { left: 10.2%; top: 92.5%; transform: translateY(-50%); }
+  .sc-embed .vertex-right { right: 10.2%; top: 92.5%; transform: translateY(-50%); }
+  .sc-embed .halo { fill: #507c9b; opacity: .18; pointer-events: none; }
+  .sc-embed .point { fill: #315b79; stroke: white; stroke-width: 4.2; pointer-events: none; }
+  .sc-embed .fixed-markers { pointer-events: none; }
+  .sc-embed .fixed-markers .fixed-halo { opacity: .14; }
+  .sc-embed .fixed-markers .fixed-point { stroke: #fff; stroke-width: 3.4; }
+  .sc-embed .fixed-markers .marker-label { font: 700 18px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; paint-order: stroke; stroke: #fff; stroke-width: 3; stroke-linejoin: round; }
+  .sc-embed #majorisation-markers .fixed-point,
+  .sc-embed #majorisation-markers .fixed-halo { fill: #4e886b; }
+  .sc-embed #majorisation-markers .marker-label { fill: #32664c; }
+  .sc-embed #incomparable-markers .fixed-point,
+  .sc-embed #incomparable-markers .fixed-halo { fill: #b16569; }
+  .sc-embed #incomparable-markers .marker-label { fill: #8f454b; }
+
+  .sc-embed .control-strip { border-top: 1px solid var(--sc-rule); padding-top: 12px; }
+  .sc-embed .slider-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 18px;
+    margin-bottom: 6px;
+    min-width: 0;
+  }
+  .sc-embed .slider-head label { margin: 0; padding: 0; color: var(--sc-ink); }
+  .sc-embed .slider-head .title { font-size: var(--sc-text-primary); font-weight: 600; line-height: 1.3; }
+  /* Blue text denotes the actively selected alpha, including the infinite endpoints. */
+  .sc-embed .alpha-mode { color: var(--sc-accent); font-weight: 600; }
+  .sc-embed #alpha-value { display: inline-block; min-width: 3ch; font-variant-numeric: tabular-nums; }
+  .sc-embed #family-name { font-size: var(--sc-text-secondary); color: var(--sc-ink); font-weight: 500; line-height: 1.4; text-align: right; }
+  .sc-embed input[type="range"] {
+    appearance: none;
+    -webkit-appearance: none;
+    display: block;
+    width: 100%;
+    height: 26px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+  .sc-embed input[type="range"]::-webkit-slider-runnable-track {
+    height: 8px; border: 1px solid rgba(80,90,105,.26); border-radius: 10px;
+    background: linear-gradient(to right, var(--sc-accent) 0 var(--progress, 63%), #e5ebf0 var(--progress, 63%) 100%);
+  }
+  .sc-embed input[type="range"]::-moz-range-track { height: 8px; border: 1px solid rgba(80,90,105,.26); border-radius: 10px; background: #e5ebf0; }
+  .sc-embed input[type="range"]::-moz-range-progress { height: 8px; border-radius: 10px; background: var(--sc-accent); }
+  .sc-embed input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 20px; height: 20px; margin-top: -7px;
+    border: 2px solid #f7f9fa; border-radius: 50%; background: var(--sc-accent);
+    box-shadow: 0 0 0 1px rgba(80,90,105,.35);
+  }
+  .sc-embed input[type="range"]::-moz-range-thumb { width: 17px; height: 17px; border: 2px solid #f7f9fa; border-radius: 50%; background: var(--sc-accent); box-shadow: 0 0 0 1px rgba(80,90,105,.35); }
+  .sc-embed input[type="range"]:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; border-radius: 6px; }
+  /* Range thumb travels over track width minus its own 20px diameter. */
+  .sc-embed .ticks { position: relative; height: 26px; margin: 1px 10px 1px; font-size: var(--sc-text-secondary); color: var(--sc-muted); font-variant-numeric: tabular-nums; }
+  .sc-embed .ticks .tick { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; text-align: center; line-height: 1.3; }
+  .sc-embed .ticks .tick:first-child { transform: none; }
+  .sc-embed .ticks .tick:last-child { transform: translateX(-100%); }
+  .sc-embed .ticks .tick-value { display: block; font-size: var(--sc-text-secondary); font-weight: 500; }
+  .sc-embed .ticks mjx-container, .sc-embed .slider-head mjx-container,
+  .sc-embed .score-line mjx-container, .sc-embed .pmf-values mjx-container,
+  .sc-embed .rank-detail mjx-container { margin: 0 !important; }
+  .sc-embed #family-name > span[hidden], .sc-embed .alpha-mode[hidden] { display: none !important; }
+  .sc-embed .pmf-values .math-label { display: block; }
+
+  /* Based on the actual embed width, not the browser width (important for .l-body). */
+  @container sc-root (max-width: 710px) {
+    .sc-embed .workspace { grid-template-columns: minmax(0, 1fr); column-gap: 0; }
+    .sc-embed .readout { padding: 18px 0; }
+    .sc-embed .explore-panel {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+      align-items: start;
+      gap: 12px 22px;
+    }
+    .sc-embed .compare-panel { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); column-gap: 9px; }
+    .sc-embed .compare-intro, .sc-embed .compare-footnote { grid-column: 1 / -1; }
+    .sc-embed .compare-row { margin-bottom: 0; padding: 7px 7px 6px; }
+    .sc-embed .compare-bars { column-gap: 7px; padding-inline: 4px; }
+    .sc-embed .compare-values { column-gap: 7px; padding-inline: 4px; }
+    .sc-embed .compare-metrics { gap: 4px; }
+    .sc-embed .compare-percentile { min-width: 50px; }
+    .sc-embed .readout .pmf-group { min-width: 0; }
+    .sc-embed .pmf { height: 116px; }
+    .sc-embed .metric { padding-top: 0; }
+    .sc-embed .plot { border-top: 1px solid var(--sc-rule); padding: 9px 0 11px; }
+    .sc-embed .plot-head { margin-bottom: 3px; }
+    .sc-embed .simplex-stack { max-width: 470px; }
+    .sc-embed #family-name { text-align: left; }
+  }
+  @container sc-root (max-width: 490px) {
+    .sc-embed .widget { padding: 12px 13px 14px; }
+    .sc-embed .heading { align-items: flex-start; flex-direction: column; gap: 5px; }
+    /* On very narrow screens keep the fraction legible: scroll only the formula. */
+    .sc-embed .heading-formula {
+      text-align: left;
+      font-size: var(--sc-text-math);
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: thin;
+    }
+    .sc-embed .readout { padding: 14px 0; }
+    .sc-embed .view-tab { padding: 7px 9px; font-size: 14px; }
+    .sc-embed .view-tab .tab-dot { width: 6px; height: 6px; margin-right: 4px; }
+    .sc-embed .explore-panel { gap: 10px 14px; }
+    .sc-embed .compare-panel { display: block; }
+    .sc-embed .compare-intro { min-height: 0; margin-bottom: 11px; }
+    .sc-embed .compare-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.05fr); column-gap: 11px; align-items: end; margin-bottom: 6px; padding: 6px 10px; }
+    .sc-embed .compare-row-head { grid-column: 1; grid-row: 1 / 3; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-around; }
+    .sc-embed .compare-bars { grid-column: 2; grid-row: 1; height: 45px; margin-top: 0; }
+    .sc-embed .compare-values { grid-column: 2; grid-row: 2; }
+    .sc-embed .compare-footnote { margin-top: 8px; }
+    .sc-embed .pmf { height: 106px; column-gap: 9px; padding: 0 4px; }
+    .sc-embed .pmf-values { column-gap: 9px; padding-inline: 4px; }
+    .sc-embed .score-line { margin-top: 7px; }
+    .sc-embed .ticks { height: 39px; }
+    .sc-embed .ticks .tick-near-start, .sc-embed .ticks .tick-near-end { top: 19px; }
+  }
+  @container sc-root (max-width: 320px) {
+    .sc-embed .explore-panel { grid-template-columns: minmax(0, 1fr); gap: 19px; }
+    .sc-embed .view-tab .tab-dot { display: none; }
+    .sc-embed .pmf-group { max-width: 250px; margin-inline: auto; width: 100%; }
+    .sc-embed .pmf { height: 100px; }
+    .sc-embed .metric { width: 100%; }
+  }
+  /* Fallback for older browsers without CSS container queries. */
+  @supports not (container-type: inline-size) {
+    @media (max-width: 730px) {
+      .sc-embed .workspace { grid-template-columns: 1fr; column-gap: 0; }
+      .sc-embed .readout { padding: 15px 0; }
+      .sc-embed .explore-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .sc-embed .compare-panel { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; }
+      .sc-embed .compare-intro, .sc-embed .compare-footnote { grid-column: 1 / -1; }
+      .sc-embed .plot { border-top: 1px solid var(--sc-rule); padding: 9px 0; }
+      .sc-embed .simplex-stack { max-width: 470px; }
+    }
+    @media (max-width: 490px) {
+      .sc-embed .heading { flex-direction: column; align-items: flex-start; }
+      .sc-embed .heading-formula { font-size: var(--sc-text-math); width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+      .sc-embed .explore-panel { gap: 10px; }
+      .sc-embed .compare-panel { display: block; }
+      .sc-embed .compare-row { display: grid; grid-template-columns: 1fr 1.05fr; }
+      .sc-embed .ticks { height: 39px; }
+      .sc-embed .ticks .tick-near-start, .sc-embed .ticks .tick-near-end { top: 19px; }
+    }
+    @media (max-width: 320px) {
+      .sc-embed .explore-panel { grid-template-columns: 1fr; }
+    }
+  }
+</style>
+</head>
+<body class="sc-preview">
+<div class="sc-embed">
+<div class="widget" role="group" aria-label="Interactive three-class confidence simplex">
+  <header class="heading">
+    <h1>Power Score on the Simplex <span>\(K=3\)</span></h1>
+    <p class="heading-formula" aria-label="C alpha of pi equals minus K to the power 1 minus alpha plus the sum of pi i to the power alpha, divided by alpha times alpha minus one.">\(C_\alpha(\boldsymbol{\pi}) = \dfrac{-K^{1-\alpha} + \sum_{i=1}^{K} \pi_i^\alpha}{\alpha(\alpha-1)}\)</p>
+  </header>
+  <nav class="tab-strip" role="tablist" aria-label="Simplex demonstration">
+    <button class="view-tab" id="tab-explore" role="tab" data-view="explore" aria-controls="panel-explore" aria-selected="true" tabindex="0"><span class="tab-dot" aria-hidden="true"></span>Explore</button>
+    <button class="view-tab" id="tab-majorisation" role="tab" data-view="majorisation" aria-controls="panel-majorisation" aria-selected="false" tabindex="-1"><span class="tab-dot" aria-hidden="true"></span>Majorisation</button>
+    <button class="view-tab" id="tab-incomparable" role="tab" data-view="incomparable" aria-controls="panel-incomparable" aria-selected="false" tabindex="-1"><span class="tab-dot" aria-hidden="true"></span>Incomparable</button>
+  </nav>
+  <div class="workspace">
+    <section class="readout" aria-label="Distributions and confidence rankings">
+      <div class="explore-panel" id="panel-explore" role="tabpanel" aria-labelledby="tab-explore">
+      <div class="pmf-group">
+        <div class="label">Selected distribution</div>
+        <div class="pmf" aria-label="Probability mass function">
+          <div class="bar" id="bar-0"></div>
+          <div class="bar" id="bar-1"></div>
+          <div class="bar" id="bar-2"></div>
+        </div>
+        <div class="pmf-values">
+          <div><span class="math-label">\(\pi_{1}\)</span><span class="v" id="prob-0">0.55</span></div>
+          <div><span class="math-label">\(\pi_{2}\)</span><span class="v" id="prob-1">0.28</span></div>
+          <div><span class="math-label">\(\pi_{3}\)</span><span class="v" id="prob-2">0.17</span></div>
+        </div>
+      </div>
+      <div class="metric" aria-live="off">
+        <div class="label">Confidence rank percentile</div>
+        <div class="metric-main"><div class="rank"><span id="percentile">—</span><span class="percent">%</span></div></div>
+        <div class="rank-detail">when all <span>\(\boldsymbol{\pi}\)</span> are equally probable (uniform Dirichlet)</div>
+        <div class="score-line">\(C_\alpha(\boldsymbol{\pi}) =\) <strong id="score">—</strong></div>
+      </div>
+      </div><!-- explore-panel -->
+      <div class="compare-panel is-inactive" id="panel-majorisation" role="tabpanel" aria-labelledby="tab-majorisation" aria-hidden="true" inert>
+        <div class="compare-intro">
+          <div class="compare-title">Majorisation chain</div>
+          <div class="compare-equation">\(\boldsymbol{\pi}^{a} \succ \boldsymbol{\pi}^{b} \succ \boldsymbol{\pi}^{c}\)</div>
+        </div>
+          <div class="compare-row" data-pmf="a" data-rank="3" aria-label="Distribution a">
+            <div class="compare-row-head">
+              <span class="compare-name">\(\boldsymbol{\pi}^{a}\)</span>
+              <span class="compare-metrics"><span class="compare-rank">#—</span><span class="compare-percentile">—%</span></span>
+            </div>
+            <div class="compare-bars" aria-hidden="true">
+                <div class="mini-bar" style="height:75%"></div>
+                <div class="mini-bar" style="height:20%"></div>
+                <div class="mini-bar" style="height:5%"></div>
+            </div>
+            <div class="compare-values" aria-label="Probabilities 0.75, 0.20, 0.05">
+                <span>0.75</span>
+                <span>0.20</span>
+                <span>0.05</span>
+            </div>
+          </div>
+          <div class="compare-row" data-pmf="b" data-rank="3" aria-label="Distribution b">
+            <div class="compare-row-head">
+              <span class="compare-name">\(\boldsymbol{\pi}^{b}\)</span>
+              <span class="compare-metrics"><span class="compare-rank">#—</span><span class="compare-percentile">—%</span></span>
+            </div>
+            <div class="compare-bars" aria-hidden="true">
+                <div class="mini-bar" style="height:60%"></div>
+                <div class="mini-bar" style="height:30%"></div>
+                <div class="mini-bar" style="height:10%"></div>
+            </div>
+            <div class="compare-values" aria-label="Probabilities 0.60, 0.30, 0.10">
+                <span>0.60</span>
+                <span>0.30</span>
+                <span>0.10</span>
+            </div>
+          </div>
+          <div class="compare-row" data-pmf="c" data-rank="3" aria-label="Distribution c">
+            <div class="compare-row-head">
+              <span class="compare-name">\(\boldsymbol{\pi}^{c}\)</span>
+              <span class="compare-metrics"><span class="compare-rank">#—</span><span class="compare-percentile">—%</span></span>
+            </div>
+            <div class="compare-bars" aria-hidden="true">
+                <div class="mini-bar" style="height:45%"></div>
+                <div class="mini-bar" style="height:35%"></div>
+                <div class="mini-bar" style="height:20%"></div>
+            </div>
+            <div class="compare-values" aria-label="Probabilities 0.45, 0.35, 0.20">
+                <span>0.45</span>
+                <span>0.35</span>
+                <span>0.20</span>
+            </div>
+          </div>
+        <div class="compare-footnote">Confidence rank percentiles (uniform Dirichlet)</div>
+      </div>
+      <div class="compare-panel is-inactive" id="panel-incomparable" role="tabpanel" aria-labelledby="tab-incomparable" aria-hidden="true" inert>
+        <div class="compare-intro">
+          <div class="compare-title">Pairwise incomparable</div>
+          <div class="compare-equation">No distribution majorises another.</div>
+        </div>
+          <div class="compare-row" data-pmf="d" data-rank="3" aria-label="Distribution d">
+            <div class="compare-row-head">
+              <span class="compare-name">\(\boldsymbol{\pi}^{d}\)</span>
+              <span class="compare-metrics"><span class="compare-rank">#—</span><span class="compare-percentile">—%</span></span>
+            </div>
+            <div class="compare-bars" aria-hidden="true">
+                <div class="mini-bar" style="height:72%"></div>
+                <div class="mini-bar" style="height:15%"></div>
+                <div class="mini-bar" style="height:13%"></div>
+            </div>
+            <div class="compare-values" aria-label="Probabilities 0.72, 0.15, 0.13">
+                <span>0.72</span>
+                <span>0.15</span>
+                <span>0.13</span>
+            </div>
+          </div>
+          <div class="compare-row" data-pmf="e" data-rank="3" aria-label="Distribution e">
+            <div class="compare-row-head">
+              <span class="compare-name">\(\boldsymbol{\pi}^{e}\)</span>
+              <span class="compare-metrics"><span class="compare-rank">#—</span><span class="compare-percentile">—%</span></span>
+            </div>
+            <div class="compare-bars" aria-hidden="true">
+                <div class="mini-bar" style="height:62%"></div>
+                <div class="mini-bar" style="height:28%"></div>
+                <div class="mini-bar" style="height:10%"></div>
+            </div>
+            <div class="compare-values" aria-label="Probabilities 0.62, 0.28, 0.10">
+                <span>0.62</span>
+                <span>0.28</span>
+                <span>0.10</span>
+            </div>
+          </div>
+          <div class="compare-row" data-pmf="f" data-rank="3" aria-label="Distribution f">
+            <div class="compare-row-head">
+              <span class="compare-name">\(\boldsymbol{\pi}^{f}\)</span>
+              <span class="compare-metrics"><span class="compare-rank">#—</span><span class="compare-percentile">—%</span></span>
+            </div>
+            <div class="compare-bars" aria-hidden="true">
+                <div class="mini-bar" style="height:50%"></div>
+                <div class="mini-bar" style="height:45%"></div>
+                <div class="mini-bar" style="height:5%"></div>
+            </div>
+            <div class="compare-values" aria-label="Probabilities 0.50, 0.45, 0.05">
+                <span>0.50</span>
+                <span>0.45</span>
+                <span>0.05</span>
+            </div>
+          </div>
+        <div class="compare-footnote">Confidence rank percentiles (uniform Dirichlet)</div>
+      </div>
+    </section>
+    <section class="plot" aria-label="Simplex with confidence quantile contours">
+      <div class="plot-head"><div class="contour-note">Contours: 10th, 25th, 50th, 75th, 90th confidence percentiles</div></div>
+      <div class="simplex-stack">
+        <canvas id="field" width="520" height="446" aria-hidden="true"></canvas>
+        <svg id="simplex-svg" viewBox="0 0 520 446" aria-label="Probability simplex: click or drag to select a distribution; arrow keys move the selected point" tabindex="0">
+          <title>Drag the selected probability distribution inside the simplex</title>
+          <g id="contour-lines" aria-hidden="true">
+            <path class="contour" data-contour="0"></path>
+            <path class="contour" data-contour="1"></path>
+            <path class="contour mid" data-contour="2"></path>
+            <path class="contour" data-contour="3"></path>
+            <path class="contour" data-contour="4"></path>
+          </g>
+          <path class="triangle-outline" d="M260 40 L55 395 L465 395 Z" aria-hidden="true"></path>
+
+          <g id="selected-point" transform="translate(260 230)" aria-hidden="true">
+            <circle class="halo" r="20"></circle>
+            <circle class="point" r="9.2"></circle>
+          </g>
+          <g id="majorisation-markers" class="fixed-markers" aria-hidden="true" style="display:none">
+            <g transform="translate(229.25 128.75)">
+              <circle class="fixed-halo" r="17"></circle>
+              <circle class="fixed-point" r="7.7"></circle>
+              <text class="marker-label" x="15" y="-8">a</text>
+            </g>
+            <g transform="translate(219.00 182.00)">
+              <circle class="fixed-halo" r="17"></circle>
+              <circle class="fixed-point" r="7.7"></circle>
+              <text class="marker-label" x="15" y="-8">b</text>
+            </g>
+            <g transform="translate(229.25 235.25)">
+              <circle class="fixed-halo" r="17"></circle>
+              <circle class="fixed-point" r="7.7"></circle>
+              <text class="marker-label" x="15" y="-8">c</text>
+            </g>
+          </g>
+          <g id="incomparable-markers" class="fixed-markers" aria-hidden="true" style="display:none">
+            <g transform="translate(255.90 139.40)">
+              <circle class="fixed-halo" r="17"></circle>
+              <circle class="fixed-point" r="7.7"></circle>
+              <text class="marker-label" x="15" y="-8">d</text>
+            </g>
+            <g transform="translate(223.10 174.90)">
+              <circle class="fixed-halo" r="17"></circle>
+              <circle class="fixed-point" r="7.7"></circle>
+              <text class="marker-label" x="15" y="-8">e</text>
+            </g>
+            <g transform="translate(178.00 217.50)">
+              <circle class="fixed-halo" r="17"></circle>
+              <circle class="fixed-point" r="7.7"></circle>
+              <text class="marker-label" x="15" y="-8">f</text>
+            </g>
+          </g>
+        </svg>
+        <span class="vertex-math vertex-top" aria-hidden="true">\(\pi_1=1\)</span>
+        <span class="vertex-math vertex-left" aria-hidden="true">\(\pi_2=1\)</span>
+        <span class="vertex-math vertex-right" aria-hidden="true">\(\pi_3=1\)</span>
+      </div>
+    </section>
+  </div>
+  <div class="control-strip">
+    <div class="slider-head">
+      <label for="alpha"><span class="title">Power parameter · \(\alpha =\) <span id="alpha-value" class="alpha-mode">2.0</span><span id="alpha-neg-inf" class="alpha-mode" hidden>\(-\infty\)</span><span id="alpha-pos-inf" class="alpha-mode" hidden>\(+\infty\)</span></span></label>
+      <span id="family-name">
+        <span data-family="negInf" hidden>Negative Min Softmax Prob</span>
+        <span data-family="sensitive" hidden>Power Score · sensitive to small probs</span>
+        <span data-family="zeroToOne" hidden>Power Score</span>
+        <span data-family="zero" hidden>Self-Certainty · \(\mathrm{KL}(u\parallel\boldsymbol{\pi})\)</span>
+        <span data-family="one" hidden>Negative Shannon Entropy</span>
+        <span data-family="between" hidden>Power score</span>
+        <span data-family="two">Quadratic score (negative Gini Impurity, DOCTOR)</span>
+        <span data-family="large" hidden>Power Score · max prob dominates</span>
+        <span data-family="posInf" hidden>Max Softmax Prob</span>
+      </span>
+    </div>
+    <input type="range" id="alpha" min="0" max="1000" step="1" value="630" aria-label="Power parameter alpha, non-uniform scale with infinite endpoints">
+    <div class="ticks" aria-hidden="true">
+      <span class="tick tick-outer-start" style="left:0%"><span class="tick-value">\(-\infty\)</span></span>
+      <span class="tick tick-near-start" style="left:9%"><span class="tick-value">\(-5\)</span></span>
+      <span class="tick" style="left:37%"><span class="tick-value">\(0\)</span></span>
+      <span class="tick" style="left:50%"><span class="tick-value">\(1\)</span></span>
+      <span class="tick" style="left:63%"><span class="tick-value">\(2\)</span></span>
+      <span class="tick tick-near-end" style="left:91%"><span class="tick-value">\(10\)</span></span>
+      <span class="tick tick-outer-end" style="left:100%"><span class="tick-value">\(+\infty\)</span></span>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+  'use strict';
+
+  // Displayed normalization: C_alpha(pi) = [-3^(1-alpha) + sum(pi_i^alpha)] / [alpha(alpha-1)].
+  // Continuous limits: C_1 = log(3) + sum(pi_i log pi_i) = KL(pi || uniform),
+  //                    C_0 = -3*log(3) - sum(log pi_i) = 3*KL(uniform || pi).
+  // At alpha = +/-Infinity we use rank-order surrogates max(pi) and -min(pi),
+  // not literal numerical limits. JavaScript Numbers are float64, not float32.
+  const LOG3 = Math.log(3);
+  const V = [{x:260,y:40}, {x:55,y:395}, {x:465,y:395}];
+  const WIDTH = 520, HEIGHT = 446;
+  const QUANTILES = [.10,.25,.50,.75,.90];
+  const PALETTE = [
+    [247,249,251], [237,244,248], [224,236,245],
+    [207,225,238], [187,211,230], [162,194,218]
+  ];
+  const N_SAMPLES = 20000;
+  const MESH_N = 96;
+  const canvas = document.querySelector('#field');
+  const ctx = canvas.getContext('2d', { willReadFrequently: false });
+  const svg = document.querySelector('#simplex-svg');
+  const alphaInput = document.querySelector('#alpha');
+  const contourEls = Array.from(document.querySelectorAll('[data-contour]'));
+  const barEls = [0,1,2].map(i => document.getElementById('bar-' + i));
+  const probEls = [0,1,2].map(i => document.getElementById('prob-' + i));
+  const pointEl = document.querySelector('#selected-point');
+  const fixedMarkerEls = {
+    majorisation: document.querySelector('#majorisation-markers'),
+    incomparable: document.querySelector('#incomparable-markers')
+  };
+  const tabEls = Array.from(document.querySelectorAll('.view-tab'));
+  const panels = {
+    explore: document.querySelector('#panel-explore'),
+    majorisation: document.querySelector('#panel-majorisation'),
+    incomparable: document.querySelector('#panel-incomparable')
+  };
+  const comparePMFs = {
+    majorisation: [
+      {key:'a', p:[.75,.20,.05]}, {key:'b', p:[.60,.30,.10]}, {key:'c', p:[.45,.35,.20]}
+    ],
+    incomparable: [
+      {key:'d', p:[.72,.15,.13]}, {key:'e', p:[.62,.28,.10]}, {key:'f', p:[.50,.45,.05]}
+    ]
+  };
+  for (const [view, triplet] of Object.entries(comparePMFs)) {
+    for (const pmf of triplet) {
+      pmf.row = panels[view].querySelector(`[data-pmf="${pmf.key}"]`);
+      pmf.rankEl = pmf.row.querySelector('.compare-rank');
+      pmf.percentileEl = pmf.row.querySelector('.compare-percentile');
+    }
+  }
+  let view = 'explore';
+  const percentileEl = document.querySelector('#percentile');
+  const scoreEl = document.querySelector('#score');
+  const alphaEl = document.querySelector('#alpha-value');
+  const familyEl = document.querySelector('#family-name');
+  const familyLabels = [...familyEl.querySelectorAll('[data-family]')];
+  const alphaNegInfEl = document.querySelector('#alpha-neg-inf');
+  const alphaPosInfEl = document.querySelector('#alpha-pos-inf');
+  let alpha = 2;
+  let p = [.55,.28,.17];
+  let sorted = new Float64Array(0);
+  let thresholds = [];
+  let scheduled = false;
+  let dragging = false;
+
+  function confidence(p1,p2,p3,a) {
+    if (p1 < 0 || p2 < 0 || p3 < 0) return NaN;
+    if (a === Infinity) return Math.max(p1,p2,p3);
+    if (a === -Infinity) return -Math.min(p1,p2,p3);
+    if (a === 1) {
+      const term = x => x === 0 ? 0 : x * Math.log(x);
+      return LOG3 + term(p1) + term(p2) + term(p3);
+    }
+    if (a === 0) {
+      if (p1 === 0 || p2 === 0 || p3 === 0) return Infinity;
+      return -3 * LOG3 - Math.log(p1) - Math.log(p2) - Math.log(p3);
+    }
+    if (a < 0 && (p1 === 0 || p2 === 0 || p3 === 0)) return Infinity;
+    const total = Math.pow(p1,a) + Math.pow(p2,a) + Math.pow(p3,a);
+    // Clamp tiny negative roundoff around the uniform distribution.
+    return Math.max(0, (Math.pow(3,1 - a) - total) / (a * (1 - a)));
+  }
+
+  function radicalInverse(n,base) {
+    let result = 0, inv = 1 / base;
+    while (n > 0) { result += (n % base) * inv; n = Math.floor(n / base); inv /= base; }
+    return result;
+  }
+  // Quasi-uniform points in the triangle. sqrt(u) is essential: without it
+  // points would not be uniformly distributed in simplex area.
+  const sample = new Float64Array(3 * N_SAMPLES);
+  for (let k=0; k<N_SAMPLES; k++) {
+    const u = radicalInverse(k+1,2), v = radicalInverse(k+1,3);
+    const t = Math.sqrt(u);
+    sample[3*k] = 1 - t;
+    sample[3*k+1] = t * (1-v);
+    sample[3*k+2] = t * v;
+  }
+
+  function toXY(q) {
+    return {x:q[0]*V[0].x + q[1]*V[1].x + q[2]*V[2].x,
+            y:q[0]*V[0].y + q[1]*V[1].y + q[2]*V[2].y};
+  }
+  function fromXY(x,y) {
+    const a = (395-y)/355;
+    const c = (x-260*a-55*(1-a))/410;
+    const b = 1-a-c;
+    // Clamp and renormalize: dragging cannot leave the probability simplex.
+    const q = [Math.max(0,a),Math.max(0,b),Math.max(0,c)];
+    const sum = q[0]+q[1]+q[2];
+    return q.map(v=>v/sum);
+  }
+  function upperBound(arr,x) {
+    let lo=0,hi=arr.length;
+    while(lo<hi) { const m=(lo+hi)>>>1; if(arr[m]<=x) lo=m+1; else hi=m; }
+    return lo;
+  }
+  function updateCompareReadout() {
+    if (view === 'explore' || sorted.length === 0) return;
+    const records = comparePMFs[view].map(item => {
+      const score = confidence(...item.p, alpha);
+      return {item, score, percentile: 100 * upperBound(sorted,score) / N_SAMPLES};
+    });
+    // Stable tie handling is deterministic; ties, if any, are visually distinguishable
+    // by the accompanying exact percentile. These chosen triples have no ties at endpoints.
+    const ranking = [...records].sort((a,b) => b.score-a.score);
+    for (const record of records) {
+      const rank = ranking.indexOf(record)+1;
+      record.item.row.dataset.rank = String(rank);
+      record.item.rankEl.textContent = '#' + rank;
+      record.item.percentileEl.textContent = record.percentile.toFixed(1) + '%';
+      record.item.row.setAttribute('aria-label', `Distribution ${record.item.key}, rank ${rank} of 3, ${record.percentile.toFixed(1)} percentile`);
+    }
+  }
+
+  function updateActiveReadout() {
+    if (view === 'explore') updateReadout();
+    else updateCompareReadout();
+  }
+
+  function setView(next, focusTab=false) {
+    if (!panels[next]) return;
+    view = next;
+    for (const tab of tabEls) {
+      const active = tab.dataset.view === next;
+      tab.setAttribute('aria-selected', String(active));
+      tab.tabIndex = active ? 0 : -1;
+      if (active && focusTab) tab.focus();
+    }
+    for (const [key, panel] of Object.entries(panels)) {
+      const inactive = key !== next;
+      panel.classList.toggle('is-inactive', inactive);
+      panel.setAttribute('aria-hidden', String(inactive));
+      panel.inert = inactive;
+    }
+    pointEl.style.display = next === 'explore' ? '' : 'none';
+    for (const [key,markers] of Object.entries(fixedMarkerEls)) markers.style.display = key === next ? '' : 'none';
+    svg.style.cursor = next === 'explore' ? 'crosshair' : 'default';
+    svg.setAttribute('tabindex', next === 'explore' ? '0' : '-1');
+    svg.setAttribute('aria-label', next === 'explore'
+      ? 'Probability simplex: drag or use arrow keys to select a distribution'
+      : 'Probability simplex with three fixed, labelled distributions');
+    updateActiveReadout();
+  }
+
+  for (const tab of tabEls) tab.addEventListener('click', () => setView(tab.dataset.view));
+  document.querySelector('.tab-strip').addEventListener('keydown', event => {
+    const current = tabEls.findIndex(t => t.dataset.view === view);
+    let index = current;
+    if (event.key === 'ArrowRight') index = (current+1)%tabEls.length;
+    else if (event.key === 'ArrowLeft') index = (current-1+tabEls.length)%tabEls.length;
+    else if (event.key === 'Home') index = 0;
+    else if (event.key === 'End') index = tabEls.length-1;
+    else return;
+    event.preventDefault();
+    setView(tabEls[index].dataset.view,true);
+  });
+
+  function updateReadout() {
+    const xy = toXY(p);
+    pointEl.setAttribute('transform',`translate(${xy.x.toFixed(2)} ${xy.y.toFixed(2)})`);
+    p.forEach((v,i)=>{
+      barEls[i].style.height = `${(100*v).toFixed(4)}%`;
+      probEls[i].textContent = v.toFixed(2);
+    });
+    const c = confidence(p[0],p[1],p[2],alpha);
+    const percentile = 100 * upperBound(sorted,c) / N_SAMPLES;
+    percentileEl.textContent = percentile.toFixed(1);
+    // Preserve small scores (especially alpha=10) and negative -infinity endpoint scores.
+    const absC = Math.abs(c);
+    scoreEl.textContent = Number.isFinite(c)
+      ? (c === 0 ? '0.0000' : absC < .001 ? c.toExponential(3) : absC < 100 ? c.toFixed(4) : c.toPrecision(4))
+      : '∞';
+  }
+
+  // Each contour follows a level of the *score*, where the level is chosen
+  // as a quantile of scores under Dirichlet(1,1,1).
+  const nodes = [];
+  const faces = [];
+  const nodeIndex = new Map();
+  for(let i=0;i<=MESH_N;i++) for(let j=0;j<=MESH_N-i;j++) {
+    const q = [i/MESH_N,j/MESH_N,1-(i+j)/MESH_N];
+    const v=toXY(q);
+    nodeIndex.set(`${i},${j}`,nodes.length);
+    nodes.push({x:v.x,y:v.y,p1:q[0],p2:q[1],p3:q[2],z:0});
+  }
+  function idx(i,j){return nodeIndex.get(`${i},${j}`);}
+  for(let i=0;i<MESH_N;i++) for(let j=0;j<MESH_N-i;j++) {
+    faces.push([idx(i,j),idx(i+1,j),idx(i,j+1)]);
+    if(i+j<MESH_N-1) faces.push([idx(i+1,j+1),idx(i+1,j),idx(i,j+1)]);
+  }
+  function crossing(a,b,level) {
+    // Use a short bisection instead of linear interpolation, especially at
+    // alpha <= 0, where scores diverge on the boundary of the simplex.
+    let lo=0, hi=1;
+    const increasing=a.z<b.z;
+    for (let step=0;step<11;step++) {
+      const t=(lo+hi)/2;
+      const z=confidence(a.p1+(b.p1-a.p1)*t,
+                         a.p2+(b.p2-a.p2)*t,
+                         a.p3+(b.p3-a.p3)*t, alpha);
+      if (increasing ? z<level : z>level) lo=t;
+      else hi=t;
+    }
+    return (lo+hi)/2;
+  }
+  function contourPaths() {
+    const out=QUANTILES.map(()=>'');
+    for(const face of faces) {
+      const pts=face.map(i=>nodes[i]);
+      const min=Math.min(...pts.map(q=>q.z)),max=Math.max(...pts.map(q=>q.z));
+      for(let k=0;k<thresholds.length;k++) {
+        const z=thresholds[k];
+        if(!(min<=z && z<max)) continue;
+        const hits=[];
+        for(let edge=0;edge<3;edge++) {
+          const a=pts[edge],b=pts[(edge+1)%3];
+          if((a.z<=z&&b.z>z)||(b.z<=z&&a.z>z)) {
+            const t=crossing(a,b,z);
+            hits.push([a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t]);
+          }
+        }
+        if(hits.length===2) {
+          out[k]+=`M${hits[0][0].toFixed(2)},${hits[0][1].toFixed(2)}L${hits[1][0].toFixed(2)},${hits[1][1].toFixed(2)}`;
+        }
+      }
+    }
+    contourEls.forEach((el,i)=>el.setAttribute('d',out[i]));
+  }
+
+  function renderField() {
+    const image=ctx.createImageData(WIDTH,HEIGHT);
+    const data=image.data;
+    for(let y=40;y<=395;y++) {
+      const v=(y-40)/355;
+      const xLeft=260-205*v, xRight=260+205*v;
+      const a=1-v;
+      for(let x=Math.ceil(xLeft);x<=Math.floor(xRight);x++) {
+        const c=v===0?0:(x-xLeft)/410;
+        const b=v-c;
+        const score=confidence(Math.max(0,a),Math.max(0,b),Math.max(0,c),alpha);
+        let bucket=0;
+        while(bucket<5 && score>thresholds[bucket]) bucket++;
+        const idx=(y*WIDTH+x)*4;
+        const color=PALETTE[bucket];
+        data[idx]=color[0];data[idx+1]=color[1];data[idx+2]=color[2];data[idx+3]=255;
+      }
+    }
+    ctx.putImageData(image,0,0);
+  }
+
+  function recompute() {
+    scheduled=false;
+    const data=new Float64Array(N_SAMPLES);
+    for(let k=0;k<N_SAMPLES;k++) {
+      data[k]=confidence(sample[k*3],sample[k*3+1],sample[k*3+2],alpha);
+    }
+    data.sort();
+    sorted=data;
+    thresholds=QUANTILES.map(q=>sorted[Math.floor(q*(N_SAMPLES-1))]);
+    for(const node of nodes) node.z=confidence(node.p1,node.p2,node.p3,alpha);
+    renderField();
+    contourPaths();
+    updateActiveReadout();
+  }
+  function scheduleRecompute() {
+    if(!scheduled) { scheduled=true; requestAnimationFrame(recompute); }
+  }
+  // Physical track positions are deliberately non-uniform. The end intervals
+  // are discrete jumps, rather than pretending infinity is a finite exponent.
+  // Finite regions retain a resolution of 0.1. Values immediately adjacent to
+  // 0, 1, and 2 are omitted, creating wider snap zones at these named powers.
+  const STOPS = [
+    {t:0.00, a:-Infinity}, {t:0.09, a:-5},
+    {t:0.37, a:0}, {t:0.50, a:1}, {t:0.63, a:2},
+    {t:0.91, a:10}, {t:1.00, a:Infinity}
+  ];
+  const SKIPPED_TENTHS = new Set([-1,1,9,11,19,21]);
+  const ALLOWED = [-Infinity];
+  for(let tenth=-50; tenth<=100; tenth++) {
+    if(!SKIPPED_TENTHS.has(tenth)) ALLOWED.push(tenth/10);
+  }
+  ALLOWED.push(Infinity);
+
+  function closestFinite(a) {
+    let nearest=-5, error=Infinity;
+    for(let i=1;i<ALLOWED.length-1;i++) {
+      const v=ALLOWED[i], delta=Math.abs(v-a);
+      if(delta<error) {nearest=v;error=delta;}
+    }
+    return nearest;
+  }
+  function alphaToPosition(a) {
+    if(a===-Infinity) return 0;
+    if(a===Infinity) return 1;
+    for(let i=1;i<STOPS.length-2;i++) {
+      const l=STOPS[i],r=STOPS[i+1];
+      if(a<=r.a) return l.t+(a-l.a)*(r.t-l.t)/(r.a-l.a);
+    }
+    return STOPS[5].t;
+  }
+  function positionToAlpha(t) {
+    if(t<0.045) return -Infinity;
+    if(t>=0.955) return Infinity;
+    if(t<0.09) return -5;
+    if(t>0.91) return 10;
+    for(let i=1;i<STOPS.length-2;i++) {
+      const l=STOPS[i],r=STOPS[i+1];
+      if(t<=r.t) return closestFinite(l.a+(t-l.t)*(r.a-l.a)/(r.t-l.t));
+    }
+    return 10;
+  }
+  function setAlpha(a) {
+    alpha=Number.isFinite(a) ? closestFinite(a) : a;
+    const position=alphaToPosition(alpha);
+    alphaInput.value=Math.round(position*1000);
+    alphaInput.style.setProperty('--progress', (position*100).toFixed(2)+'%');
+    alphaEl.textContent=Number.isFinite(alpha) ? alpha.toFixed(1) : '';
+    alphaEl.hidden=!Number.isFinite(alpha);
+    alphaNegInfEl.hidden=alpha!==-Infinity;
+    alphaPosInfEl.hidden=alpha!==Infinity;
+    alphaInput.setAttribute('aria-valuetext',alpha===-Infinity
+      ? 'Negative infinity: Negative Min Softmax Prob'
+      :alpha===Infinity ? 'Positive infinity: Max Softmax Prob'
+      : 'Alpha '+alpha.toFixed(1));
+    // Toggle pre-typeset fixed labels. No MathJax work is needed while dragging.
+    const familyKey=alpha===-Infinity ? 'negInf'
+      : alpha===Infinity ? 'posInf'
+      : alpha===0 ? 'zero'
+      : alpha===1 ? 'one'
+      : alpha===2 ? 'two'
+      : alpha<0 ? 'sensitive'
+      : alpha<1 ? 'zeroToOne'
+      : alpha>2 ? 'large'
+      : 'between';
+    for (const label of familyLabels) label.hidden=label.dataset.family!==familyKey;
+    scheduleRecompute();
+  }
+  alphaInput.addEventListener('input',()=>setAlpha(positionToAlpha(Number(alphaInput.value)/1000)));
+  alphaInput.addEventListener('keydown',e=>{
+    const dir = e.key==='ArrowRight' || e.key==='ArrowUp' ? 1
+       : e.key==='ArrowLeft' || e.key==='ArrowDown' ? -1 : 0;
+    if(!dir && !['Home','End','PageUp','PageDown'].includes(e.key)) return;
+    e.preventDefault();
+    let i=ALLOWED.findIndex(v=>v===alpha);
+    if(e.key==='Home') i=0;
+    else if(e.key==='End') i=ALLOWED.length-1;
+    else if(e.key==='PageUp') i=Math.min(ALLOWED.length-1,i+10);
+    else if(e.key==='PageDown') i=Math.max(0,i-10);
+    else i=Math.max(0,Math.min(ALLOWED.length-1,i+dir));
+    setAlpha(ALLOWED[i]);
+  });
+
+  function pointerToLocal(e) {
+    const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
+  }
+  function moveTo(e) {
+    if (view !== 'explore') return;
+    const loc=pointerToLocal(e);
+    p=fromXY(loc.x,loc.y);
+    updateReadout();
+  }
+  svg.addEventListener('pointerdown',e=>{
+    if(view !== 'explore') return;
+    if(e.button!==0 && e.pointerType==='mouse') return;
+    const loc=pointerToLocal(e);
+    const q1=(395-loc.y)/355, q3=(loc.x-260*q1-55*(1-q1))/410;
+    const q2=1-q1-q3;
+    const xy=toXY(p);
+    const nearPoint=Math.hypot(loc.x-xy.x,loc.y-xy.y)<18;
+    if(!nearPoint && (q1<0 || q2<0 || q3<0)) return;
+    svg.setPointerCapture(e.pointerId);dragging=true;moveTo(e);
+    svg.style.cursor='grabbing';
+  });
+  svg.addEventListener('pointermove',e=>{ if(dragging) moveTo(e); });
+  function endDrag(){dragging=false;svg.style.cursor=view === 'explore' ? 'crosshair' : 'default';}
+  svg.addEventListener('pointerup',endDrag);
+  svg.addEventListener('pointercancel',endDrag);
+  svg.addEventListener('lostpointercapture',endDrag);
+  svg.addEventListener('keydown',e=>{
+    if (view !== 'explore') return;
+    const d= e.shiftKey ? 18 : 7;
+    const offsets={ArrowLeft:[-d,0],ArrowRight:[d,0],ArrowUp:[0,-d],ArrowDown:[0,d]};
+    if(!offsets[e.key]) return;
+    e.preventDefault();const xy=toXY(p),delta=offsets[e.key];
+    p=fromXY(xy.x+delta[0],xy.y+delta[1]);updateReadout();
+  });
+
+  // Exposed for simple numerical checks in the browser console.
+  window.simplexWidget={
+    confidence,
+    getView: () => view,
+    setView,
+    getComparison: () => view === 'explore' ? null : comparePMFs[view].map(item => ({
+      name:item.key, p:[...item.p], rank:Number(item.row.dataset.rank),
+      score:confidence(...item.p,alpha),
+      percentile:100*upperBound(sorted,confidence(...item.p,alpha))/N_SAMPLES
+    })),
+    getState:()=>({alpha,p:[...p],score:confidence(...p,alpha),percentile:100*upperBound(sorted,confidence(...p,alpha))/N_SAMPLES}),
+    setPoint:(next)=>{if(!Array.isArray(next)||next.length!==3)return;const sum=next.reduce((a,b)=>a+b,0);if(sum<=0)return;p=next.map(x=>Math.max(0,x)/sum);updateReadout();},
+    setAlpha:(next)=>{setAlpha(next);},
+    getSliderStops:()=>STOPS.map(s=>({...s}))
+  };
+  setView('explore');
+  setAlpha(2);
+})();
+</script>
+</div><!-- .sc-embed -->
+<script>
+// Render MathJax 3 TeX glyphs once. Reuse the host blog's MathJax when present;
+// standalone HTML loads its own MathJax SVG engine (no machine-installed fonts).
+(() => {
+  const root = document.querySelector('.sc-embed');
+  const typeset = () => {
+    if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+      window.MathJax.typesetPromise([root]).catch(error => console.error('Widget MathJax:', error));
+    }
+  };
+  if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+    typeset();
+  } else if (window.MathJax && window.MathJax.startup && window.MathJax.startup.promise) {
+    window.MathJax.startup.promise.then(typeset);
+  } else {
+    window.MathJax = {
+      // \boldsymbol is an extension, not a core TeX command.
+      // Load it explicitly so vector pi renders correctly even without autoload.
+      loader: { load: ['[tex]/boldsymbol'] },
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        processEscapes: true,
+        packages: {'[+]': ['boldsymbol']}
+      },
+      svg: { fontCache: 'local' },
+      startup: { ready: () => {
+        MathJax.startup.defaultReady();
+      } }
+    };
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js';
+    script.async = true;
+    script.onerror = () => console.warn('MathJax could not load; TeX source remains visible.');
+    document.head.appendChild(script);
+  }
+})();
+</script>
+<script>
+// Keep the site's same-origin iframe fitted after layout and MathJax updates.
+(() => {
+  const frame = window.frameElement;
+  if (!frame) return;
+  const fitFrame = () => {
+    const height = `${Math.ceil(document.body.getBoundingClientRect().height)}px`;
+    if (frame.style.height !== height) frame.style.height = height;
+  };
+  new ResizeObserver(fitFrame).observe(document.body);
+  window.addEventListener('resize', fitFrame);
+  fitFrame();
+})();
+</script>
+</body>
+</html>
