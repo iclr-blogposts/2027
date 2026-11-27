@@ -414,6 +414,17 @@ ninja.data = [{
             window.location.href = "/2027/blog/does-recursion-depth-mean-difficulty/";
           
         },
+      },{id: "post-don-39-t-overthink-your-distributed-training",
+        
+          title: "Don't Overthink Your Distributed Training",
+        
+        description: "With PyTorch's DDP on up to 32 GPUs, communication accounts for at most about 6.5% of training time on V100 GPUs with Omni-Path, and at most about 5.5% on H100 GPUs with InfiniBand, across transformers, a CNN and a deep MLP. No communication-reduction method can save more than that, so for models that fit on one GPU, plain synchronous data parallelism leaves little to gain.",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/2027/blog/distributed-training/";
+          
+        },
       },{id: "post-sample-blog-post",
         
           title: "Sample Blog Post",
