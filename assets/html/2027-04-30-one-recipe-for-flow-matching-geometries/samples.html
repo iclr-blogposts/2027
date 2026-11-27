@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What samples see</title>
+<style>
+  :root { --bg:#fff; --fg:#1f2328; --muted:#6a737d; --grid:#e4e7eb; --panel:#fafbfc; --re:#1f77b4; --im:#d62728; --cur:#1f77b4; --ref:#8a929c; --ok:#2e7d32; --bad:#c62828; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --grid:#2a2f37; --panel:#161a20; --re:#5aa7e0; --im:#ff6b6b; --cur:#5aa7e0; --ref:#8a929c; --ok:#66bb6a; --bad:#ef5350; } }
+  :root[data-theme="dark"] { --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --grid:#2a2f37; --panel:#161a20; --re:#5aa7e0; --im:#ff6b6b; --cur:#5aa7e0; --ref:#8a929c; --ok:#66bb6a; --bad:#ef5350; }
+  html,body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:980px; margin:0 auto; padding:8px 16px 10px; box-sizing:border-box; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; margin-bottom:8px; }
+  .controls label { display:flex; align-items:center; gap:8px; white-space:nowrap; }
+  select, button { font:inherit; color:var(--fg); background:var(--panel); border:1px solid var(--grid); border-radius:6px; padding:3px 8px; }
+  button { cursor:pointer; }
+  .val { font-variant-numeric:tabular-nums; color:var(--muted); min-width:2.8em; display:inline-block; }
+  .row { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
+  .cap { font-size:12px; color:var(--muted); text-align:center; margin-bottom:3px; }
+  canvas { width:100%; height:166px; display:block; background:var(--panel); border:1px solid var(--grid); border-radius:4px; }
+  .verdict { font-size:12.5px; margin-top:4px; text-align:center; font-variant-numeric:tabular-nums; color:var(--muted); }
+  .verdict b.ok { color:var(--ok); } .verdict b.bad { color:var(--bad); }
+  @media (max-width:700px) { .row { grid-template-columns:1fr; } }
+  /* legend swatches, shared by every widget of this post: line, dashed line, filled area, outline, dot, ring, triangle */
+  .lg { display:inline-block; vertical-align:middle; margin:0 4px 0 8px; box-sizing:border-box; }
+  .lg-line { width:16px; height:0; border-top:2.5px solid currentColor; }
+  .lg-dash { width:16px; height:0; border-top:2px dashed currentColor; }
+  .lg-fill { width:12px; height:10px; border:1.5px solid currentColor; border-radius:2px; background:color-mix(in srgb, currentColor 35%, transparent); }
+  .lg-box { width:12px; height:10px; border:1.5px solid currentColor; border-radius:2px; }
+  .lg-dot { width:9px; height:9px; border-radius:50%; background:currentColor; }
+  .lg-ring { width:9px; height:9px; border-radius:50%; border:1.5px solid currentColor; }
+  .lg-tri { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:9px solid currentColor; }
+  /* ---- shared look of every widget in this post (keep identical across widgets) ---- */
+  :root { --grid:#e4e7eb; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --grid:#2a2f37; } }
+  :root[data-theme="dark"] { --grid:#2a2f37; }
+  .wrap { max-width:1040px; padding:8px 16px 10px; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; margin-bottom:8px; font-size:14px; }
+  .controls label { display:flex; align-items:center; gap:7px; white-space:nowrap; }
+  .controls input[type=range] { width:120px; }
+  select, button { font:inherit; font-size:13px; color:var(--fg); background:var(--panel); border:1px solid var(--grid); border-radius:6px; padding:3px 9px; cursor:pointer; }
+  canvas { box-sizing:border-box; background:var(--panel); border:1px solid var(--grid); border-radius:4px; }
+  canvas.wheel, .ahead canvas { background:none; border:0; border-radius:0; }
+  .cap, .ttl { font-size:12px; color:var(--muted); margin:0 0 3px; text-align:left; }
+  .cap b, .ttl b { color:var(--fg); font-weight:600; }
+  .note { font-size:12.5px; color:var(--muted); margin-top:8px; line-height:1.45; }
+  .lgrow { margin:2px 0; } .lgrow > b:first-child { color:var(--fg); font-weight:600; margin-right:3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="controls">
+    <label>phase χ(x)
+      <select id="kind">
+        <option value="none">none</option>
+        <option value="lin" selected>momentum, kx</option>
+        <option value="chirp">chirp, cx²</option>
+        <option value="rand">random smooth</option>
+      </select></label>
+    <label>strength <input id="s" type="range" min="0" max="4" step="0.05" value="2"><span class="val" id="sv"></span></label>
+    <label>samples <select id="n"><option>200</option><option selected>1000</option><option>5000</option></select></label>
+    <button id="redraw">draw new samples</button>
+  </div>
+  <div class="row">
+    <div><div class="cap">the amplitude ψ = √μ e<sup>iχ</sup></div><canvas id="amp"></canvas></div>
+    <div><div class="cap">samples in position, x ~ |ψ(x)|²</div><canvas id="hx"></canvas><div class="verdict" id="vx"></div></div>
+    <div><div class="cap">samples in momentum, q ~ |ψ̂(q)|²</div><canvas id="hp"></canvas><div class="verdict" id="vp"></div></div>
+  </div>
+  <div class="note">
+    <div class="lgrow"><b>Left, the amplitude:</b> <span class="lg lg-line" style="color:var(--fg)"></span>Re ψ; <span class="lg lg-dash" style="color:var(--fg)"></span>Im ψ; <span class="lg lg-line" style="color:var(--muted)"></span>±|ψ|.</div>
+    <div class="lgrow"><b>Middle and right, histograms:</b> <span class="lg lg-fill" style="color:var(--cur)"></span>samples from ψ; <span class="lg lg-box" style="color:var(--ref)"></span>an independent set of samples from the same Gaussian with no phase (χ = 0).</div>
+    <div class="lgrow"><b>Verdicts:</b> a two-sample Kolmogorov–Smirnov test at the 5% level.</div>
+  </div>
+</div>
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const N = 400, XL = -7, XR = 7, dx = (XR - XL) / N, x = new Float64Array(N);
+  for (let i = 0; i < N; i++) x[i] = XL + (i + 0.5) * dx;
+  const NP = 300, PL = -9, PR = 9, dp = (PR - PL) / NP, p = new Float64Array(NP);
+  for (let j = 0; j < NP; j++) p[j] = PL + (j + 0.5) * dp;
+  let seed = 12345; const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  const randPhase = (() => { const c = []; for (let m = 1; m <= 6; m++) c.push([rnd() * 2 - 1, rnd() * 2 * Math.PI]); return c; })();
+  function amplitude(kind, s) {
+    const re = new Float64Array(N), im = new Float64Array(N);
+    for (let i = 0; i < N; i++) { const X = x[i], env = Math.exp(-X * X / 4) / Math.pow(2 * Math.PI, 0.25);
+      let chi = 0;
+      if (kind === "lin") chi = s * X; else if (kind === "chirp") chi = 0.5 * s * X * X;
+      else if (kind === "rand") for (let m = 0; m < 6; m++) chi += s * randPhase[m][0] * Math.cos(0.7 * (m + 1) * X + randPhase[m][1]);
+      re[i] = env * Math.cos(chi); im[i] = env * Math.sin(chi); }
+    return [re, im];
+  }
+  function fourier(re, im) { const out = new Float64Array(NP), z = dx / Math.sqrt(2 * Math.PI);
+    for (let j = 0; j < NP; j++) { let R = 0, I = 0; for (let i = 0; i < N; i++) { const c = Math.cos(p[j] * x[i]), s = Math.sin(p[j] * x[i]);
+      R += re[i] * c + im[i] * s; I += im[i] * c - re[i] * s; } out[j] = (R * z) ** 2 + (I * z) ** 2; } return out; }
+  function sampler(dens, grid, step) { const C = new Float64Array(dens.length + 1);
+    for (let i = 0; i < dens.length; i++) C[i + 1] = C[i] + dens[i]; for (let i = 0; i < C.length; i++) C[i] /= C[C.length - 1];
+    return (n) => { const out = new Float64Array(n); for (let k = 0; k < n; k++) { const u = rnd(); let lo = 0, hi = dens.length;
+      while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (C[mid] <= u) lo = mid; else hi = mid; }
+      const f = (u - C[lo]) / Math.max(1e-300, C[lo + 1] - C[lo]); out[k] = grid[0] - step / 2 + (lo + f) * step; } return out; }; }
+  function ks(a, b) { const A = Float64Array.from(a).sort(), B = Float64Array.from(b).sort(); let i = 0, j = 0, d = 0;
+    while (i < A.length && j < B.length) { if (A[i] <= B[j]) i++; else j++; d = Math.max(d, Math.abs(i / A.length - j / B.length)); } return d; }
+  function setup(cv) { const r = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * r) || cv.height !== Math.round(h * r)) { cv.width = Math.round(w * r); cv.height = Math.round(h * r); }
+    const g = cv.getContext("2d"); g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, w, h); return [g, w, h]; }
+  // x-axis tick labels, shared by every widget of this post
+  const xTicks = (g, w, h, base, X, lo, hi, name) => { g.strokeStyle = css("--grid"); g.lineWidth = 1; g.beginPath(); g.moveTo(X(lo), base + 0.5); g.lineTo(X(hi), base + 0.5); g.stroke();
+    g.fillStyle = css("--muted"); g.font = "10px system-ui, sans-serif"; g.textAlign = "center"; const st = (hi - lo) > 9 ? 2 : 1;
+    for (let v = Math.ceil(lo / st) * st; v <= hi + 1e-9; v += st) g.fillText(Math.abs(v) < 1e-9 ? (name || "x") + " = 0" : String(v), X(v), h - 3); };
+  function hist(cv, cur, ref, lo, hi, name) {
+    const B = 40, hc = new Float64Array(B), hr = new Float64Array(B), bw = (hi - lo) / B;
+    for (const v of cur) { const k = Math.floor((v - lo) / bw); if (k >= 0 && k < B) hc[k]++; }
+    for (const v of ref) { const k = Math.floor((v - lo) / bw); if (k >= 0 && k < B) hr[k]++; }
+    const [g, w, h] = setup(cv), pd = 4, base = h - 16, mx = Math.max(...hc, ...hr) * 1.08, X = (k) => pd + k / B * (w - 2 * pd), Y = (c) => base - c / mx * (base - pd);
+    xTicks(g, w, h, base, (v) => pd + (v - lo) / (hi - lo) * (w - 2 * pd), Math.ceil(lo), Math.floor(hi), name);
+    g.fillStyle = css("--cur"); g.globalAlpha = 0.45; for (let k = 0; k < B; k++) g.fillRect(X(k) + 0.5, Y(hc[k]), X(k + 1) - X(k) - 1, base - Y(hc[k]));
+    g.globalAlpha = 1; g.strokeStyle = css("--ref"); g.lineWidth = 1.5; g.beginPath(); g.moveTo(X(0), Y(0));
+    for (let k = 0; k < B; k++) { g.lineTo(X(k), Y(hr[k])); g.lineTo(X(k + 1), Y(hr[k])); } g.lineTo(X(B), Y(0)); g.stroke();
+  }
+  function verdict(el, d, n) { const crit = 1.358 * Math.sqrt(2 / n), same = d < crit;
+    el.innerHTML = `KS distance ${d.toFixed(3)} (5% threshold ${crit.toFixed(3)}): <b class="${same ? "ok" : "bad"}">${same ? "indistinguishable from χ = 0" : "distinguishable from χ = 0"}</b>`; }
+  let cache = null;
+  function compute() { const kind = $("kind").value, s = +$("s").value; const [re, im] = amplitude(kind, s), [r0, i0] = amplitude("none", 0);
+    const mx = re.map((v, i) => v * v + im[i] * im[i]), mp = fourier(re, im), mp0 = fourier(r0, i0), mx0 = r0.map((v) => v * v);
+    cache = { re, im, sx: sampler(mx, x, dx), sp: sampler(mp, p, dp), sx0: sampler(mx0, x, dx), sp0: sampler(mp0, p, dp) }; }
+  function render() {
+    $("sv").textContent = (+$("s").value).toFixed(2);
+    const { re, im, sx, sp, sx0, sp0 } = cache, n = +$("n").value;
+    { const [g, w, h] = setup($("amp")), pd = 4, base = h - 16, X = (i) => pd + i / (N - 1) * (w - 2 * pd), amax = 0.7, Y = (v) => base / 2 - v / amax * (base / 2 - pd);
+      xTicks(g, w, h, base, (v) => pd + (v - x[0]) / (x[N - 1] - x[0]) * (w - 2 * pd), Math.ceil(x[0]), Math.floor(x[N - 1]), "x");
+      g.strokeStyle = css("--grid"); g.beginPath(); g.moveTo(pd, base / 2); g.lineTo(w - pd, base / 2); g.stroke();
+      for (const [arr, col, lw, dash] of [[re.map((v, i) => Math.hypot(v, im[i])), css("--muted"), 1, []], [re.map((v, i) => -Math.hypot(v, im[i])), css("--muted"), 1, []], [re, css("--fg"), 1.6, []], [im, css("--fg"), 1.6, [4, 3]]]) {
+        g.beginPath(); g.setLineDash(dash); for (let i = 0; i < N; i++) (i ? g.lineTo : g.moveTo).call(g, X(i), Y(arr[i])); g.strokeStyle = col; g.lineWidth = lw; g.stroke(); } g.setLineDash([]); }
+    const ax = sx(n), ax0 = sx0(n), ap = sp(n), ap0 = sp0(n);
+    hist($("hx"), ax, ax0, XL, XR, "x"); hist($("hp"), ap, ap0, PL, PR, "p");
+    verdict($("vx"), ks(ax, ax0), n); verdict($("vp"), ks(ap, ap0), n);
+  }
+  $("kind").onchange = () => { compute(); render(); }; $("s").oninput = () => { compute(); render(); };
+  $("n").onchange = render; $("redraw").onclick = render;
+  window.addEventListener("resize", render);
+  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+  compute(); render();
+})();
+</script>
+</body>
+</html>

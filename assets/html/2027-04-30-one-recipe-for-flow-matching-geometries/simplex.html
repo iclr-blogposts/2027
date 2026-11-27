@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simplex and sphere</title>
+<style>
+  :root { --bg:#fff; --fg:#1f2328; --muted:#6a737d; --grid:#d5d9de; --faint:#e8ebee; --panel:#fafbfc; --oct:#f1f4f7;
+    --fr:#ff7f0e; --mix:#9467bd; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --grid:#3a414b; --faint:#252a31; --panel:#161a20; --oct:#1d2229;
+    --fr:#ffa04a; --mix:#b48ae0; } }
+  :root[data-theme="dark"] { --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --grid:#3a414b; --faint:#252a31; --panel:#161a20; --oct:#1d2229;
+    --fr:#ffa04a; --mix:#b48ae0; }
+  html,body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:980px; margin:0 auto; padding:8px 16px 10px; box-sizing:border-box; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px 22px; align-items:center; margin-bottom:6px; }
+  .controls label { display:flex; align-items:center; gap:7px; white-space:nowrap; }
+  .controls input[type=range] { width:140px; }
+  button { font:inherit; color:var(--fg); background:var(--panel); border:1px solid var(--grid); border-radius:6px; padding:3px 8px; cursor:pointer; min-width:64px; }
+  .val { font-variant-numeric:tabular-nums; color:var(--muted); min-width:2.6em; display:inline-block; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .ttl { font-size:12.5px; color:var(--muted); margin-bottom:3px; }
+  canvas { width:100%; height:320px; display:block; background:var(--panel); border:1px solid var(--grid); border-radius:4px; touch-action:none; }
+  .read { font-size:12.5px; color:var(--muted); margin-top:6px; font-variant-numeric:tabular-nums; }
+  .read b { color:var(--fg); }
+  @media (max-width:640px) { .row { grid-template-columns:1fr; } canvas { height:260px; } }
+  /* legend swatches, shared by every widget of this post: line, dashed line, filled area, outline, dot, ring, triangle */
+  .lg { display:inline-block; vertical-align:middle; margin:0 4px 0 8px; box-sizing:border-box; }
+  .lg-line { width:16px; height:0; border-top:2.5px solid currentColor; }
+  .lg-dash { width:16px; height:0; border-top:2px dashed currentColor; }
+  .lg-fill { width:12px; height:10px; border:1.5px solid currentColor; border-radius:2px; background:color-mix(in srgb, currentColor 35%, transparent); }
+  .lg-box { width:12px; height:10px; border:1.5px solid currentColor; border-radius:2px; }
+  .lg-dot { width:9px; height:9px; border-radius:50%; background:currentColor; }
+  .lg-ring { width:9px; height:9px; border-radius:50%; border:1.5px solid currentColor; }
+  .lg-tri { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:9px solid currentColor; }
+  /* ---- shared look of every widget in this post (keep identical across widgets) ---- */
+  :root { --grid:#e4e7eb; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --grid:#2a2f37; } }
+  :root[data-theme="dark"] { --grid:#2a2f37; }
+  .wrap { max-width:1040px; padding:8px 16px 10px; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; margin-bottom:8px; font-size:14px; }
+  .controls label { display:flex; align-items:center; gap:7px; white-space:nowrap; }
+  .controls input[type=range] { width:120px; }
+  select, button { font:inherit; font-size:13px; color:var(--fg); background:var(--panel); border:1px solid var(--grid); border-radius:6px; padding:3px 9px; cursor:pointer; }
+  canvas { box-sizing:border-box; background:var(--panel); border:1px solid var(--grid); border-radius:4px; }
+  canvas.wheel, .ahead canvas { background:none; border:0; border-radius:0; }
+  .cap, .ttl { font-size:12px; color:var(--muted); margin:0 0 3px; text-align:left; }
+  .cap b, .ttl b { color:var(--fg); font-weight:600; }
+  .note { font-size:12.5px; color:var(--muted); margin-top:8px; line-height:1.45; }
+  .lgrow { margin:2px 0; } .lgrow > b:first-child { color:var(--fg); font-weight:600; margin-right:3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="controls">
+    <label><input id="balls" type="checkbox" checked> unit balls (the price of a step)</label>
+    <button id="reset">reset endpoints</button>
+  </div>
+  <div class="row">
+    <div><div class="ttl">The simplex, in μ. Drag μ₀ and μ₁.</div><canvas id="tri"></canvas></div>
+    <div><div class="ttl">After the square-root map, in √μ: an eighth of a sphere.</div><canvas id="sph"></canvas></div>
+  </div>
+  <div class="read" id="read"></div>
+</div>
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const DEF0 = [0.72, 0.25, 0.03], DEF1 = [0.03, 0.25, 0.72];
+  let M0 = DEF0.slice(), M1 = DEF1.slice();
+  const STEPS = 10, EPS = 0.085;
+  const E1 = [1 / Math.SQRT2, -1 / Math.SQRT2, 0], E2 = [1 / Math.sqrt(6), 1 / Math.sqrt(6), -2 / Math.sqrt(6)]; // orthonormal basis of {Σδμ = 0}
+
+  // ---- geodesics ----
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  function mixAt(t) { return M0.map((v, i) => (1 - t) * v + t * M1[i]); }
+  function frAt(t) { const s0 = M0.map(Math.sqrt), s1 = M1.map(Math.sqrt), th = Math.acos(Math.min(1, dot(s0, s1)));
+    const [a, b] = th < 1e-9 ? [1 - t, t] : [Math.sin((1 - t) * th) / Math.sin(th), Math.sin(t * th) / Math.sin(th)];
+    const s = s0.map((v, i) => a * v + b * s1[i]); return s.map((v) => v * v); }
+
+  // ---- canvas helpers ----
+  function setup(cv) { const r = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * r) || cv.height !== Math.round(h * r)) { cv.width = Math.round(w * r); cv.height = Math.round(h * r); }
+    const g = cv.getContext("2d"); g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, w, h); return [g, w, h]; }
+  function poly(g, pts, close) { g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); if (close) g.closePath(); }
+  function label(g, txt, x, y, col, align) { g.fillStyle = col; g.font = "13px system-ui, sans-serif"; g.textAlign = align || "center"; g.fillText(txt, x, y); }
+
+  // triangle: vertex i is category i (1 bottom-left, 2 top, 3 bottom-right)
+  let T = null;
+  function triGeom(w, h) { const p = 26, L = Math.min(w - 2 * p, (h - 2 * p) * 2 / Math.sqrt(3)), cx = w / 2, cy = h / 2 + 4, hh = L * Math.sqrt(3) / 4;
+    return { V: [[cx - L / 2, cy + hh], [cx, cy - hh], [cx + L / 2, cy + hh]] }; }
+  const P = (m) => [m[0] * T.V[0][0] + m[1] * T.V[1][0] + m[2] * T.V[2][0], m[0] * T.V[0][1] + m[1] * T.V[1][1] + m[2] * T.V[2][1]];
+  function bary(x, y) { const [a, b, c] = T.V, det = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1]);
+    let l1 = ((b[1] - c[1]) * (x - c[0]) + (c[0] - b[0]) * (y - c[1])) / det, l2 = ((c[1] - a[1]) * (x - c[0]) + (a[0] - c[0]) * (y - c[1])) / det, l3 = 1 - l1 - l2;
+    const m = [l1, l2, l3].map((v) => Math.max(0, v)), s = m[0] + m[1] + m[2]; return m.map((v) => v / s); }
+
+  // sphere octant, orthographic view from (1,1,1): axis 1 lower-left, 2 up, 3 lower-right
+  let Sg = null;
+  function sphGeom(w, h) { const p = 22, R = Math.min((w - 2 * p) / 1.414, (h - 2 * p) / 1.393); return { R, cx: w / 2, cy: h / 2 }; }
+  const Q = (s) => { const X = (-s[0] + s[2]) / Math.SQRT2, Y = (-s[0] + 2 * s[1] - s[2]) / Math.sqrt(6); return [Sg.cx + X * Sg.R, Sg.cy - (Y - 0.1195) * Sg.R]; };
+  const Qm = (m) => Q(m.map((v) => Math.sqrt(Math.max(0, v))));
+
+  // unit ball boundary at μ: mixture (flat) or Fisher-Rao, as a list of μ points
+  function ball(m, kind) { const out = [];
+    for (let k = 0; k <= 48; k++) { const f = 2 * Math.PI * k / 48, d = E1.map((v, i) => Math.cos(f) * v + Math.sin(f) * E2[i]);
+      const n = kind === "fr" ? Math.sqrt(d.reduce((a, v, i) => a + v * v / m[i], 0)) : 1;
+      out.push(m.map((v, i) => v + EPS / n * d[i])); }
+    return out; }
+  const gridPts = []; for (let i = 1; i < 6; i++) for (let j = 1; i + j < 6; j++) gridPts.push([i / 6, j / 6, (6 - i - j) / 6]);
+  function gridLines() { const L = []; for (const c of [0.2, 0.4, 0.6, 0.8]) for (let a = 0; a < 3; a++) {
+      const b = (a + 1) % 3, e = (a + 2) % 3, seg = [];
+      for (let k = 0; k <= 40; k++) { const u = k / 40, m = [0, 0, 0]; m[a] = c; m[b] = (1 - c) * u; m[e] = (1 - c) * (1 - u); seg.push(m); }
+      L.push(seg); } return L; }
+  const GL = gridLines();
+  const edges = [0, 1, 2].map((a) => { const b = (a + 1) % 3, seg = []; for (let k = 0; k <= 60; k++) { const m = [0, 0, 0]; m[a] = 1 - k / 60; m[b] = k / 60; seg.push(m); } return seg; });
+
+  function drawPanel(cv, map, isSphere) {
+    const [g, w, h] = setup(cv);
+    if (isSphere) Sg = sphGeom(w, h); else T = triGeom(w, h);
+    const ink = css("--fg"), mut = css("--muted");
+    // region
+    poly(g, edges.flat().map(map), true); g.fillStyle = css("--oct"); g.fill(); g.strokeStyle = css("--grid"); g.lineWidth = 1.2; g.stroke();
+    for (const seg of GL) { poly(g, seg.map(map)); g.strokeStyle = css("--faint"); g.lineWidth = 1; g.stroke(); }
+    const vlab = [[1, 0, 0], [0, 1, 0], [0, 0, 1]].map(map);
+    label(g, "1", vlab[0][0] - 10, vlab[0][1] + 14, mut); label(g, "2", vlab[1][0], vlab[1][1] - 7, mut); label(g, "3", vlab[2][0] + 10, vlab[2][1] + 14, mut);
+    // unit balls
+    if ($("balls").checked) for (const m of gridPts) for (const [kind, col, dash] of [["mix", css("--mix"), [3, 3]], ["fr", css("--fr"), []]]) {
+      poly(g, ball(m, kind).map(map), true); g.strokeStyle = col; g.globalAlpha = 0.75; g.lineWidth = 1.1; g.setLineDash(dash); g.stroke(); g.setLineDash([]); g.globalAlpha = 1; }
+    // paths
+    for (const [f, col] of [[mixAt, css("--mix")], [frAt, css("--fr")]]) {
+      const pts = []; for (let k = 0; k <= 120; k++) pts.push(map(f(k / 120)));
+      poly(g, pts); g.strokeStyle = col; g.lineWidth = 2.2; g.stroke();
+      g.fillStyle = col; for (let k = 0; k <= STEPS; k++) { const q = map(f(k / STEPS)); g.beginPath(); g.arc(q[0], q[1], 2.6, 0, 7); g.fill(); } }
+    // endpoints
+    for (const [m, nm] of [[M0, "μ₀"], [M1, "μ₁"]]) { const q = map(m); g.beginPath(); g.arc(q[0], q[1], 7, 0, 7);
+      g.fillStyle = css("--bg"); g.fill(); g.strokeStyle = ink; g.lineWidth = 2; g.stroke(); label(g, nm, q[0], q[1] - 11, ink); }
+  }
+
+  const f3 = (m) => "(" + m.map((v) => v.toFixed(2)).join(", ") + ")";
+  function render() {
+    drawPanel($("tri"), (m) => P(m), false); drawPanel($("sph"), Qm, true);
+    const bc = dot(M0.map(Math.sqrt), M1.map(Math.sqrt)), l2 = Math.sqrt(M0.reduce((a, v, i) => a + (v - M1[i]) ** 2, 0));
+    $("read").innerHTML =
+      `<div class="lgrow"><b>Paths, both panels:</b> <span class="lg lg-line" style="color:var(--mix)"></span>mixture: straight in μ, ‖μ₁ − μ₀‖ = <b>${l2.toFixed(2)}</b>; ` +
+      `<span class="lg lg-line" style="color:var(--fr)"></span>Fisher-Rao: straight (a great circle) in √μ, d<sub>FR</sub> = 2 arccos BC = <b>${(2 * Math.acos(Math.min(1, bc))).toFixed(2)}</b>.</div>` +
+      (($("balls").checked) ? `<div class="lgrow"><b>Unit balls:</b> <span class="lg lg-dash" style="color:var(--mix)"></span>the same step size under the flat price; <span class="lg lg-line" style="color:var(--fr)"></span>under Fisher-Rao.</div>` : "");
+  }
+
+  // dragging endpoints on the triangle
+  let drag = null; const cvT = $("tri");
+  const at = (ev) => { const r = cvT.getBoundingClientRect(); return [ev.clientX - r.left, ev.clientY - r.top]; };
+  cvT.addEventListener("pointerdown", (ev) => { const [x, y] = at(ev), a = P(M0), b = P(M1), d0 = Math.hypot(x - a[0], y - a[1]), d1 = Math.hypot(x - b[0], y - b[1]);
+    if (Math.min(d0, d1) < 24) { drag = d0 < d1 ? 0 : 1; cvT.setPointerCapture(ev.pointerId); } });
+  cvT.addEventListener("pointermove", (ev) => { if (drag === null) return; const [x, y] = at(ev), m = bary(x, y); if (drag === 0) M0 = m; else M1 = m; render(); });
+  cvT.addEventListener("pointerup", () => { drag = null; });
+  $("reset").onclick = () => { M0 = DEF0.slice(); M1 = DEF1.slice(); render(); };
+
+  $("balls").onchange = render;
+  window.addEventListener("resize", render);
+  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+  render();
+})();
+</script>
+</body>
+</html>

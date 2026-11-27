@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Fubini-Study geodesic</title>
+<style>
+  :root { --bg:#fff; --fg:#1f2328; --muted:#6a737d; --grid:#e4e7eb; --panel:#fafbfc; --fs:#1f77b4; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --grid:#2a2f37; --panel:#161a20; --fs:#5aa7e0; } }
+  :root[data-theme="dark"] { --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --grid:#2a2f37; --panel:#161a20; --fs:#5aa7e0; }
+  html,body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:980px; margin:0 auto; padding:8px 16px 10px; box-sizing:border-box; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; margin-bottom:8px; }
+  .controls label { display:flex; align-items:center; gap:7px; white-space:nowrap; }
+  .controls input[type=range] { width:110px; }
+  select, button { font:inherit; color:var(--fg); background:var(--panel); border:1px solid var(--grid); border-radius:6px; padding:3px 8px; }
+  button { cursor:pointer; }
+  .val { font-variant-numeric:tabular-nums; color:var(--muted); min-width:2.6em; display:inline-block; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 18px; }
+  .col > b { font-size:13px; display:block; margin-bottom:2px; }
+  .col > b span { color:var(--muted); font-weight:normal; font-size:12px; }
+  .tag { font-size:11.5px; color:var(--muted); margin:2px 0 0 26px; }
+  canvas { width:100%; display:block; }
+  canvas.end { height:58px; }
+  canvas.flow { height:300px; }
+  .col > b.ahead { display:flex; min-height:26px; gap:8px; align-items:center; } .ahead .t { color:var(--fg); font-weight:600; }
+  .ahead canvas { width:24px; height:24px; flex:none; }
+  .note { font-size:12px; color:var(--muted); margin-top:8px; }
+  @media (max-width:640px) { .grid { grid-template-columns:1fr; } canvas.flow { height:230px; } canvas.end { height:50px; } }
+  /* legend swatches, shared by every widget of this post: line, dashed line, filled area, outline, dot, ring, triangle */
+  .lg { display:inline-block; vertical-align:middle; margin:0 4px 0 8px; box-sizing:border-box; }
+  .lg-line { width:16px; height:0; border-top:2.5px solid currentColor; }
+  .lg-dash { width:16px; height:0; border-top:2px dashed currentColor; }
+  .lg-fill { width:12px; height:10px; border:1.5px solid currentColor; border-radius:2px; background:color-mix(in srgb, currentColor 35%, transparent); }
+  .lg-box { width:12px; height:10px; border:1.5px solid currentColor; border-radius:2px; }
+  .lg-dot { width:9px; height:9px; border-radius:50%; background:currentColor; }
+  .lg-ring { width:9px; height:9px; border-radius:50%; border:1.5px solid currentColor; }
+  .lg-tri { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:9px solid currentColor; }
+  /* ---- shared look of every widget in this post (keep identical across widgets) ---- */
+  :root { --grid:#e4e7eb; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --grid:#2a2f37; } }
+  :root[data-theme="dark"] { --grid:#2a2f37; }
+  .wrap { max-width:1040px; padding:8px 16px 10px; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; margin-bottom:8px; font-size:14px; }
+  .controls label { display:flex; align-items:center; gap:7px; white-space:nowrap; }
+  .controls input[type=range] { width:120px; }
+  select, button { font:inherit; font-size:13px; color:var(--fg); background:var(--panel); border:1px solid var(--grid); border-radius:6px; padding:3px 9px; cursor:pointer; }
+  canvas { box-sizing:border-box; background:var(--panel); border:1px solid var(--grid); border-radius:4px; }
+  canvas.wheel, .ahead canvas { background:none; border:0; border-radius:0; }
+  .cap, .ttl { font-size:12px; color:var(--muted); margin:0 0 3px; text-align:left; }
+  .cap b, .ttl b { color:var(--fg); font-weight:600; }
+  .note { font-size:12.5px; color:var(--muted); margin-top:8px; line-height:1.45; }
+  .lgrow { margin:2px 0; } .lgrow > b:first-child { color:var(--fg); font-weight:600; margin-right:3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="controls">
+    <label>end ψ₁ <select id="preset">
+      <option value="packet">a wave packet</option>
+      <option value="excited">a signed state with one zero</option>
+      <option value="gauss">a Gaussian</option></select></label>
+    <label id="Ld">separation d <input id="d" type="range" min="0.5" max="6" step="0.05" value="1.4"><span class="val" id="dv"></span></label>
+    <label id="Lk">phase e<sup>ikx</sup>, k <input id="k" type="range" min="0" max="12" step="0.25" value="6"><span class="val" id="kv"></span></label>
+    <label>t <input id="t" type="range" min="0" max="1" step="any" value="0.5"><span class="val" id="tv"></span></label>
+    <button id="play">play</button>
+  </div>
+  <div class="grid">
+    <div class="col"><b class="ahead"><span class="t">Density μ(x,t) = |ψ(x,t)|²</span></b>
+      <div class="tag">start μ₀(x)</div><canvas id="d0" class="end"></canvas>
+      <canvas id="df" class="flow"></canvas>
+      <div class="tag">end μ₁(x)</div><canvas id="d1" class="end"></canvas></div>
+    <div class="col"><b class="ahead"><canvas id="wheel"></canvas><span class="t">Amplitude ψ(x,t)</span> <span>hue = phase, faded where |ψ| is small</span></b>
+      <div class="tag">start ψ₀(x)</div><canvas id="a0" class="end"></canvas>
+      <canvas id="af" class="flow"></canvas>
+      <div class="tag">end ψ₁(x)</div><canvas id="a1" class="end"></canvas></div>
+  </div>
+  <div class="note" id="note"></div>
+</div>
+<script>
+(function () {
+  "use strict";
+  const N = 700, XL = -10, XR = 10, dx = (XR - XL) / N, SIG = 0.7, NT = 161, M = 24, K = 4;
+  const x = new Float64Array(N); for (let i = 0; i < N; i++) x[i] = XL + (i + 0.5) * dx;
+  const $ = (id) => document.getElementById(id);
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const gaussMu = (c) => { const g = new Float64Array(N), z = 1 / Math.sqrt(2 * Math.PI * SIG * SIG);
+    for (let i = 0; i < N; i++) g[i] = z * Math.exp(-0.5 * ((x[i] - c) / SIG) ** 2); return g; };
+  const unit = (a) => { let s = 0; for (let i = 0; i < N; i++) s += a[i] * a[i]; s = Math.sqrt(s * dx); return a.map((v) => v / s); };
+  // same endpoints as the dictionary widget: source the Gaussian amplitude at -d/2; target at +d/2, a Gaussian (the wave packet's
+  // phase e^{ikx} is applied below) or the signed state (x - c) times a Gaussian, with one zero at c
+  function endpoints(preset, d) {
+    const a0 = gaussMu(-d / 2).map(Math.sqrt);
+    if (preset !== "excited") return [a0, gaussMu(d / 2).map(Math.sqrt)];
+    const c = d / 2; return [a0, unit(x.map((X) => (X - c) * Math.exp(-((X - c) ** 2) / (4 * SIG * SIG))))];
+  }
+  const slerp = (t, c) => { const th = Math.acos(Math.max(-1, Math.min(1, c))); return th < 1e-9 ? [1 - t, t] : [Math.sin((1 - t) * th) / Math.sin(th), Math.sin(t * th) / Math.sin(th)]; };
+
+  let S = null;
+  function build() {
+    const preset = $("preset").value, d = +$("d").value, k = preset === "packet" ? +$("k").value : 0;
+    const [a0, a1] = endpoints(preset, d);
+    // complex target, global phase aligned so that <psi0, psi1> is real and nonnegative
+    const r1 = new Float64Array(N), i1 = new Float64Array(N);
+    for (let i = 0; i < N; i++) { r1[i] = a1[i] * Math.cos(k * x[i]); i1[i] = a1[i] * Math.sin(k * x[i]); }
+    let ar = 0, ai = 0; for (let i = 0; i < N; i++) { ar += a0[i] * r1[i]; ai += a0[i] * i1[i]; } ar *= dx; ai *= dx;
+    const Fr = Math.hypot(ar, ai), c = Fr > 1e-12 ? ar / Fr : 1, s = Fr > 1e-12 ? -ai / Fr : 0, F = Math.min(1, Fr);
+    for (let i = 0; i < N; i++) { const R = r1[i] * c - i1[i] * s, I = r1[i] * s + i1[i] * c; r1[i] = R; i1[i] = I; }
+    // the Fubini-Study geodesic psi_t = a_t psi0 + b_t psi1 and its density on NT times; C: cumulative mass at the cell edges
+    const mu = [], Cg = [], re = [], im = []; let hmax = 0, amax = 0;
+    for (let n = 0; n < NT; n++) { const [fa, fb] = slerp(n / (NT - 1), F), R = new Float64Array(N), I = new Float64Array(N), m = new Float64Array(N), C = new Float64Array(N + 1);
+      for (let i = 0; i < N; i++) { R[i] = fa * a0[i] + fb * r1[i]; I[i] = fb * i1[i]; m[i] = R[i] * R[i] + I[i] * I[i]; amax = Math.max(amax, Math.sqrt(m[i])); }
+      let z = 0; for (let i = 0; i < N; i++) z += m[i]; z *= dx; for (let i = 0; i < N; i++) { m[i] /= z; C[i + 1] = C[i] + m[i] * dx; hmax = Math.max(hmax, m[i]); }
+      C[N] = 1; mu.push(m); Cg.push(C); re.push(R); im.push(I); }
+    const lo = -d / 2 - 3.3 * SIG, hi = preset === "excited" ? d / 2 + 4.6 * SIG : d / 2 + 3.3 * SIG;
+    S = { preset, F, mu, Cg, re, im, hmax, amax, lo, hi, img: {} };
+    $("Lk").style.display = preset === "packet" ? "" : "none";
+    $("dv").textContent = d.toFixed(2); $("kv").textContent = (+$("k").value).toFixed(2);
+  }
+  function inv(C, u) { let lo = 0, hi = N; while (hi - lo > 1) { const md = (lo + hi) >> 1; if (C[md] <= u) lo = md; else hi = md; }
+    const dd = C[hi] - C[lo], f = dd > 0 ? (u - C[lo]) / dd : 0.5; return XL + (lo + f) * dx; }
+  function cdf(C, X) { const f = (X - XL) / dx; if (f <= 0) return 0; if (f >= N) return 1; const i = Math.floor(f); return C[i] + (C[i + 1] - C[i]) * (f - i); }
+
+  // colours
+  const VIR = [[68, 1, 84], [59, 82, 139], [33, 145, 140], [94, 201, 98], [253, 231, 37]];
+  const vir = (v) => { v = Math.max(0, Math.min(1, v)) * 4; const i = Math.min(3, Math.floor(v)), f = v - i, a = VIR[i], b = VIR[i + 1];
+    return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]; };
+  const hsv = (hh, v) => { const h6 = ((hh % 1) + 1) % 1 * 6, i = Math.floor(h6), f = h6 - i, q = v * (1 - f), t = v * f;
+    const c = [[v, t, 0], [q, v, 0], [0, v, t], [0, q, v], [t, 0, v], [v, 0, q]][i % 6]; return c.map((z) => z * 255); };
+  const rgb = (c) => `rgb(${c.map(Math.round).join(",")})`;
+  const PL = 26, PR = 4; // left gutter for the t labels; every panel shares the x range [S.lo, S.hi]
+  function setup(cv) { const r = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * r) || cv.height !== Math.round(h * r)) { cv.width = Math.round(w * r); cv.height = Math.round(h * r); }
+    const g = cv.getContext("2d"); g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, w, h); return [g, w, h, r]; }
+  const atX = (arr, X) => { const f = (X - XL) / dx - 0.5; if (f <= 0) return arr[0]; if (f >= N - 1) return arr[N - 1]; const i = Math.floor(f); return arr[i] + (arr[i + 1] - arr[i]) * (f - i); };
+  const atT = (rows, tt, X) => { const n = Math.min(NT - 2, Math.floor(tt * (NT - 1))), f = tt * (NT - 1) - n; return (1 - f) * atX(rows[n], X) + f * atX(rows[n + 1], X); };
+  const XP = (X, w) => PL + (X - S.lo) / (S.hi - S.lo) * (w - PL - PR);
+  // a flow panel: x across, t down (t = 0 at the top, under the start)
+  function flow(id, key, col) {
+    const cv = $(id), [g, w, h, r] = setup(cv), pw = Math.round((w - PL - PR) * r), ph = Math.round(h * r), ik = key + ":" + pw + "x" + ph;
+    if (!S.img[ik]) { const imd = g.createImageData(pw, ph);
+      for (let py = 0; py < ph; py++) { const tt = (py + 0.5) / ph;
+        for (let px = 0; px < pw; px++) { const X = S.lo + (px + 0.5) / pw * (S.hi - S.lo), c = col(tt, X), o = 4 * (py * pw + px);
+          imd.data[o] = c[0]; imd.data[o + 1] = c[1]; imd.data[o + 2] = c[2]; imd.data[o + 3] = 255; } }
+      S.img[ik] = imd; }
+    g.putImageData(S.img[ik], Math.round(PL * r), 0);
+    g.fillStyle = css("--muted"); g.font = "10px system-ui, sans-serif"; g.textAlign = "right";
+    g.fillText("t = 0", PL - 3, 10); g.fillText("0.5", PL - 3, h / 2 + 3); g.fillText("1", PL - 3, h - 2);
+    return [g, w, h]; }
+  // the current time: a horizontal line at t, with the curve val(x) rising from it (a quarter of the panel at vmax)
+  function tline(g, w, h, t, val, vmax, col) { const y = Math.max(0.6, Math.min(h - 0.6, t * h)), A = 0.25 * h / vmax, n = Math.max(2, Math.round(w - PL - PR));
+    g.strokeStyle = col(0.9); g.lineWidth = 1.2; g.beginPath(); g.moveTo(PL, y); g.lineTo(w - PR, y); g.stroke();
+    g.beginPath(); g.moveTo(PL, y); for (let j = 0; j <= n; j++) { const px = PL + j / n * (w - PL - PR), X = S.lo + j / n * (S.hi - S.lo); g.lineTo(px, y - A * val(X)); } g.lineTo(w - PR, y);
+    g.fillStyle = col(0.18); g.fill(); g.strokeStyle = col(0.85); g.lineWidth = 1.3; g.stroke(); }
+  // a signed curve on the same line and scale (below the line where it is negative)
+  function tcurve(g, w, h, t, val, vmax, style, dash) { const y = Math.max(0.6, Math.min(h - 0.6, t * h)), A = 0.25 * h / vmax, n = Math.max(2, Math.round(w - PL - PR));
+    g.save(); g.setLineDash(dash); g.strokeStyle = style; g.lineWidth = 1.4; g.beginPath();
+    for (let j = 0; j <= n; j++) { const px = PL + j / n * (w - PL - PR), yy = y - A * val(S.lo + j / n * (S.hi - S.lo)); if (j) g.lineTo(px, yy); else g.moveTo(px, yy); } g.stroke(); g.restore(); }
+  function axis(g, w, h, b) { g.strokeStyle = css("--grid"); g.lineWidth = 1; g.beginPath(); g.moveTo(PL, b + 0.5); g.lineTo(w - PR, b + 0.5); g.stroke();
+    g.fillStyle = css("--muted"); g.font = "10px system-ui, sans-serif"; g.textAlign = "center"; const st = (S.hi - S.lo) > 7 ? 2 : 1;
+    for (let v = Math.ceil(S.lo / st) * st; v <= S.hi; v += st) g.fillText(v === 0 ? "x = 0" : String(v), XP(v, w), h - 2); }
+  function endDensity(id, n) { const cv = $(id), [g, w, h] = setup(cv), m = S.mu[n], ym = S.hmax * 1.05, b = h - 14;
+    g.beginPath(); g.moveTo(XP(S.lo, w), b); for (let i = 0; i < N; i++) if (x[i] >= S.lo && x[i] <= S.hi) g.lineTo(XP(x[i], w), b - m[i] / ym * (b - 2));
+    g.lineTo(XP(S.hi, w), b); g.globalAlpha = 0.25; g.fillStyle = css("--fs"); g.fill(); g.globalAlpha = 1; g.strokeStyle = css("--fs"); g.lineWidth = 1.6; g.stroke();
+    axis(g, w, h, b); }
+  // endpoint amplitude: a bar of height |psi(x)| at each x, coloured by the phase of psi(x)
+  function endAmp(id, n) { const cv = $(id), [g, w, h, r] = setup(cv), b = h - 14, R = S.re[n], I = S.im[n], step = 1 / r;
+    for (let px = PL; px < w - PR; px += step) { const X = S.lo + (px - PL) / (w - PL - PR) * (S.hi - S.lo), re = atX(R, X), im = atX(I, X), a = Math.hypot(re, im) / S.amax;
+      const c = hsv(Math.atan2(im, re) / (2 * Math.PI), 1); g.fillStyle = `rgb(${c.map(Math.round).join(",")})`; g.fillRect(px, b - a * (b - 2), step + 0.3, a * (b - 2)); }
+    axis(g, w, h, b); }
+  function wheel() { const cv = $("wheel"), [g, w, h] = setup(cv), R = Math.min(w, h) / 2 - 2, cx = w / 2, cy = h / 2;
+    for (let a = 0; a < 360; a += 2) { g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, R, -(a + 2.5) * Math.PI / 180, -a * Math.PI / 180);
+      const c = hsv(a / 360, 1); g.fillStyle = `rgb(${c.map(Math.round).join(",")})`; g.fill(); }
+    g.fillStyle = "#000"; g.font = "10px system-ui"; g.textAlign = "center"; }
+  function render() {
+    const sc = Math.sqrt(S.hmax), t = +$("t").value; $("tv").textContent = t.toFixed(2);
+    const [gd, wd, hd] = flow("df", "mu", (tt, X) => vir(Math.sqrt(Math.max(0, atT(S.mu, tt, X))) / sc));
+    // the amplitude: hue = phase, fading to the page background where |psi| is small (white in light mode, near black in dark)
+    const bgc = (() => { const c = css("--bg"), m = c.match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [255, 255, 255]; })();
+    tline(gd, wd, hd, t, (X) => Math.max(0, atT(S.mu, t, X)), S.hmax, (a) => `rgba(255,255,255,${a})`);
+    const [ga, wa, ha] = flow("af", "amp:" + bgc.join(","), (tt, X) => { const re = atT(S.re, tt, X), im = atT(S.im, tt, X), a = Math.min(1, Math.hypot(re, im) / S.amax),
+      h = hsv(Math.atan2(im, re) / (2 * Math.PI), 1); return h.map((v, k) => bgc[k] + (v - bgc[k]) * a); });
+    const fgc = bgc[0] + bgc[1] + bgc[2] > 380 ? "0,0,0" : "255,255,255";
+    tline(ga, wa, ha, t, (X) => Math.hypot(atT(S.re, t, X), atT(S.im, t, X)), S.amax, (a) => `rgba(${fgc},${a * 0.45})`);
+    tcurve(ga, wa, ha, t, (X) => atT(S.re, t, X), S.amax, `rgba(${fgc},0.95)`, []);
+    tcurve(ga, wa, ha, t, (X) => atT(S.im, t, X), S.amax, `rgba(${fgc},0.95)`, [4, 3]);
+    endDensity("d0", 0); endDensity("d1", NT - 1); endAmp("a0", 0); endAmp("a1", NT - 1); wheel();
+    $("note").innerHTML = `<div class="lgrow"><b>Endpoints:</b> start ψ₀, a Gaussian amplitude (top strips); end ψ₁, chosen above (bottom strips). Time runs down.</div>`
+      + `<div class="lgrow"><b>Left, density:</b> colour √μ(x, t), dark to bright; the line marks the current t, with μ(x, t) drawn on it.</div>`
+      + `<div class="lgrow"><b>Right, amplitude:</b> hue is the phase of ψ(x, t) (colour wheel: red +, cyan −), faded where |ψ| is small; the end strips show |ψ| as bar height in the same hues; the line marks the current t, with <span class="lg lg-line" style="color:var(--fg)"></span>Re ψ(x, t), <span class="lg lg-dash" style="color:var(--fg)"></span>Im ψ(x, t) and <span class="lg lg-fill" style="color:var(--fg)"></span>|ψ(x, t)| drawn on it.</div>`;
+  }
+  $("preset").onchange = () => { if ($("preset").value === "packet" && +$("k").value === 0) $("k").value = 6;
+    build(); render(); };
+  for (const id of ["d", "k"]) $(id).oninput = () => { build(); render(); };
+  $("t").oninput = render;
+  // play: back and forth between t = 0 and t = 1 until paused (the same in every widget of the post)
+  let playing = false, dir = 1, last = 0;
+  function tick(ts) { if (!playing) return; if (last) { let v = +$("t").value + dir * (ts - last) / 5000;
+      if (v >= 1) { v = 1; dir = -1; } if (v <= 0) { v = 0; dir = 1; } $("t").value = v; render(); } last = ts; requestAnimationFrame(tick); }
+  $("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "pause" : "play"; last = 0; if (playing) requestAnimationFrame(tick); };
+  let rz = 0; window.addEventListener("resize", () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(render); });
+  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+  const Q = new URLSearchParams(location.search);
+  for (const id of ["d", "k", "t"]) if (Q.has(id)) $(id).value = Q.get(id);
+  if (["gauss", "packet", "excited"].includes(Q.get("target"))) $("preset").value = Q.get("target");
+  build(); render();
+})();
+</script>
+</body>
+</html>
