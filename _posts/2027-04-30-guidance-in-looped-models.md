@@ -1,8 +1,8 @@
 ---
 layout: distill
 title: Guidance is becoming a cheat code for LLMs (with Loooop)
-description: An earlier loop can help guide the final prediction. We explain the decoding rule, the normalization gap between token and sequence
-  guidance, and why close loop logits can narrow that gap.
+description: Guidance can dramatically improve generation. Looped models offer a way to reduce the normalization gap between token-level guidance
+  and the guided joint distribution over a full sequence.
 date: "2027-04-30"
 future: true
 htmlwidgets: true
@@ -10,11 +10,15 @@ authors:
   - name: Anonymous
 bibliography: 2027-04-30-guidance-in-looped-models.bib
 toc:
-  - name: Guidance in looped models
-  - name: Token-level vs. sequence-level guidance
-  - name: Why loops narrow the gap
-  - name: Are loop predictions actually closer?
-  - name: The connection to diffusion
+  - name: Why diffusion guidance needs no normalizer
+  - name: Token-level guidance and the joint distribution
+    subsections:
+      - name: A two-token example
+  - name: Loooop
+    subsections:
+      - name: Why loops help
+  - name: Are predictions from different loops actually closer?
+  - name: Loops and diffusion, beyond guidance
   - name: What's next?
 _styles: |
   #guidance-article { --paper:var(--global-bg-color,#fcfbf8); --ink:var(--global-text-color,#282b2d); --muted:var(--global-text-color-light,#676b70); --line:var(--global-divider-color,#dedfdc); --blue:#225b87; --green:#207a65; --tint:#eef3f4; --sans:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; min-width:0; }
@@ -190,14 +194,70 @@ _styles: |
 
 <div id="guidance-article">
 
-<p class="opening">Alongside chain-of-thought,<d-cite key="cot"></d-cite> looped language models are attracting growing attention as another way to scale reasoning with more computation. These models repeatedly apply shared layers to refine their hidden states before predicting a token, and can outperform non-looped models on reasoning tasks at the same parameter count.<d-cite key="huginn,ouro,loopformer,fixed-points"></d-cite></p>
-<p>The looped design also opens up new possibilities for guidance. Specifically, guidance is a common decoding approach that steers generation by comparing a model's predictions with a reference and amplifying their differences. Guidance has been explored in LLM decoding for years, but with inconsistent gains.<d-cite key="dola"></d-cite><d-cite key="cd-reasoning"></d-cite> In looped models, however, recent work has shown this form of guidance to be particularly effective.<d-cite key="loopcd"></d-cite> <strong>What new possibilities for guidance do looped architectures offer?</strong> In this blog, we explain how loops can help guidance and how this connects language models more closely to diffusion.</p>
+<p class="opening">Guidance can dramatically improve prompt following and sample quality in image and video generation, simply by changing how a trained model is sampled.<d-cite key="cfg"></d-cite> Classifier-free guidance (CFG) is a standard ingredient in Stable Diffusion 3 and Wan.<d-cite key="sd3"></d-cite><d-cite key="wan"></d-cite> Its benefits are valuable enough that FLUX.1 [dev] is trained to distill guidance directly into the model.<d-cite key="flux"></d-cite></p>
+<p>Can language models benefit in the same way? There is a catch: applying guidance to each next-token prediction does not generally produce the desired guided joint distribution over the full token sequence. The two procedures normalize probabilities differently. <strong>Looped models offer a way to narrow this gap.</strong><d-cite key="huginn,ouro,loopformer,fixed-points"></d-cite> When predictions from different loops are close, guidance changes token preferences at first order, while the normalization error enters at second order. In this blog, we explain why loops can make guidance more natural for language models, and how this connects them to diffusion.</p>
 
-<h2 id="guidance-in-looped-models"><span aria-hidden="true" id="loops"></span>Guidance in looped models</h2>
+<h2 id="why-diffusion-guidance-needs-no-normalizer"><span aria-hidden="true" id="diffusion"></span>Why diffusion guidance needs no normalizer</h2>
+<figure class="visual-interlude" id="diffusion-interlude">
+<img alt="Sunlight makes soft, overlapping patterns on blue water." decoding="async" height="1067" loading="lazy" src="{{ '/assets/img/2027-04-30-guidance-in-looped-models/water-reflections.jpg' | relative_url }}" width="1600"/>
+</figure>
+<p>Start with a conditional density \(p(x\mid c)\), where \(c\) might be a text prompt. Suppose we want to favor samples that are especially characteristic of that condition. One way to express this preference is to tilt the density:</p>
+<div class="equation">\[
+  \widetilde p_w(x\mid c)
+  =\frac{1}{Z_w(c)}\,
+  \frac{p(x\mid c)^{1+w}}{p(x)^w},\qquad w\geq0.
+  \tag{1}
+\]</div>
+<p>The ratio \(p(x\mid c)/p(x)\) favors samples that are more likely under the prompt than without conditioning. At \(w=0\), we recover ordinary conditional generation. Increasing \(w\) strengthens that preference. The normalizer \(Z_w(c)\) makes the density integrate to one.</p>
+<p>Diffusion models use the score, the gradient of a log density, to guide denoising. <strong>Following common practice, we compute the score without knowing the normalizer, as the normalizer \(Z\) is considered independent of \(x\)</strong>.<d-cite key="sander"></d-cite> Guidance can therefore be written as a combination of the conditional and unconditional scores:</p>
+<div class="equation">\[
+  \nabla_x\log\widetilde p_w(x\mid c)
+  =(1+w)\nabla_x\log p(x\mid c)
+  -w\nabla_x\log p(x).
+  \tag{2}
+\]</div>
+<p>This is the score combination behind classifier-free guidance.<d-cite key="cfg"></d-cite> <strong>In this score formulation, the normalizer vanishes.</strong><sup class="citation" id="fnref-cfg-scope"><a aria-label="Footnote: scope of the CFG score identity" href="#fn-cfg-scope" role="doc-noteref">*</a></sup></p>
+<h2 id="token-level-guidance-and-the-joint-distribution"><span aria-hidden="true" id="sequences"></span>Token-level guidance and the joint distribution</h2>
+<figure class="visual-interlude" id="sequence-interlude">
+<img alt="Warm sunlight falls through a row of stone arches and windows." decoding="async" height="1067" loading="lazy" src="{{ '/assets/img/2027-04-30-guidance-in-looped-models/sunlit-arches.jpg' | relative_url }}" width="1600"/>
+</figure>
+<p>Guidance already exists in autoregressive LLMs. <em>Stay on topic with Classifier-Free Guidance</em> applies CFG by contrasting next-token predictions with and without the conditioning prompt, while keeping the generated prefix.<d-cite key="llm-cfg"></d-cite> Contrastive decoding uses a weaker model as the reference;<d-cite key="contrastive-decoding"></d-cite> DoLa uses predictions from earlier layers.<d-cite key="dola"></d-cite> Here we study their shared core idea: combine two next-token predictions, then normalize.</p>
+<p>The <strong>joint distribution</strong> assigns a probability to every complete token sequence. Applying guidance to that distribution means reweighting each sequence and normalizing once. Token-level guidance instead normalizes separately at each prefix. These operations generally produce different sequence probabilities.</p>
+<p>As Sander noted in his 2022 blog post:</p>
+<blockquote>
+<p>“my hunch is that diffusion guidance works so well precisely because we are able to apply it to the joint distribution”</p>
+<footer>Sander Dieleman, Guidance: a cheat code for diffusion models (2022).<d-cite key="sander"></d-cite></footer>
+</blockquote>
+<p>Let \(p_K\) be the predictor we want to strengthen and \(p_E\) its reference. For a sequence \(y=(y_1,\ldots,y_T)\) of fixed length \(T\), \(y_t\) is the next token and \(y_{&lt;t}=(y_1,\ldots,y_{t-1})\) is its prefix. Assuming positive token probabilities and leaving the fixed prompt conditioning implicit, token-level guidance gives</p>
+<div class="equation">\[
+  q(y_t\mid y_{&lt;t})=\frac{1}{C(y_{&lt;t})}\,
+    \frac{p_K(y_t\mid y_{&lt;t})^{1+w}}{p_E(y_t\mid y_{&lt;t})^w},
+  \qquad C(y_{&lt;t})=\sum_{y_t}\frac{p_K(y_t\mid y_{&lt;t})^{1+w}}{p_E(y_t\mid y_{&lt;t})^w}.
+\]</div>
+<p>Here \(C(y_{&lt;t})\) is the local normalizer; the sum runs over all possible next tokens.</p>
+<p>Write \(p_K(y)\) and \(p_E(y)\) for each model's sequence probability, obtained by multiplying its token probabilities. Both \(Q_{\rm joint}\) and \(Q_{\rm local}\) are distributions over <strong>complete sequences</strong>, but they apply guidance differently:</p>
+<div class="equation">\[
+  \begin{aligned}
+    Q_{\rm joint}(y)
+    &amp;=\frac{1}{Z}\,
+      \frac{p_K(y)^{1+w}}{p_E(y)^w},
+      \qquad Z=\sum_y\frac{p_K(y)^{1+w}}{p_E(y)^w},\\[4pt]
+    Q_{\rm local}(y)
+    &amp;=\frac{1}{\prod_{t=1}^T C(y_{&lt;t})}\,
+      \frac{p_K(y)^{1+w}}{p_E(y)^w}.
+  \end{aligned}
+  \tag{3}
+\]</div>
+<p>The numerators are identical, but the normalizers differ: \(Z\) is shared by every sequence, whereas the product of local normalizers depends on the sequence's prefixes \(y_{&lt;t}\). <strong>This is the normalization mismatch.</strong></p>
+<p>Additionally, computing the full-sequence normalizer \(Z\) exactly is impractical for real LLMs: it requires summing over all possible future token sequences, whose number grows exponentially with length.</p>
+<p><strong>If the guided joint distribution is our target, practical token-level guidance therefore tolerates a normalization error.</strong> The local rule avoids summing over future sequences by normalizing only the next-token scores. The question is how to make the resulting error small.</p>
+<h3 id="a-two-token-example">A two-token example</h3>
+<iframe class="guidance-toy-frame" loading="lazy" sandbox="allow-scripts allow-same-origin" src="{{ '/assets/html/2027-04-30-guidance-in-looped-models/guidance-toy.html' | relative_url }}" title="Interactive two-token guidance example"></iframe>
+<h2 id="loooop"><span aria-hidden="true" id="loops"></span>Loooop</h2>
 <figure class="visual-interlude" id="loop-interlude">
 <img alt="Looking down a spiral staircase, with repeating white curves and yellow-edged steps." decoding="async" height="854" loading="lazy" src="{{ '/assets/img/2027-04-30-guidance-in-looped-models/spiral-staircase.jpg' | relative_url }}" width="1280"/>
 </figure>
-<p>A looped Transformer applies <strong>the same block of layers repeatedly</strong> before predicting the next token. Huginn and Ouro implement this idea in different ways.<d-cite key="huginn"></d-cite><d-cite key="ouro"></d-cite> For the same text prefix, an early state \(h_E\) and a final state \(h_K\) can each be converted into next-token logits: \(z_E\) and \(z_K\). Logits are the unnormalized scores assigned to the vocabulary.</p>
+<p>A looped Transformer applies <strong>the same block of layers repeatedly</strong> before predicting the next token. Huginn and Ouro implement this idea in different ways.<d-cite key="huginn"></d-cite><d-cite key="ouro"></d-cite> Each completed loop gives a hidden state that can be converted into next-token logits (unnormalized token scores): \(z_E\) after an earlier loop \(E\), and \(z_K\) after the final loop \(K\).</p>
 <figure aria-label="Repeated applications of the same block f refine the hidden state from loop E to final loop K. The early and final logits are close and are combined for guidance." class="loop-architecture" id="loop-architecture">
 <div class="architecture-label">Same block, repeated</div>
 <div class="trajectory">
@@ -219,14 +279,14 @@ _styles: |
     z_{\rm guided}=z_K+w(z_K-z_E).
   \]</div>
 </figure>
-<p>The difference \(z_K-z_E\) records how the token scores change between the early and final loops. Instead of averaging the two predictions, guidance extrapolates beyond the final one:</p>
+<p>The earlier prediction serves as the weaker reference for guiding the final prediction. Both come from the same model on the same text prefix; the difference is how many loops of computation they use.</p>
+<p>LoopCD uses these predictions for guidance without additional training.<d-cite key="loopcd"></d-cite> Its logit variant strengthens the final logits \(z_K\) along the difference \(z_K-z_E\). Applying softmax gives \(q\), the <strong>guided next-token probability distribution</strong>:</p>
 <div class="equation">\[
   z_{\rm guided}=z_K+w(z_K-z_E),\qquad
   q=\operatorname{softmax}(z_{\rm guided}).
-  \tag{1}
+  \tag{4}
 \]</div>
-<p>Here \(w\geq0\) controls the guidance strength and \(q\) is the guided next-token distribution. At \(w=0\), we use the final prediction unchanged. For \(w&gt;0\), we move further along the early-to-final direction.</p>
-<p>LoopCD implements this idea without additional training or recurrent loops.<d-cite key="loopcd"></d-cite> Its logit variant uses the first loop as the reference and adds one evaluation of that state's output layers. It can also combine hidden states before the output layers. Both forms improve the published results below, with the number of loops unchanged within each comparison:</p>
+<p>LoopCD's logit variant uses the first loop as its reference. The paper also combines hidden states before converting them into logits; the analysis below concerns the logit rule in Equation (4).</p>
 <figure class="loopcd-results-figure" id="loopcd-results">
 <picture>
 <source height="950" media="(max-width: 600px)" srcset="{{ '/assets/img/2027-04-30-guidance-in-looped-models/loopcd-results-mobile.svg' | relative_url }}" width="520"/>
@@ -234,57 +294,21 @@ _styles: |
 </picture>
 <figcaption><strong>Guidance improves results at the same loop count.</strong> Replotted from LoopCD.<d-cite key="loopcd"></d-cite></figcaption>
 </figure>
-<p id="loopcd-hidden-state">The hidden-state result uses loop 7 to guide loop 32 before converting the combined state into logits.<d-cite key="loopcd"></d-cite> Our analysis below follows the logit rule in Equation (1).</p>
-<p>Using a reference prediction is already familiar in LLM decoding. Contrastive decoding compares a stronger model with a weaker one;<d-cite key="contrastive-decoding"></d-cite> DoLa contrasts predictions from different layers;<d-cite key="dola"></d-cite> language-model CFG compares predictions with and without prompt conditioning.<d-cite key="llm-cfg"></d-cite> Loops supply another reference: the same model, on the same prefix, after less computation.</p>
-<p>LoopCD's results motivate a closer look at guidance between loops of the same model. We start with the gap between <strong>the sequence-level distribution we want and the token-level rule we use in practice,</strong> then examine how similar logits across loops can reduce that gap.</p>
-<h2 id="token-level-vs-sequence-level-guidance"><span aria-hidden="true" id="sequences"></span>Token-level vs. sequence-level guidance</h2>
-<figure class="visual-interlude" id="sequence-interlude">
-<img alt="Warm sunlight falls through a row of stone arches and windows." decoding="async" height="1067" loading="lazy" src="{{ '/assets/img/2027-04-30-guidance-in-looped-models/sunlit-arches.jpg' | relative_url }}" width="1600"/>
-</figure>
-<p>Our target is a guided joint distribution over complete token sequences, favoring sequences that the final predictor prefers relative to the reference. <strong>We want to guide the complete sequence, but in practice we apply guidance to one token at a time.</strong></p>
-<p>Let \(p_E=\operatorname{softmax}(z_E)\) and \(p_K=\operatorname{softmax}(z_K)\) be the early and final predictors. For a fixed-length sequence \(y=(y_1,\ldots,y_T)\), \(y_t\) is the next token and \(y_{&lt;t}\) its prefix. We analyze a fixed guidance strength \(w\), assume positive token probabilities, and leave the shared prompt implicit.</p>
-<p>The practical token-level rule in Equation (1) can be written as:</p>
-<div class="equation">\[
-  q(y_t\mid y_{&lt;t})=\frac{1}{C(y_{&lt;t})}\,
-    \frac{p_K(y_t\mid y_{&lt;t})^{1+w}}{p_E(y_t\mid y_{&lt;t})^w},
-  \qquad C(y_{&lt;t})=\sum_{y_t}\frac{p_K(y_t\mid y_{&lt;t})^{1+w}}{p_E(y_t\mid y_{&lt;t})^w}.
-  \tag{2}
-\]</div>
-<p>\(C(y_{&lt;t})\) is the local normalizer. A token gets more weight when the final predictor favors it relative to the early one. The normalizer makes these weights sum to one at the current prefix.</p>
-<p>Each predictor assigns a probability to a complete sequence by multiplying its next-token probabilities. Both \(Q_{\rm joint}\) and \(Q_{\rm local}\) are distributions over these <strong>complete sequences</strong>, but they apply guidance differently:</p>
-<div class="equation">\[
-  \begin{aligned}
-    Q_{\rm joint}(y)
-    &amp;=\frac{1}{Z}\,
-      \frac{p_K(y)^{1+w}}{p_E(y)^w},
-      \qquad Z=\sum_y\frac{p_K(y)^{1+w}}{p_E(y)^w},\\[4pt]
-    Q_{\rm local}(y)
-    &amp;=\frac{1}{\prod_{t=1}^T C(y_{&lt;t})}\,
-      \frac{p_K(y)^{1+w}}{p_E(y)^w}.
-  \end{aligned}
-  \tag{3}
-\]</div>
-<p><strong>The numerators match; the normalizers do not.</strong> \(Z\) is shared by every sequence. The product of local normalizers depends on which prefixes the generated sequence visits. This is the normalization mismatch.</p>
-<h3>A two-token example</h3>
-<iframe class="guidance-toy-frame" loading="lazy" sandbox="allow-scripts allow-same-origin" src="{{ '/assets/html/2027-04-30-guidance-in-looped-models/guidance-toy.html' | relative_url }}" title="Interactive two-token guidance example"></iframe>
-<p>The example identifies what we need to control: variation in the local normalizers along a sequence. <strong>What would keep these normalizers close to 1?</strong></p>
-<h2 id="why-loops-narrow-the-gap"><span aria-hidden="true" id="cancellation"></span>Why loops narrow the gap</h2>
-<figure class="visual-interlude" id="normalizer-interlude">
-<img alt="Sunlight makes soft, overlapping patterns on blue water." decoding="async" height="1067" loading="lazy" src="{{ '/assets/img/2027-04-30-guidance-in-looped-models/water-reflections.jpg' | relative_url }}" width="1600"/>
-</figure>
+<p>Because every loop repeats the same computation, its predictions are expected to stay close as the hidden state is refined. This gives us a route back to the normalization problem: <strong>close loop predictions can make token-level guidance a better approximation to the guided joint distribution.</strong> Below we show how the error depends on their logit difference, then measure that difference.</p>
+<h3 id="why-loops-help"><span aria-hidden="true" id="cancellation"></span>Why loops help</h3>
 <p>The key assumption is that predictions from different loops have similar logits. Under this small-difference assumption, we can bound the local normalizer \(C(y_{&lt;t})\).</p>
-<p>At a fixed prefix, write \(\delta=z_K-z_E=\epsilon d\), with \(d\) bounded and \(\epsilon\) small. Keep \(w\) fixed and bounded. The local log-normalizer then has the expansion</p>
+<p>At a fixed prefix, write \(\delta=z_K-z_E\). After removing an irrelevant constant offset, assume \(\delta=\epsilon d\), with \(d\) bounded and \(\epsilon\) small. Keep the guidance strength fixed and bounded. A Taylor expansion gives</p>
 <div class="key-result">
 <div class="equation">\[
     \boxed{\log C(y_{&lt;t})
     =\frac{w(1+w)}{2}\operatorname{Var}_{p_E}(\delta)
     +O(\epsilon^3).}
-    \tag{4}
+    \tag{5}
   \]</div>
-<p>The variance is over candidate next tokens under the early predictor, at the same prefix. The constant and first-order terms cancel: the local log-normalizer starts at second order in the logit difference.</p>
+<p>The constant and first-order terms cancel. Guidance changes token log-odds at first order; its local log-normalization cost starts at second order.</p>
 </div>
 <details class="proof" id="proof-taylor">
-<summary>Proof of Equation (4)</summary>
+<summary>Proof of Equation (5)</summary>
 <div class="proof-body">
 <p id="proof-kl">Fix a prefix \(y_{&lt;t}\). The local normalizer satisfies the exact identity</p>
 <div class="equation">\[
@@ -293,14 +317,14 @@ _styles: |
         &amp;=D_{\rm KL}\bigl(p_K(\cdot\mid y_{&lt;t})\Vert q(\cdot\mid y_{&lt;t})\bigr)\\
         &amp;\quad+wD_{\rm KL}\bigl(p_K(\cdot\mid y_{&lt;t})\Vert p_E(\cdot\mid y_{&lt;t})\bigr).
       \end{aligned}
-      \tag{5}
+      \tag{6}
     \]</div>
-<p><strong>Proof of Equation (5).</strong> For each possible next token \(y_t\), rearrange the definition of \(q(y_t\mid y_{&lt;t})\):</p>
+<p><strong>Proof of Equation (6).</strong> For each possible next token \(y_t\), rearrange the definition of \(q(y_t\mid y_{&lt;t})\):</p>
 <div class="equation">\[
       \log\frac{p_K(y_t\mid y_{&lt;t})}{q(y_t\mid y_{&lt;t})}
       =\log C(y_{&lt;t})-w\log\frac{p_K(y_t\mid y_{&lt;t})}{p_E(y_t\mid y_{&lt;t})}.
     \]</div>
-<p>Taking the expectation over \(y_t\sim p_K(\cdot\mid y_{&lt;t})\) yields Equation (5). For \(w\geq0\), both KL terms are nonnegative, so \(\log C(y_{&lt;t})\geq0\). This identity does not require small logit differences. \(\square\)</p>
+<p>Taking the expectation over \(y_t\sim p_K(\cdot\mid y_{&lt;t})\) yields Equation (6). For \(w\geq0\), both KL terms are nonnegative, so \(\log C(y_{&lt;t})\geq0\). This identity does not require small logit differences. \(\square\)</p>
 <p>For the Taylor expansion, write the logit difference as \(\delta(y_t\mid y_{&lt;t})=z_K(y_t\mid y_{&lt;t})-z_E(y_t\mid y_{&lt;t})\). Define its log moment-generating function under the reference distribution:</p>
 <div class="equation">\[
       \psi(\alpha;y_{&lt;t})
@@ -335,18 +359,18 @@ _styles: |
           +O(\epsilon^3).
       \end{aligned}
     \]</div>
-<p>This proves Equation (4). \(\square\)</p>
+<p>This proves Equation (5). \(\square\)</p>
 </div>
 </details>
-<p>To connect this local result to the sequence distribution, suppose \(0\leq\log C(y_{&lt;t})\leq\eta\) at every prefix of a length-\(T\) sequence. Equation (3) then gives</p>
+<p>Suppose \(0\leq\log C(y_{&lt;t})\leq\eta\) at every prefix of a length-\(T\) sequence. Equation (3) then bounds the log-probability difference between token-level guidance and the guided joint distribution:</p>
 <div class="equation">\[
   \left|\log\frac{Q_{\rm local}(y)}{Q_{\rm joint}(y)}\right|
   \leq T\eta.
-  \tag{6}
+  \tag{7}
 \]</div>
-<p>Under the uniform small-difference assumption, \(\eta=O(\epsilon^2)\), so the sequence log-probability mismatch is \(O(T\epsilon^2)\). The global normalizer is included in this bound.</p>
+<p>Equation (7) bounds the full-sequence error by \(T\eta\). Under the uniform small-difference assumption, \(\eta=O(\epsilon^2)\), so this error is \(O(T\epsilon^2)\): close predictions let the token-level rule approximate the guided joint distribution without summing over future sequences.</p>
 <details class="proof" id="proof-sequence">
-<summary>Proof of Equation (6)</summary>
+<summary>Proof of Equation (7)</summary>
 <div class="proof-body">
 <p>Set \(D(y)=\prod_t C(y_{&lt;t})\). Equation (3) gives \(ZQ_{\rm joint}(y)=Q_{\rm local}(y)D(y)\). Summing over sequences gives</p>
 <div class="equation">\[
@@ -358,30 +382,22 @@ _styles: |
       \log\frac{Q_{\rm local}(y)}{Q_{\rm joint}(y)}
       =\log Z-\log D(y).
     \]</div>
-<p>Both terms lie in \([0,T\eta]\), establishing Equation (6). The bound includes both the local normalizers and the global normalizer. \(\square\)</p>
+<p>Both terms lie in \([0,T\eta]\), establishing Equation (7). This argument retains the global normalizer rather than dropping it.</p>
 </div>
 </details>
-<p><strong>Guidance changes token preferences at first order in \(\epsilon\), while the sequence mismatch accumulates at second order, \(O(T\epsilon^2)\).</strong> This is the useful separation: a nonzero guidance adjustment can coexist with a smaller normalization error.</p>
-<h2 id="are-loop-predictions-actually-closer"><span aria-hidden="true" id="measurements"></span>Are loop predictions actually closer?</h2>
-<p>We compared Huginn-0125 and Ouro-2.6B with two ordinary Transformers, Qwen2.5-3B and Pythia-2.8B. Each model saw the same text prefixes. For each model, we kept its final depth fixed and asked: <strong>how much do the next-token logits change between an intermediate depth and the final one?</strong> Depth means completed loops for a looped model and completed layers for an ordinary Transformer.</p>
-<p>The horizontal axis below is the fraction of computation completed: 50% means halfway through that model's loops or layers. Lower values mean the intermediate and final logits are closer. Panel B also adjusts for differences in final-logit scale.</p>
-<figure class="measurement-figure" id="readout-comparison">
-<picture>
-<source media="(max-width: 600px)" srcset="{{ '/assets/img/2027-04-30-guidance-in-looped-models/logit-gaps-mobile.svg' | relative_url }}"/>
-<img alt="Logit changes from an intermediate loop or layer to the final depth. Huginn and Ouro have smaller changes than Qwen and Pythia, both in centered RMS and after adjusting for final-logit scale." height="720" loading="eager" src="{{ '/assets/img/2027-04-30-guidance-in-looped-models/logit-gaps.svg' | relative_url }}" width="1440"/>
-</picture>
-<figcaption><strong>How much do predictions change with more computation?</strong> Panel A: the centered RMS in Equation (7). Panel B: the same gap divided by the final logits' centered RMS at each prefix, then averaged, to account for different logit scales. The horizontal axis changes the intermediate loop or layer; the final depth stays fixed. Lower values mean closer intermediate and final predictions.</figcaption>
-</figure>
-<p><strong>The looped models' mean gaps are 2.8–14.1 times smaller</strong> across all twelve comparisons. Every paired 95% bootstrap interval for the ratio lies below one. The ordering also holds after scale normalization and when using only question prefixes, before any answer text.</p>
-<p>To measure this gap, let \(k\) be the intermediate depth, \(K\) the fixed final depth, \(V\) the vocabulary size, and \(v\) a candidate token's index. At each prefix, set \(\delta^{(k)}_v=z_{K,v}-z_{k,v}\) and remove its vocabulary mean, \(\bar\delta^{(k)}=V^{-1}\sum_v\delta^{(k)}_v\). We then compute</p>
+<p>This is why similar loop outputs help: guidance changes token preferences at first order in \(\epsilon\), while the mismatch between token-level guidance and the guided joint distribution is \(O(T\epsilon^2)\) for a sequence of length \(T\).</p>
+<h2 id="are-predictions-from-different-loops-actually-closer"><span aria-hidden="true" id="measurements"></span>Are predictions from different loops actually closer?</h2>
+<p>We compared two looped models, Huginn-0125 and Ouro-2.6B, with two ordinary Transformers, Qwen2.5-3B and Pythia-2.8B. Each model saw the same 1,024 text prefixes: eight positions on each of 128 GSM8K development questions. At each prefix, we compared the model's next-token logits partway through its computation with its own final logits.</p>
+<p>Here, <strong>depth \(k\)</strong> means the number of completed loops in a looped model, or completed layers in an ordinary Transformer. The final depth \(K\) stays fixed. Let \(V\) be the vocabulary size and \(v\in\{1,\ldots,V\}\) a candidate token's index. Then \(z_{k,v}(y_{&lt;t})\) is that token's score after depth \(k\), on the same text prefix \(y_{&lt;t}\).</p>
+<p>For each \(k\), compute the change to the final score, \(\delta^{(k)}_v(y_{&lt;t})=z_{K,v}(y_{&lt;t})-z_{k,v}(y_{&lt;t})\). Remove its vocabulary mean, \(\bar\delta^{(k)}(y_{&lt;t})=V^{-1}\sum_v\delta^{(k)}_v(y_{&lt;t})\), because adding the same constant to every logit does not change softmax. We measure the remaining change with</p>
 <div class="equation">\[
   \operatorname{RMS}_{\rm centered}(k,y_{&lt;t})
   =\sqrt{\frac{1}{V}\sum_{v=1}^V
     \bigl(\delta^{(k)}_v(y_{&lt;t})-\bar\delta^{(k)}(y_{&lt;t})\bigr)^2}.
-  \tag{7}
+  \tag{8}
 \]</div>
-<p>This is the standard deviation of the logit changes across the vocabulary. Removing the mean ignores shifts that add the same constant to every token, since those do not change softmax. The plot averages this quantity over matched prefixes.</p>
-<p id="measurement-setup">We used 1,024 text prefixes: eight positions on each of 128 GSM8K development questions. At every prefix, each intermediate prediction is compared with that model's own final prediction. The plotted positions are \(k/K\):</p>
+<p>Intuitively, this measures <strong>how much the next-token scores change between an intermediate depth and the final depth</strong>. It is the standard deviation of those score changes across the vocabulary. A smaller value means the predictions vary less as the model performs more loops or layers.</p>
+<p>In the plot, we vary \(k\), keep the prefix and final depth \(K\) fixed, and average the RMS over the 1,024 prefixes. The horizontal position is \(k/K\): 50% means halfway through that model. The depths used for the quarter, half, and three-quarter comparisons are:</p>
 <div class="table-scroll">
 <table>
 <thead><tr><th scope="col">Model</th><th scope="col">Intermediate \(k\): 25%, 50%, 75%</th><th scope="col">Fixed final \(K\)</th></tr></thead>
@@ -393,37 +409,27 @@ _styles: |
 </tbody>
 </table>
 </div>
-<p>For panel B, each prefix's centered RMS gap is divided by the final logits' centered RMS before averaging. This accounts for different logit scales across models.</p>
+<figure class="measurement-figure" id="readout-comparison">
+<picture>
+<source media="(max-width: 600px)" srcset="{{ '/assets/img/2027-04-30-guidance-in-looped-models/logit-gaps-mobile.svg' | relative_url }}"/>
+<img alt="Logit changes from an intermediate loop or layer to the final depth. Huginn and Ouro have smaller changes than Qwen and Pythia, both in centered RMS and after adjusting for final-logit scale." height="720" loading="eager" src="{{ '/assets/img/2027-04-30-guidance-in-looped-models/logit-gaps.svg' | relative_url }}" width="1440"/>
+</picture>
+<figcaption><strong>How much do predictions change with more computation?</strong> Panel A: the centered RMS in Equation (8). Panel B: the same gap divided by the final logits' centered RMS at each prefix, then averaged, to account for different logit scales. The horizontal axis changes the intermediate loop or layer; the final depth stays fixed. Lower values mean closer intermediate and final predictions.</figcaption>
+</figure>
+<p><strong>The looped models' mean gaps are 2.8–14.1 times smaller</strong> across all twelve comparisons. Every paired 95% bootstrap interval for the ratio lies below one. The ordering also holds after scale normalization and when using only question prefixes, before any answer text.</p>
 <div class="key-result" id="measurement-takeaway">
-<p>Our measurements show smaller intermediate-to-final logit gaps in the looped models we tested. <strong>This supports the small-difference assumption behind our analysis, connecting similar loop predictions to a smaller normalization mismatch in token-level guidance.</strong></p>
+<p><strong>The smaller logit gaps support the proposed mechanism: loop predictions stay closer, making smaller normalization errors plausible.</strong> Under the small-difference assumption, guidance changes token preferences at first order while the normalization error grows only at second order. This gives looped models a natural route toward effective token-level guidance that stays close to the desired joint distribution.</p>
 </div>
-<h2 id="the-connection-to-diffusion"><span aria-hidden="true" id="connections"></span>The connection to diffusion</h2>
+<h2 id="loops-and-diffusion-beyond-guidance"><span aria-hidden="true" id="connections"></span>Loops and diffusion, beyond guidance</h2>
 <figure class="visual-interlude" id="connections-interlude">
 <img alt="A river curves between moss-covered canyon walls and green banks." decoding="async" height="2133" loading="lazy" src="{{ '/assets/img/2027-04-30-guidance-in-looped-models/winding-river.jpg' | relative_url }}" width="1600"/>
 </figure>
-<p>The extrapolation in Equation (1) also appears in diffusion guidance. Classifier-free guidance strengthens a prompt-conditioned prediction relative to an unconditional reference.<d-cite key="cfg"></d-cite> The algebra is familiar, but the role of the normalizer differs.</p>
-<div class="key-result" id="diffusion">
-<p><strong>Same reweighting idea, different treatment of the normalizer.</strong> At a fixed diffusion noise level, write \(p(x\mid c)\) for the conditional density and \(p(x)\) for the unconditional one. Guidance tilts their ratio:</p>
-<div class="equation">\[
-    \widetilde p_w(x\mid c)
-    =\frac{1}{Z_w(c)}
-      \frac{p(x\mid c)^{1+w}}{p(x)^w}.
-    \tag{8}
-  \]</div>
-<p>Diffusion uses a score, the gradient of a log density. Differentiation gives</p>
-<div class="equation">\[
-    \nabla_x\log\widetilde p_w(x\mid c)
-    =(1+w)\nabla_x\log p(x\mid c)-w\nabla_x\log p(x).
-    \tag{9}
-  \]</div>
-<p><strong>The normalizer vanishes because it does not depend on the sample coordinates \(x\).</strong><d-cite key="sander"></d-cite><sup class="citation" id="fnref-cfg-scope"><a aria-label="Footnote: scope of the CFG score identity" href="#fn-cfg-scope" role="doc-noteref">*</a></sup></p>
-</div>
-<p>Token-level guidance does not remove its prefix-dependent normalizers this way. Instead, close loop logits can make their effect small. Autoguidance makes the analogy more direct: it guides a diffusion model using a weaker version of a model,<d-cite key="autoguidance"></d-cite> while loop guidance obtains its reference from an earlier stage of the same computation.</p>
-<p>Connections between loops and diffusion also extend to how computation is trained. Time-Modulated Looped Transformers borrow diffusion-style timestep conditioning;<d-cite key="tmlt"></d-cite> LoopFormer adds step-size conditioning and shortcut consistency.<d-cite key="loopformer"></d-cite> Denoising Recursion Models learn correction of corrupted solutions,<d-cite key="denoising-recursion"></d-cite> and <em>Thinking with Looped Flows</em> couples recurrent states to a denoising flow.<d-cite key="looped-flows"></d-cite> In the other direction, Looped Diffusion Language Models and Looped-DiT repeat Transformer blocks inside diffusion models.<d-cite key="loopmdm"></d-cite><d-cite key="looped-dit"></d-cite></p>
+<p><strong>Guidance is one connection between looped models and diffusion; learning to refine a prediction is the broader one.</strong> Autoguidance uses a smaller, less-trained diffusion model as a reference,<d-cite key="autoguidance"></d-cite> while a looped model can use its own earlier prediction. In both cases, a weaker prediction provides information for improving a stronger one.</p>
+<p>These connections are now explicit in the methods themselves. Time-Modulated Looped Transformers borrow diffusion-style timestep conditioning,<d-cite key="tmlt"></d-cite> and LoopFormer adds step-size conditioning and shortcut consistency.<d-cite key="loopformer"></d-cite> Denoising Recursion Models learn multi-step correction of corrupted solutions,<d-cite key="denoising-recursion"></d-cite> while <em>Thinking with Looped Flows</em> couples recurrent states to a learned denoising flow.<d-cite key="looped-flows"></d-cite> In the other direction, Looped Diffusion Language Models and Looped-DiT repeat Transformer blocks inside diffusion models, allowing compute to grow through loop depth as well as sampling steps.<d-cite key="loopmdm"></d-cite><d-cite key="looped-dit"></d-cite></p>
 <h2 id="what-s-next"><span aria-hidden="true" id="whats-next"></span>What's next?</h2>
 <p>In this blog, we showed that intermediate and final logits are much closer in the looped models we tested. This supports an approximate decomposition of sequence-level guidance into per-token guidance: close logits reduce the normalizer mismatch, helping explain why token-level guidance can work so well in looped models.</p>
 <p>The same structure offers flexibility at test time. Rather than one fixed computation, a looped model performs a sequence of smaller refinement steps. An inference algorithm can decide how long to keep refining a state and how strongly to steer each update.</p>
 <p>The broader picture concerns test-time scaling itself. Test-time scaling is about how computation is organized, not only how much is spent.<d-cite key="test-time-compute"></d-cite> Loops refine a hidden state; diffusion refines a sample. Guidance adds another use for their intermediate predictions: a direction for correction. <strong>More compute is useful when the inference algorithm knows what to do with it. What scales is the model together with that algorithm.</strong></p>
-<p class="endnote" id="fn-cfg-scope" role="doc-footnote"><sup>*</sup> Score-based models learn scores of noisy distributions from samples.<d-cite key="score-sde"></d-cite> Equation (9) applies the reweighting identity at a fixed noise level. Using these guided scores throughout denoising need not sample the corresponding reweighted clean-data distribution: reweighting and adding noise do not generally commute. Sander's correction,<d-cite key="sander"></d-cite> Bradley and Nakkiran,<d-cite key="predictor-corrector"></d-cite> and Chidambaram et al. discuss this distinction.<d-cite key="fine-grained"></d-cite> Score-level CFG is therefore a practical implementation of the reweighting idea, not an exact clean-data sampling guarantee. <a aria-label="Back to the CFG score footnote marker" class="citation-back" href="#fnref-cfg-scope" role="doc-backlink">↩</a></p>
+<p class="endnote" id="fn-cfg-scope" role="doc-footnote"><sup>*</sup> Score-based models learn scores of noisy distributions from samples.<d-cite key="score-sde"></d-cite> Combining conditional and unconditional score estimates implements the reweighting idea at each noise level, although the resulting sampler need not reproduce the corresponding clean-data distribution in Equation (1).<d-cite key="sander"></d-cite><d-cite key="predictor-corrector"></d-cite><d-cite key="fine-grained"></d-cite> We therefore view score-level CFG as a practical surrogate for distribution-level reweighting. <a aria-label="Back to the CFG score footnote marker" class="citation-back" href="#fnref-cfg-scope" role="doc-backlink">↩</a></p>
 
 </div>
