@@ -315,6 +315,15 @@ _styles: |
     }
   }
   .post.distill .lu-embedding-figure > img { border-radius: 10px; }
+  /* Use explicit SVG palettes so manual theme switching also works in Safari.
+     Both variants retain the original dimensions and optical alignment. */
+  .post.distill img.lu-diagram-dark { display: none !important; }
+  html[data-theme="dark"] .post.distill img.lu-diagram-light { display: none !important; }
+  html[data-theme="dark"] .post.distill img.lu-diagram-dark { display: block !important; }
+  @media print {
+    html[data-theme] .post.distill img.lu-diagram-dark { display: none !important; }
+    html[data-theme] .post.distill img.lu-diagram-light { display: block !important; }
+  }
   .post.distill d-article > figure > img { margin-inline: auto; max-width: 100%; }
   @media (max-width: 600px) {
     .post.distill d-article > figure > figcaption { font-size: max(.9375rem, 15px); padding: 0; }
@@ -325,8 +334,8 @@ _styles: |
 ---
 
 <figure class="l-page lu-hero">
-  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/hero.html?v=41aad18b459cb9c6' | relative_url }}" title="Play the learned Breakout world model" loading="eager" width="100%" height="620" frameborder="0" style="display:block;width:100%;border:0;">
-    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/hero.html?v=41aad18b459cb9c6' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Play the learned Breakout world model</a>
+  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/hero.html?v=58fead9d7c76d595' | relative_url }}" title="Play the learned Breakout world model" loading="eager" width="100%" height="620" frameborder="0" style="display:block;width:100%;border:0;">
+    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/hero.html?v=58fead9d7c76d595' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Play the learned Breakout world model</a>
   </iframe>
 </figure>
 
@@ -341,7 +350,8 @@ _styles: |
 <p lang="en" class="lu-question"><strong>Can we learn to simulate environments through repeated application of the same local rules,<br>with only limited global communication?</strong></p>
 
 <figure class="l-page lu-capacity-figure">
-  <img data-zoomable title="Click to enlarge" src="{{ 'assets/img/2027-04-30-learning-local-universes/capacity_hypothesis.svg?v=7190d9b39e70b3bf' | relative_url }}" alt="Proposed allocation of interaction capacity across distance" width="730" height="365" loading="lazy" style="display:block;height:auto;">
+  <img class="lu-diagram-light" data-zoomable title="Click to enlarge" src="{{ 'assets/img/2027-04-30-learning-local-universes/capacity_hypothesis.svg?v=7190d9b39e70b3bf' | relative_url }}" alt="Proposed allocation of interaction capacity across distance" width="730" height="365" loading="eager" style="display:block;height:auto;">
+  <img class="lu-diagram-dark" data-zoomable title="Click to enlarge" src="{{ 'assets/img/2027-04-30-learning-local-universes/capacity_hypothesis_dark.svg?v=27b0b238be953bde' | relative_url }}" alt="Proposed allocation of interaction capacity across distance" width="730" height="365" loading="eager" style="display:block;height:auto;">
   <figcaption>A schematic design of our hypothesis: W-NCA allocates most of its capacity to local interactions, using compact signals for distant coordination.</figcaption>
 </figure>
 
@@ -490,15 +500,16 @@ _styles: |
 <p lang="en">To solve this problem, we introduce a small global “scratchpad” that allows for low-bandwidth communication between distant cells. After the inner rollout, a max-pool across the whole grid is applied to two of the hidden channels. This simple mechanism provides a short path for information and gradients to flow over long distances. W-NCA learns to propagate two kinds of signals through one of the global channels. The first is a brief, high-amplitude spike, signaling a score update. The second one consists of a half-amplitude and longer spike that signals a lost life.</p>
 
 <figure class="l-page lu-wide-diagram">
-  <img data-zoomable title="Click to enlarge" src="{{ 'assets/img/2027-04-30-learning-local-universes/global.svg' | relative_url }}" alt="Global Scratchpad: Local Propagation to Global Broadcast via Max-Pooling" width="660" height="300" loading="lazy" style="display:block;width:100%;height:auto;">
+  <img class="lu-diagram-light" data-zoomable title="Click to enlarge" src="{{ 'assets/img/2027-04-30-learning-local-universes/global.svg' | relative_url }}" alt="Global Scratchpad: Local Propagation to Global Broadcast via Max-Pooling" width="660" height="300" loading="eager" style="display:block;width:100%;height:auto;">
+  <img class="lu-diagram-dark" data-zoomable title="Click to enlarge" src="{{ 'assets/img/2027-04-30-learning-local-universes/global_dark.svg?v=784c5726c888861d' | relative_url }}" alt="Global Scratchpad: Local Propagation to Global Broadcast via Max-Pooling" width="660" height="300" loading="eager" style="display:block;width:100%;height:auto;">
   <figcaption>The maximum activation is taken across the grid and broadcast back to all cells, allowing a local event to trigger a distant update.</figcaption>
 </figure>
 
 <p lang="en">We mechanistically test the role of global communication by artificially injecting or suppressing signals on the global channel. Score updates and life losses stop occurring when the channel is clipped at its baseline activity value. Conversely, injecting prototypical spikes induces the expected changes without affecting the rest of the cells in the grid.</p>
 
 <figure class="l-page" id="breakout-details-demo">
-  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/breakout.html?v=e73eab0b28178a79' | relative_url }}" title="Breakout: local physics and global communication" loading="lazy" width="100%" height="1100" frameborder="0" style="display:block;width:100%;border:0;">
-    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/breakout.html?v=e73eab0b28178a79' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Breakout: local physics and global communication</a>
+  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/breakout.html?v=00dfaa6d608ca9cf' | relative_url }}" title="Breakout: local physics and global communication" loading="lazy" width="100%" height="1100" frameborder="0" style="display:block;width:100%;border:0;">
+    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/breakout.html?v=00dfaa6d608ca9cf' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Breakout: local physics and global communication</a>
   </iframe>
 </figure>
 
@@ -507,16 +518,16 @@ _styles: |
 <p lang="en">During training, W-NCA only observes trajectories from valid Breakout games, always featuring a single paddle, a single ball, and fixed-position bricks, lives, and digits. To test whether the environment can be edited in real time during simulation, we directly modify the cells’ RGB channels while W-NCA simultaneously updates the grid.</p>
 
 <figure class="l-page" id="interventions-album">
-  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/interventions.html?v=bbe1327704e5362c' | relative_url }}" name="interventions-player" title="Recorded interventions in the Breakout world" loading="lazy" width="100%" height="540" frameborder="0" style="display:block;width:100%;border:0;">
-    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/interventions.html?v=bbe1327704e5362c' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Recorded interventions in the Breakout world</a>
+  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/interventions.html?v=1eb72c4f304f713d' | relative_url }}" name="interventions-player" title="Recorded interventions in the Breakout world" loading="lazy" width="100%" height="540" frameborder="0" style="display:block;width:100%;border:0;">
+    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/interventions.html?v=1eb72c4f304f713d' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Recorded interventions in the Breakout world</a>
   </iframe>
 </figure>
 
-<p lang="en">For example, it is possible to <a href="{{ 'assets/html/2027-04-30-learning-local-universes/interventions.html?example=0&v=bbe1327704e5362c' | relative_url }}" target="interventions-player">draw a new brick</a> anywhere in the environment. Upon collision with the ball, the brick disappears and the score updates, replicating the expected behavior. The scoreboard can also be edited as the game progresses: changing it from <a href="{{ 'assets/html/2027-04-30-learning-local-universes/interventions.html?example=1&v=bbe1327704e5362c' | relative_url }}" target="interventions-player">'77' to '81'</a> makes the counter continue from the new value. W-NCA even generalizes to digit configurations never encountered during training. For instance, adding a zero on the right makes the counter change from <a href="{{ 'assets/html/2027-04-30-learning-local-universes/interventions.html?example=2&v=bbe1327704e5362c' | relative_url }}" target="interventions-player">'000' to '001'</a> upon collision. Also, the counter wraps from <a href="{{ 'assets/html/2027-04-30-learning-local-universes/interventions.html?example=3&v=bbe1327704e5362c' | relative_url }}" target="interventions-player">'99' to '00'</a>, a transition never observed during training. New <a href="{{ 'assets/html/2027-04-30-learning-local-universes/interventions.html?example=4&v=bbe1327704e5362c' | relative_url }}" target="interventions-player">balls</a> and <a href="{{ 'assets/html/2027-04-30-learning-local-universes/interventions.html?example=5&v=bbe1327704e5362c' | relative_url }}" target="interventions-player">paddles</a> can also be drawn, behaving identically to the original ones.</p>
+<p lang="en">For example, it is possible to <a href="{{ 'assets/html/2027-04-30-learning-local-universes/interventions.html?example=0&v=1eb72c4f304f713d' | relative_url }}" target="interventions-player">draw a new brick</a> anywhere in the environment. Upon collision with the ball, the brick disappears and the score updates, replicating the expected behavior. The scoreboard can also be edited as the game progresses: changing it from <a href="{{ 'assets/html/2027-04-30-learning-local-universes/interventions.html?example=1&v=1eb72c4f304f713d' | relative_url }}" target="interventions-player">'77' to '81'</a> makes the counter continue from the new value. W-NCA even generalizes to digit configurations never encountered during training. For instance, adding a zero on the right makes the counter change from <a href="{{ 'assets/html/2027-04-30-learning-local-universes/interventions.html?example=2&v=1eb72c4f304f713d' | relative_url }}" target="interventions-player">'000' to '001'</a> upon collision. Also, the counter wraps from <a href="{{ 'assets/html/2027-04-30-learning-local-universes/interventions.html?example=3&v=1eb72c4f304f713d' | relative_url }}" target="interventions-player">'99' to '00'</a>, a transition never observed during training. New <a href="{{ 'assets/html/2027-04-30-learning-local-universes/interventions.html?example=4&v=1eb72c4f304f713d' | relative_url }}" target="interventions-player">balls</a> and <a href="{{ 'assets/html/2027-04-30-learning-local-universes/interventions.html?example=5&v=1eb72c4f304f713d' | relative_url }}" target="interventions-player">paddles</a> can also be drawn, behaving identically to the original ones.</p>
 
 <figure class="l-page" id="breakout-editor-demo">
-  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/editor.html?v=46f96f01b24b9f53' | relative_url }}" title="Edit the Breakout world during simulation" loading="lazy" width="100%" height="900" frameborder="0" style="display:block;width:100%;border:0;">
-    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/editor.html?v=46f96f01b24b9f53' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Edit the Breakout world during simulation</a>
+  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/editor.html?v=95df1cdb8366de10' | relative_url }}" title="Edit the Breakout world during simulation" loading="lazy" width="100%" height="900" frameborder="0" style="display:block;width:100%;border:0;">
+    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/editor.html?v=95df1cdb8366de10' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Edit the Breakout world during simulation</a>
   </iframe>
 </figure>
 
@@ -527,8 +538,8 @@ _styles: |
 <p lang="en">During training, the proportion of cells denied access to the global channel increases gradually, reaching a 90% dropout rate. Our model adapts well to these constraints. Signals propagate locally until they reach a cell with global access, which relays the information through the global communication channel to other cells with access to it. In this way, the resulting model remains playable under an asynchronous global clock.</p>
 
 <figure class="l-page" id="breakout-async-demo">
-  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/distributed.html?v=655ed956e747a24b' | relative_url }}" title="Breakout with sparse global communication" loading="lazy" width="100%" height="1050" frameborder="0" style="display:block;width:100%;border:0;">
-    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/distributed.html?v=655ed956e747a24b' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Breakout with sparse global communication</a>
+  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/distributed.html?v=f4fccb1ef0f7a47b' | relative_url }}" title="Breakout with sparse global communication" loading="lazy" width="100%" height="1050" frameborder="0" style="display:block;width:100%;border:0;">
+    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/distributed.html?v=f4fccb1ef0f7a47b' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Breakout with sparse global communication</a>
   </iframe>
 </figure>
 
@@ -548,8 +559,8 @@ _styles: |
 <p lang="en">Snake consists of a small \(12 \times 12\)-pixel square grid, making local communication sufficient to simulate the game’s dynamics. Visualizing the hidden states during the micro-steps reveals an interesting emergent phenomenon. Waves of activity propagate across the grid, carrying information to predict the next game state. For example, when the snake eats a fruit, a signal must travel from the head to the tail, to instruct it not to advance so the snake can grow in size.</p>
 
 <figure class="l-page" id="snake-demo">
-  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/snake.html?v=dd7e286f00a0d26a' | relative_url }}" title="Snake and distributed hidden memory" loading="lazy" width="100%" height="820" frameborder="0" style="display:block;width:100%;border:0;">
-    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/snake.html?v=dd7e286f00a0d26a' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Snake and distributed hidden memory</a>
+  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/snake.html?v=b295740771d01969' | relative_url }}" title="Snake and distributed hidden memory" loading="lazy" width="100%" height="820" frameborder="0" style="display:block;width:100%;border:0;">
+    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/snake.html?v=b295740771d01969' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Snake and distributed hidden memory</a>
   </iframe>
 </figure>
 
@@ -558,8 +569,8 @@ _styles: |
 <p lang="en">In the <em>Text Editor</em> environment, training trajectories are collected with a random keystroke policy including frequent repeated backspaces and line breaks. <em>Text Editor</em> has 29 discrete actions: 26 alphabetical characters, space, backspace, and enter. Each character follows a minimal \(3 \times 5\)-pixel font, emulating a terminal display. Exclusively via local communication, W-NCA learns to generate and delete characters, move the cursor back and forth, and start a new line when enter is pressed.</p>
 
 <figure class="l-page" id="text-demo">
-  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/text.html?v=83514acd27e53fdf' | relative_url }}" title="Text editor and hidden channels" loading="lazy" width="100%" height="800" frameborder="0" style="display:block;width:100%;border:0;">
-    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/text.html?v=83514acd27e53fdf' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Text editor and hidden channels</a>
+  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/text.html?v=f9f42c30a7692f35' | relative_url }}" title="Text editor and hidden channels" loading="lazy" width="100%" height="800" frameborder="0" style="display:block;width:100%;border:0;">
+    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/text.html?v=f9f42c30a7692f35' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Text editor and hidden channels</a>
   </iframe>
 </figure>
 
@@ -587,8 +598,8 @@ _styles: |
 <p lang="en">Beyond computational efficiency, we ask whether W-NCA generalizes to novel environment layouts never seen during training. Specifically, we construct a Four-Room Navigation layout consisting of four rooms connected by three doorways, preserving visual properties such as wall thickness, particle size, and colors. Despite being trained only on two-room trajectories, W-NCA generalizes and simulates Four-Room Navigation accurately without further training. The same learned local rule handles the particle's motion and wall collisions.</p>
 
 <figure class="l-page" id="tworooms-demo">
-  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/navigation.html?v=6f678b0f96dd5918' | relative_url }}" title="Two-room, conditional, and four-room navigation" loading="lazy" width="100%" height="950" frameborder="0" style="display:block;width:100%;border:0;">
-    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/navigation.html?v=6f678b0f96dd5918' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Two-room, conditional, and four-room navigation</a>
+  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/navigation.html?v=56e688ee7167b2cb' | relative_url }}" title="Two-room, conditional, and four-room navigation" loading="lazy" width="100%" height="950" frameborder="0" style="display:block;width:100%;border:0;">
+    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/navigation.html?v=56e688ee7167b2cb' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Two-room, conditional, and four-room navigation</a>
   </iframe>
 </figure>
 
@@ -601,8 +612,8 @@ _styles: |
 <p lang="en">First, we generate trajectories from a simple binary addition program. Two numbers are written on the tape in binary format, where blue pixels denote 0s, yellow pixels denote 1s, and a single red pixel acts as the separator between them. The program repeatedly decrements the right-hand operand and increments the left-hand one, resolving carries until the sum is complete, halting the head on top of the red separator. We train W-NCA on operands of up to 5 bits. On longer operands of up to 11 bits, it achieves 100% accuracy, decaying to 97% on 12 bits.</p>
 
 <figure class="l-page">
-  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/computation.html?example=addition&v=0f330643060f0ee2' | relative_url }}" title="Binary addition: reference program and NCA prediction" loading="lazy" width="100%" height="420" frameborder="0" style="display:block;width:100%;border:0;">
-    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/computation.html?example=addition&v=0f330643060f0ee2' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Binary addition: reference program and NCA prediction</a>
+  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/computation.html?example=addition&v=df4e9b9735426e3e' | relative_url }}" title="Binary addition: reference program and NCA prediction" loading="lazy" width="100%" height="420" frameborder="0" style="display:block;width:100%;border:0;">
+    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/computation.html?example=addition&v=df4e9b9735426e3e' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Binary addition: reference program and NCA prediction</a>
   </iframe>
   <figcaption>The reference program and W-NCA prediction for 6-bit binary addition.</figcaption>
 </figure>
@@ -612,8 +623,8 @@ _styles: |
 <p lang="en">Then we generate program trajectories from the \(a^n b^n\) formal grammar. The tape starts with \(a^n\), a sequence of \(n\) yellow pixels denoting the \(a\) symbol. The program replaces \(a\)'s with a green marker and appends one red \(b\) symbol at the end of the tape. Once all \(a\)'s have been used up, the program replaces all green markers with \(a\)'s, resulting in an \(a^n b^n\) string. W-NCA is trained on lengths up to \(n=8\), generalizing to all tested lengths up to \(n=200\). As \(n\) increases, testing longer sequences becomes computationally expensive because of the long rollouts.</p>
 
 <figure class="l-page">
-  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/computation.html?example=grammar&v=0f330643060f0ee2' | relative_url }}" title="Context-free grammar: reference program and NCA prediction" loading="lazy" width="100%" height="420" frameborder="0" style="display:block;width:100%;border:0;">
-    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/computation.html?example=grammar&v=0f330643060f0ee2' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Context-free grammar: reference program and NCA prediction</a>
+  <iframe src="{{ 'assets/html/2027-04-30-learning-local-universes/computation.html?example=grammar&v=df4e9b9735426e3e' | relative_url }}" title="Context-free grammar: reference program and NCA prediction" loading="lazy" width="100%" height="420" frameborder="0" style="display:block;width:100%;border:0;">
+    <a href="{{ 'assets/html/2027-04-30-learning-local-universes/computation.html?example=grammar&v=df4e9b9735426e3e' | relative_url }}" target="_blank" rel="noopener noreferrer">Open Context-free grammar: reference program and NCA prediction</a>
   </iframe>
   <figcaption>The reference program and W-NCA prediction for \(a^n b^n\) generation with \(n=12\).</figcaption>
 </figure>
