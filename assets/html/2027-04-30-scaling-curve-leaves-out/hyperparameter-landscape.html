@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hyperparameter landscape</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Geist+Mono:wght@400;600&display=swap" />
+    <link rel="stylesheet" href="vis/vis.css" />
+    <!-- Interactive figure: a synthetic hyperparameter landscape whose good region widens with scale. Add ?mode=talk for SMALL / MID / LARGE buttons. -->
+    <script src="vis/embed.js"></script>
+    <script src="vis/rough.min.js" defer></script>
+    <script src="vis/shared.js" defer></script>
+    <script src="hyperparameter-landscape/core.js" defer></script>
+    <script src="hyperparameter-landscape/app.js" defer></script>
+  </head>
+  <body>
+    <div class="vis vis-hp" data-vis="hyperparameter-landscape">
+      <div class="vis-hp-panels">
+        <svg
+          class="vis-hp-plot"
+          viewBox="0 0 350 345"
+          role="img"
+          aria-label="Two-direction slice of a synthetic hyperparameter landscape. The hatched area is the good region."
+        ></svg>
+        <div class="vis-hp-side">
+          <svg
+            class="vis-hp-room"
+            viewBox="0 0 250 180"
+            role="img"
+            aria-label="How far each of six directions can move while staying in the good region."
+          ></svg>
+          <p class="vis-hp-hits"><span class="vis-hp-hit-count">0</span> / <span class="vis-hp-dot-total"></span> landed</p>
+        </div>
+      </div>
+      <div class="vis-controls">
+        <span aria-hidden="true">SMALL</span>
+        <input class="vis-hp-scale" name="scale" type="range" min="0" max="1" step="0.01" value="0" aria-label="Model scale, from small to large" />
+        <span aria-hidden="true">LARGE</span>
+      </div>
+      <div class="vis-hp-steps vis-buttons" hidden>
+        <button type="button" data-scale="0">SMALL</button>
+        <button type="button" data-scale="0.5">MID</button>
+        <button type="button" data-scale="1">LARGE</button>
+      </div>
+      <p class="vis-note">SCHEMATIC · NOT DATA</p>
+      <noscript>This interactive figure requires JavaScript.</noscript>
+    </div>
+  </body>
+</html>
