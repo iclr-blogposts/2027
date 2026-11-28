@@ -18,6 +18,7 @@ toc:
   - name: What's next?
 _styles: |
   #guidance-article { --paper:var(--global-bg-color,#fcfbf8); --ink:var(--global-text-color,#282b2d); --muted:var(--global-text-color-light,#676b70); --line:var(--global-divider-color,#dedfdc); --blue:#225b87; --green:#207a65; --tint:#eef3f4; --sans:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; min-width:0; }
+  html[data-theme="dark"] #guidance-article { --blue:#86bee6; --green:#83cbb5; --muted:#b2b9bd; }
   #guidance-article *{box-sizing:border-box}
   #guidance-article a{color:var(--blue);text-decoration-thickness:1px;text-underline-offset:4px}
   #guidance-article a:hover{text-decoration-thickness:2px}
@@ -38,8 +39,8 @@ _styles: |
   #guidance-article .key-result{border-block:1px solid #b8cbd0;padding:22px 0;margin:28px 0}
   #guidance-article .key-result p:last-child{margin:0}
   #guidance-article .key-result .equation{margin:9px 0}
-  #guidance-article .aside{border-left:2px solid var(--line);padding:0 0 0 18px;color:#50565b;font-size:18px;line-height:1.6;margin:26px 0}
-  #guidance-article .proof{border-block:1px solid var(--line);margin:24px 0;background:rgba(255,255,255,.45)}
+  #guidance-article .aside{border-left:2px solid var(--line);padding:0 0 0 18px;color:var(--muted);font-size:18px;line-height:1.6;margin:26px 0}
+  #guidance-article .proof{border-block:1px solid var(--line);margin:24px 0;background:var(--global-code-bg-color)}
   #guidance-article .proof summary{cursor:pointer;padding:15px 0;color:var(--blue);font:14px/1.5 var(--sans)}
   #guidance-article .proof summary::marker{font-size:11px}
   #guidance-article .proof-body{padding:5px 17px 10px;font-size:19px;line-height:1.65}
