@@ -1,0 +1,297 @@
+/*
+ * Page frame for the interactive figures. Each figure is its own page, embedded in the post with an <iframe>.
+ * --theme (paper) and --accent stand in for the blog theme's tokens; vis/embed.js replaces --theme
+ * with the post's background color, and data-theme follows the post's light/dark toggle.
+ */
+
+:root {
+  color-scheme: light;
+  --theme: #ffffff;
+  --accent: #c41230;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --theme: #1c1c1d;
+  --accent: #f27380;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--theme);
+}
+
+/* The post spaces the iframe, so the figure itself has no outer margin. */
+body > .vis {
+  margin: 0;
+  padding: 4px 2px 2px;
+}
+
+/*
+ * Figure styles. The scripts read the --vis-* tokens on each figure's root,
+ * so keep every color the figures draw with here.
+ */
+.vis {
+  --vis-paper: var(--theme);
+  --vis-ink: #1e1e1e;
+  --vis-soft: #8a8a8a;
+  --vis-line: #d4d4d4;
+  --vis-accent: var(--accent);
+  --vis-yellow: #f5b400;
+  --vis-mono: "Geist Mono", ui-monospace, monospace;
+  --vis-hand: "Caveat", cursive;
+}
+
+.vis {
+  margin: 2rem 0 0.75rem;
+  color: var(--vis-ink);
+  font-family: var(--vis-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0.05em;
+}
+
+[data-theme="dark"] .vis {
+  --vis-ink: #e6e6e6;
+  --vis-soft: #8f8f8f;
+  --vis-line: #444444;
+}
+
+/* Keep the hidden attribute working on elements styled with display: flex. */
+.vis [hidden] {
+  display: none !important;
+}
+
+.vis svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.vis svg text {
+  font-family: var(--vis-mono);
+  fill: var(--vis-ink);
+}
+
+.vis svg text.vis-hand {
+  font-family: var(--vis-hand);
+  font-size: 22px;
+  letter-spacing: 0;
+}
+
+.vis .vis-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.vis p {
+  margin: 0;
+}
+
+.vis button,
+.vis input {
+  font: inherit;
+  letter-spacing: inherit;
+  color: var(--vis-ink);
+}
+
+.vis-buttons button {
+  padding: 4px 10px;
+  border: 1.5px solid var(--vis-ink);
+  background: transparent;
+  cursor: pointer;
+}
+
+.vis-buttons button[aria-pressed="true"] {
+  background: var(--vis-ink);
+  color: var(--vis-paper);
+}
+
+.vis-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.vis-controls input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  min-height: 24px;
+  accent-color: var(--vis-accent);
+  cursor: pointer;
+}
+
+.vis .vis-note {
+  margin-top: 14px;
+  font-size: 10px;
+  color: var(--vis-soft);
+}
+
+/* Hyperparameter landscape */
+
+.vis-hp-panels {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 24px;
+  align-items: center;
+}
+
+.vis .vis-hp-hits {
+  margin-top: 20px;
+  color: var(--vis-soft);
+}
+
+.vis-hp-hit-count {
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--vis-accent);
+  letter-spacing: 0;
+}
+
+.vis-hp-steps {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+@media (max-width: 560px) {
+  .vis-hp-panels {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .vis-hp-side {
+    max-width: 300px;
+  }
+}
+
+/* Resource competition */
+
+.vis-rc-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin-bottom: 12px;
+}
+
+.vis-rc-topic {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vis-rc-topic i {
+  width: 14px;
+  height: 14px;
+}
+
+.vis-rc-topic b {
+  font-family: Geist, sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+.vis-rc-topic span {
+  color: var(--vis-soft);
+  font-size: 10px;
+}
+
+.vis-rc .vis-controls {
+  margin-top: 12px;
+}
+
+.vis-rc-play {
+  min-width: 72px;
+}
+
+.vis-rc-count {
+  min-width: 72px;
+  text-align: right;
+  color: var(--vis-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.vis-rc-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.vis-rc summary {
+  cursor: pointer;
+  padding: 5px 0;
+  color: var(--vis-soft);
+}
+
+.vis-rc-settings {
+  flex-basis: 100%;
+}
+
+.vis-rc-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 10px;
+}
+
+.vis-rc-advanced {
+  margin-top: 8px;
+}
+
+.vis-rc-field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.vis-rc-field-row label {
+  display: grid;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--vis-soft);
+  white-space: nowrap;
+}
+
+.vis-rc-field-row input {
+  width: 96px;
+  padding: 4px 6px;
+  border: 1px solid var(--vis-line);
+  background: transparent;
+}
+
+.vis-rc-topic-row {
+  display: grid;
+  grid-template-columns: 150px max-content max-content;
+  align-items: end;
+}
+
+.vis-rc-topic-name {
+  padding-bottom: 6px;
+  color: var(--vis-ink);
+  font-size: 12px;
+}
+
+.vis .vis-rc-error {
+  margin-top: 6px;
+  color: var(--vis-accent);
+}
+
+@media (max-width: 520px) {
+  .vis-rc-topic-row {
+    grid-template-columns: max-content max-content;
+  }
+
+  .vis-rc-topic-name {
+    grid-column: 1 / -1;
+    padding-bottom: 0;
+  }
+}
