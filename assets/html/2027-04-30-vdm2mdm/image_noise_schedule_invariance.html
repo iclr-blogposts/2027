@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CIFAR-10 noise schedule invariance</title>
+<!-- the same stylesheets, in the same order, as the article page -->
+<link rel="stylesheet" href="../../css/tailwind.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&amp;display=swap">
+<link rel="stylesheet" href="../../css/jekyll-pygments-themes-github.css" id="highlight_theme_light">
+<link rel="stylesheet" href="../../css/main.css">
+<link rel="stylesheet" href="../../css/jekyll-pygments-themes-native.css" media="none" id="highlight_theme_dark">
+<link rel="stylesheet" href="../../css/al-folio-distill.css">
+<style>
+a { color: rgb(0, 66, 118); }
+figure { margin: 0px; }
+table { border-collapse: collapse; border-spacing: 0px; }
+table th { text-align: left; }
+table thead { border-bottom: 1px solid rgba(0, 0, 0, 0.05); }
+table thead th { padding-bottom: 0.5em; }
+table tbody :first-child td { padding-top: 0.5em; }
+pre { overflow: auto; max-width: 100%; }
+p { margin-top: 0px; margin-bottom: 1em; }
+figure { position: relative; margin-bottom: 2.5em; margin-top: 1.5em; }
+figcaption + figure {  }
+figure img { width: 100%; }
+figure svg text, figure svg tspan {  }
+figcaption { color: rgba(0, 0, 0, 0.6); font-size: 12px; line-height: 1.5em; }
+@media (min-width: 1024px) { figcaption { font-size: 13px; } }
+figure.external img { background: white; border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 8px; padding: 18px; box-sizing: border-box; }
+figcaption a { color: rgba(0, 0, 0, 0.6); }
+d-article { display: grid; justify-items: stretch; grid-template-columns: [screen-start] 8px [page-start kicker-start text-start gutter-start middle-start] 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr [text-end page-end gutter-end kicker-end middle-end] 8px [screen-end]; column-gap: 8px; }
+@media (min-width: 768px) { d-article { grid-template-columns: [screen-start] 1fr [page-start kicker-start middle-start text-start] 45px 45px 45px 45px 45px 45px 45px 45px [kicker-end text-end gutter-start] 45px [middle-end] 45px [page-end gutter-end] 1fr [screen-end]; column-gap: 16px; } }
+@media (min-width: 1000px) { d-article { grid-template-columns: [screen-start] 1fr [page-start kicker-start] 50px [middle-start] 50px [text-start kicker-end] 50px 50px 50px 50px 50px 50px 50px 50px [text-end gutter-start] 50px [middle-end] 50px [page-end gutter-end] 1fr [screen-end]; column-gap: 16px; } }
+@media (min-width: 1180px) { d-article { grid-template-columns: [screen-start] 1fr [page-start kicker-start] 60px [middle-start] 60px [text-start kicker-end] 60px 60px 60px 60px 60px 60px 60px 60px [text-end gutter-start] 60px [middle-end] 60px [page-end gutter-end] 1fr [screen-end]; column-gap: 32px; } }
+d-article aside { grid-column: gutter; font-size: 12px; line-height: 1.6em; color: rgba(0, 0, 0, 0.6); }
+d-article d-byline a { color: rgba(0, 0, 0, 0.8); text-decoration: none; border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor; }
+d-article d-byline a:hover { text-decoration: underline; border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor; }
+d-article { contain: layout style; overflow-x: hidden; border-top: 1px solid rgba(0, 0, 0, 0.1); padding-top: 2rem; color: rgba(0, 0, 0, 0.8); }
+d-article > * { grid-column: text; }
+@media (min-width: 768px) { d-article { font-size: 16px; } }
+@media (min-width: 1024px) { d-article { font-size: 1.06rem; line-height: 1.7em; } }
+d-article .marker { text-decoration: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; counter-reset: section 0; grid-column: kicker; line-height: 1.7em; }
+d-article .marker:hover { border-width: medium; border-style: none; border-color: currentcolor; border-image: none; }
+d-article .marker span { padding: 0px 3px 4px; border-bottom: 1px solid rgba(0, 0, 0, 0.2); position: relative; top: 4px; }
+d-article .marker:hover span { color: rgba(0, 0, 0, 0.7); border-bottom: 1px solid rgba(0, 0, 0, 0.7); }
+d-article h2 { font-weight: 600; font-size: 24px; line-height: 1.25em; margin: 2rem 0px 1.5rem; border-bottom: 1px solid rgba(0, 0, 0, 0.1); padding-bottom: 1rem; }
+@media (min-width: 1024px) { d-article h2 { font-size: 36px; } }
+d-article h3 { font-weight: 700; font-size: 18px; line-height: 1.4em; margin-bottom: 1em; margin-top: 2em; }
+@media (min-width: 1024px) { d-article h3 { font-size: 20px; } }
+d-article h4 { font-weight: 600; text-transform: uppercase; font-size: 14px; line-height: 1.4em; }
+d-article a { color: inherit; }
+d-article p, d-article ul, d-article ol, d-article blockquote { margin: 0px 0px 1em; }
+d-article blockquote { border-left: 2px solid rgba(0, 0, 0, 0.2); padding-left: 2em; font-style: italic; color: rgba(0, 0, 0, 0.6); }
+d-article a { border-bottom: 1px solid rgba(0, 0, 0, 0.4); text-decoration: none; }
+d-article a:hover { border-bottom: 1px solid rgba(0, 0, 0, 0.8); }
+d-article .link { text-decoration: underline; cursor: pointer; }
+d-article ul, d-article ol { padding-left: 24px; }
+d-article li { margin-bottom: 1em; margin-left: 0px; padding-left: 0px; }
+d-article li:last-child { margin-bottom: 0px; }
+d-article pre { font-size: 14px; margin-bottom: 20px; }
+d-article hr { grid-column: screen; width: 100%; border-width: medium medium 1px; border-style: none none solid; border-color: currentcolor currentcolor rgba(0, 0, 0, 0.1); border-image: none; margin-top: 60px; margin-bottom: 60px; }
+d-article section { margin-top: 60px; margin-bottom: 60px; }
+d-article span.equation-mimic { font-family: georgia; font-size: 115%; font-style: italic; }
+d-article > d-code, d-article section > d-code { display: block; }
+d-article > d-math[block], d-article section > d-math[block] { display: block; }
+@media (max-width: 768px) { d-article > d-code, d-article section > d-code, d-article > d-math[block], d-article section > d-math[block] { overflow-x: scroll; } }
+@media (max-width: 768px) { d-article > d-code::-webkit-scrollbar, d-article section > d-code::-webkit-scrollbar, d-article > d-math[block]::-webkit-scrollbar, d-article section > d-math[block]::-webkit-scrollbar { display: none; } }
+d-article .citation { color: rgb(102, 102, 136); cursor: pointer; }
+d-article table { border-collapse: collapse; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(0, 0, 0, 0.2); }
+d-article table th { border-bottom: 1px solid rgba(0, 0, 0, 0.2); }
+d-article table td { border-bottom: 1px solid rgba(0, 0, 0, 0.05); }
+d-article table tr:last-of-type td { border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor; }
+d-article table th, d-article table td { font-size: 15px; padding: 2px 8px; }
+d-article table tbody :first-child td { padding-top: 2px; }
+@media print { p, code { break-inside: avoid; } }
+@media print { h2, h3 { break-after: avoid; } }
+
+</style>
+<style>
+html{overflow:hidden}
+body{margin:0;padding:0;background:var(--global-bg-color);color:var(--global-text-color);font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Fira Sans","Droid Sans","Helvetica Neue",Arial,sans-serif}
+#frame-root{display:flow-root}
+d-article{display:contents}
+#frame-root > d-article > section, #frame-root > d-article > figure, #frame-root > d-article > div {margin-top:0 !important;margin-bottom:0 !important}
+</style>
+<script>(function () {
+  var root = document.documentElement, parentDoc = null;
+  try { if (window.parent && window.parent !== window) parentDoc = window.parent.document; } catch (e) {}
+  function applyTheme() {
+    var t = parentDoc ? parentDoc.documentElement.getAttribute("data-theme") : null;
+    if (t !== "dark" && t !== "light") {
+      t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    if (root.getAttribute("data-theme") !== t) root.setAttribute("data-theme", t);
+    var light = document.getElementById("highlight_theme_light"), dark = document.getElementById("highlight_theme_dark");
+    if (light && dark) { light.media = t === "dark" ? "none" : ""; dark.media = t === "dark" ? "" : "none"; }
+  }
+  function applyType() {
+    if (!parentDoc) return;
+    var view = parentDoc.defaultView;
+    var article = parentDoc.querySelector("d-article") || parentDoc.body;
+    var a = view.getComputedStyle(article), r = view.getComputedStyle(parentDoc.documentElement);
+    root.style.fontSize = r.fontSize;
+    root.style.fontFamily = a.fontFamily;
+    // keep a relative line height relative: measure how it scales with the font size
+    var lineHeight = a.lineHeight;
+    if (parentDoc.querySelector("d-article")) {
+      var probe = parentDoc.createElement("span");
+      probe.style.fontSize = "100px";
+      article.appendChild(probe);
+      var probed = view.getComputedStyle(probe).lineHeight;
+      article.removeChild(probe);
+      if (probed !== lineHeight && probed.slice(-2) === "px") lineHeight = String(parseFloat(probed) / 100);
+    }
+    [document.body, document.querySelector("#frame-root > d-article")].forEach(function (target) {
+      if (!target) return;
+      target.style.fontSize = a.fontSize;
+      target.style.lineHeight = lineHeight;
+      target.style.fontWeight = a.fontWeight;
+      target.style.fontFamily = a.fontFamily;
+    });
+    document.body.style.color = "var(--global-text-color)";
+  }
+  applyTheme();
+  window.applyArticleType = applyType;
+  document.addEventListener("DOMContentLoaded", function () {
+    applyType();
+    if (parentDoc) {
+      new MutationObserver(function () { applyTheme(); setTimeout(applyType, 0); })
+        .observe(parentDoc.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
+    }
+    var holder = document.getElementById("frame-root");
+    function fit() {
+      var h = Math.ceil(holder.getBoundingClientRect().height);
+      if (window.frameElement && h > 0) window.frameElement.style.height = h + "px";
+    }
+    if (window.ResizeObserver) new ResizeObserver(fit).observe(holder);
+    window.addEventListener("load", fit);
+    window.addEventListener("resize", fit);
+    fit();
+  });
+})();</script>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js@3.0.1/dist/plotly.min.js" integrity="sha256-oy6Be7Eh6eiQFs5M7oXuPxxm9qbJXEtTpfSI93dW16Q=" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="frame-root">
+<d-article>
+<script>applyArticleType();</script>
+<style>
+  .noise-schedule-invariance {
+    margin: 1.5rem 0 2rem;
+    min-width: 0;
+    scroll-margin-top: 5rem;
+    color: var(--global-text-color, #17181a);
+  }
+  .noise-schedule-invariance [hidden] { display: none !important; }
+  .noise-schedule-invariance .controls,
+  .noise-schedule-invariance .charts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem 1.5rem;
+  }
+  .noise-schedule-invariance .controls { margin-bottom: 1.75rem; }
+  .noise-schedule-invariance .controls[data-single-family="true"] { grid-template-columns: minmax(0, 1fr); }
+  .noise-schedule-invariance fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .noise-schedule-invariance legend {
+    width: auto;
+    margin: 0 0 0.5rem;
+    padding: 0;
+    border: 0;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--global-text-color-light, #6b7280);
+  }
+  .noise-schedule-invariance .segments {
+    display: flex;
+    gap: 0.25rem;
+    padding: 3px;
+    border: 1px solid var(--global-divider-color, #d1d5db);
+    border-radius: 8px;
+  }
+  .noise-schedule-invariance .option {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+  .noise-schedule-invariance .option input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+  .noise-schedule-invariance .option span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    height: 100%;
+    padding: 0.45rem 0.5rem;
+    border-radius: 5px;
+    color: var(--global-text-color-light, #6b7280);
+    font-size: 0.9rem;
+    font-weight: 400;
+    line-height: 1.4;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+  .noise-schedule-invariance .option input:checked + span {
+    color: var(--global-text-color, #17181a);
+    background: color-mix(in srgb, var(--global-text-color, #17181a) 9%, transparent);
+    font-weight: 600;
+  }
+  .noise-schedule-invariance .option input:disabled + span { opacity: 0.4; cursor: not-allowed; }
+  .noise-schedule-invariance .option input:focus-visible + span {
+    outline: 2px solid var(--global-theme-color, #2f5d50);
+    outline-offset: 2px;
+  }
+  .noise-schedule-invariance .evaluation-legend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    margin: 1.25rem 0 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+  .noise-schedule-invariance .legend-title { color: var(--global-text-color, #17181a); font-weight: 700; }
+  .noise-schedule-invariance .legend-item { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .noise-schedule-invariance .swatch { width: 10px; height: 10px; border-radius: 2px; }
+  .noise-schedule-invariance .chart-panel { min-width: 0; }
+  .noise-schedule-invariance .chart-panel h4 {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .noise-schedule-invariance .chart-panel h4.chart-title {
+    margin: 0 0 0.35rem;
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+  .noise-schedule-invariance .chart-units {
+    display: block;
+    min-height: 1.5em;
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--global-text-color-light, #6b7280);
+  }
+  .noise-schedule-invariance .chart { width: 100%; height: 290px; }
+  .noise-schedule-invariance .load-status {
+    margin: 1rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--global-text-color-light, #6b7280);
+  }
+  .noise-schedule-invariance .load-status:empty { display: none; }
+  .noise-schedule-invariance[data-view="compare"] .controls { grid-template-columns: minmax(0, 22rem); justify-content: center; }
+  .noise-schedule-invariance[data-view="compare"] legend { width: 100%; text-align: center; }
+  .noise-schedule-invariance .bound-results { margin-top: 1.5rem; }
+  .noise-schedule-invariance .bound-results summary { cursor: pointer; }
+  .noise-schedule-invariance .bound-table { max-width: 100%; overflow-x: auto; margin-top: 1.25rem; }
+  .noise-schedule-invariance .bound-table table { width: 100%; margin: 0; font-size: 0.85rem; }
+  .noise-schedule-invariance .bound-table caption { caption-side: top; padding: 0 0 0.5rem; color: inherit; font-weight: 600; text-align: left; }
+  .noise-schedule-invariance .bound-table th,
+  .noise-schedule-invariance .bound-table td { padding: 0.5rem; text-align: center; border-bottom: 1px solid var(--global-divider-color, #d1d5db); }
+  .noise-schedule-invariance .bound-table th:first-child { text-align: left; }
+  .noise-schedule-invariance .bound-table thead th { border-top: 2px solid var(--global-divider-color, #d1d5db); border-bottom-width: 2px; }
+  @media (max-width: 652px) {
+    .noise-schedule-invariance .charts { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 472px) {
+    .noise-schedule-invariance .controls { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+  }
+</style>
+
+
+
+
+<section id="image-noise-schedule-invariance" class="noise-schedule-invariance" data-view="compare" data-source-dataset="CIFAR-10" aria-label="CIFAR-10 noise schedule invariance results" aria-busy="false">
+  <div class="interactive-invariance" hidden>
+    <div class="controls" data-single-family="false" >
+      <fieldset >
+        <legend>Diffusion family</legend>
+        <div class="segments">
+          
+          <label class="option"><input type="radio" name="image-noise-schedule-invariance-family" value="VDM" checked><span>VDM</span></label>
+          
+          <label class="option"><input type="radio" name="image-noise-schedule-invariance-family" value="MDM" ><span>MDM</span></label>
+          
+        </div>
+      </fieldset>
+      <fieldset hidden>
+        <legend>Architecture</legend>
+        <div class="segments">
+          
+          <label class="option"><input type="radio" name="image-noise-schedule-invariance-architecture" value="DDPM" checked><span class="architecture-label">DDPM</span></label>
+          
+          <label class="option"><input type="radio" name="image-noise-schedule-invariance-architecture" value="DUO" ><span class="architecture-label">DUO</span></label>
+          
+        </div>
+      </fieldset>
+    </div>
+    <div class="charts">
+      
+      
+      <div class="chart-panel">
+        <h4 class="chart-title">DDPM</h4>
+        <div class="chart" data-metric="variances" data-architecture="DDPM" role="img"></div>
+      </div>
+      
+      <div class="chart-panel">
+        <h4 class="chart-title">DUO</h4>
+        <div class="chart" data-metric="variances" data-architecture="DUO" role="img"></div>
+      </div>
+      
+      
+    </div>
+    <div class="evaluation-legend" aria-label="Evaluation schedules"></div>
+  </div>
+  <p class="load-status" role="status"></p>
+  <button type="button" class="retry" hidden>Retry</button>
+  
+  <details class="bound-results">
+    <summary>Denoising bound tables (BPD)</summary>
+    
+    <div class="bound-table">
+      <table>
+        <caption>VDM / DDPM</caption>
+        <thead>
+          <tr>
+            <th scope="col">Trained with &#8595; / Evaluated with &#8594;</th>
+            
+            <th scope="col">Cosine</th>
+            
+            <th scope="col">Linear</th>
+            
+            <th scope="col">Quadratic</th>
+            
+          </tr>
+        </thead>
+        <tbody>
+          
+          
+          <tr>
+            <th scope="row">Cosine</th>
+            <td>1.82</td><td>1.81</td><td>1.82</td>
+          </tr>
+          
+          
+          <tr>
+            <th scope="row">Linear</th>
+            <td>1.78</td><td>1.75</td><td>1.74</td>
+          </tr>
+          
+          
+          <tr>
+            <th scope="row">Quadratic</th>
+            <td>1.72</td><td>1.73</td><td>1.73</td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="bound-table">
+      <table>
+        <caption>MDM / DDPM</caption>
+        <thead>
+          <tr>
+            <th scope="col">Trained with &#8595; / Evaluated with &#8594;</th>
+            
+            <th scope="col">Log-linear</th>
+            
+            <th scope="col">Cosine</th>
+            
+            <th scope="col">Cosine (DUO)</th>
+            
+          </tr>
+        </thead>
+        <tbody>
+          
+          
+          <tr>
+            <th scope="row">Log-linear</th>
+            <td>3.12</td><td>3.12</td><td>3.12</td>
+          </tr>
+          
+          
+          <tr>
+            <th scope="row">Cosine</th>
+            <td>3.11</td><td>3.11</td><td>3.11</td>
+          </tr>
+          
+          
+          <tr>
+            <th scope="row">Cosine (DUO)</th>
+            <td>3.13</td><td>3.13</td><td>3.13</td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="bound-table">
+      <table>
+        <caption>VDM / DUO</caption>
+        <thead>
+          <tr>
+            <th scope="col">Trained with &#8595; / Evaluated with &#8594;</th>
+            
+            <th scope="col">Cosine</th>
+            
+            <th scope="col">Linear</th>
+            
+            <th scope="col">Quadratic</th>
+            
+          </tr>
+        </thead>
+        <tbody>
+          
+          
+          <tr>
+            <th scope="row">Cosine</th>
+            <td>1.84</td><td>1.80</td><td>1.81</td>
+          </tr>
+          
+          
+          <tr>
+            <th scope="row">Linear</th>
+            <td>1.72</td><td>1.73</td><td>1.74</td>
+          </tr>
+          
+          
+          <tr>
+            <th scope="row">Quadratic</th>
+            <td>1.71</td><td>1.74</td><td>1.73</td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="bound-table">
+      <table>
+        <caption>MDM / DUO</caption>
+        <thead>
+          <tr>
+            <th scope="col">Trained with &#8595; / Evaluated with &#8594;</th>
+            
+            <th scope="col">Log-linear</th>
+            
+            <th scope="col">Cosine</th>
+            
+            <th scope="col">Cosine (DUO)</th>
+            
+          </tr>
+        </thead>
+        <tbody>
+          
+          
+          <tr>
+            <th scope="row">Log-linear</th>
+            <td>3.13</td><td>3.13</td><td>3.13</td>
+          </tr>
+          
+          
+          <tr>
+            <th scope="row">Cosine</th>
+            <td>3.13</td><td>3.13</td><td>3.13</td>
+          </tr>
+          
+          
+          <tr>
+            <th scope="row">Cosine (DUO)</th>
+            <td>3.13</td><td>3.13</td><td>3.13</td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+    
+  </details>
+  
+  <script type="application/json" class="invariance-data">[{"dataset":"CIFAR-10","family":"VDM","architecture":"DDPM","schedules":["Cosine","Linear","Quadratic"],"means":[["1.82","1.81","1.82"],["1.78","1.75","1.74"],["1.72","1.73","1.73"]],"variances":[["102.11","6.42","2.34"],["97.75","5.84","2.18"],["90.19","5.71","2.16"]]},{"dataset":"CIFAR-10","family":"MDM","architecture":"DDPM","schedules":["Loglinear","Cosine","DUO cosine"],"means":[["3.12","3.12","3.12"],["3.11","3.11","3.11"],["3.13","3.13","3.13"]],"variances":[["2.02","7.35","1.32"],["2.05","7.39","1.33"],["1.99","7.32","1.33"]]},{"dataset":"CIFAR-10","family":"VDM","architecture":"DUO","schedules":["Cosine","Linear","Quadratic"],"means":[["1.84","1.80","1.81"],["1.72","1.73","1.74"],["1.71","1.74","1.73"]],"variances":[["107.23","6.32","2.34"],["91.36","5.76","2.17"],["89.93","5.72","2.15"]]},{"dataset":"CIFAR-10","family":"MDM","architecture":"DUO","schedules":["Loglinear","Cosine","DUO cosine"],"means":[["3.13","3.13","3.13"],["3.13","3.13","3.13"],["3.13","3.13","3.13"]],"variances":[["2.00","7.34","1.33"],["2.04","7.40","1.34"],["1.98","7.31","1.33"]]}]</script>
+</section>
+
+<script>
+  (() => {
+    const root = document.getElementById("image-noise-schedule-invariance");
+    const results = JSON.parse(root.querySelector(".invariance-data").textContent);
+    const interactive = root.querySelector(".interactive-invariance");
+    const charts = Array.from(root.querySelectorAll(".chart"));
+    const status = root.querySelector(".load-status");
+    const retry = root.querySelector(".retry");
+    const axisTitles = true;
+    // Compare view: variance only, one chart per architecture on a shared scale.
+    const compare = true;
+    const sharedArchitectureScale = compare || false;
+    const scheduleLabel = (schedule) => schedule === "DUO cosine" ? "Cosine (DUO)" : schedule;
+    const colors = {
+      VDM: { Cosine: "#e45756", Linear: "#3b82f6", Quadratic: "#26a269" },
+      MDM: { Loglinear: "#e69f00", Cosine: "#a855f7", "DUO cosine": "#0f9e9e" },
+    };
+    let renderQueue = Promise.resolve();
+    let request = 0;
+    let observersReady = false;
+
+    function checked(name) {
+      return root.querySelector(`input[name="${root.id}-${name}"]:checked`).value;
+    }
+
+    function selection() {
+      const family = checked("family");
+      const models = results.filter((row) => row.family === family);
+      if (compare) return models[0];
+      let architecture = checked("architecture");
+      if (!models.some((row) => row.architecture === architecture)) architecture = models[0].architecture;
+      root.querySelectorAll(`input[name="${root.id}-architecture"]`).forEach((input) => {
+        input.disabled = !models.some((row) => row.architecture === input.value);
+        input.closest("label").hidden = input.disabled;
+        input.checked = input.value === architecture;
+      });
+      return models.find((row) => row.architecture === architecture);
+    }
+
+    function theme() {
+      const style = getComputedStyle(root);
+      return {
+        color: style.getPropertyValue("--global-text-color").trim() || "#17181a",
+        grid: style.getPropertyValue("--global-divider-color").trim() || "#d1d5db",
+        background: style.getPropertyValue("--global-bg-color").trim() || "#fff",
+        font: style.fontFamily,
+      };
+    }
+
+    function chartLayout(chart, result, style) {
+      const comparisons = sharedArchitectureScale ? results.filter((row) => row.family === result.family) : [result];
+      const values = comparisons.flatMap((row) => row[chart.dataset.metric].flat().map(Number));
+      const maximum = Math.max(...values);
+      const size = chart.getBoundingClientRect();
+      return {
+        width: Math.round(size.width), height: Math.round(size.height),
+        margin: { l: axisTitles ? 60 : 46, r: 8, t: 8, b: 52 },
+        font: { family: style.font, size: 11, color: style.color },
+        paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
+        barmode: "group", bargap: 0.22, bargroupgap: 0.08,
+        showlegend: false, hovermode: "closest", dragmode: false,
+        hoverlabel: { bgcolor: style.background, bordercolor: style.grid, font: axisTitles ? { size: 13, color: style.color } : { size: 12 } },
+        xaxis: {
+          type: "category", categoryorder: "array", categoryarray: result.schedules,
+          tickvals: result.schedules, ticktext: result.schedules.map(scheduleLabel),
+          fixedrange: true, tickangle: 0, tickfont: { size: 11 }, automargin: true,
+          showgrid: false, zeroline: false,
+          title: { text: "Training schedule", standoff: 10, font: { size: 11 } },
+        },
+        yaxis: {
+          type: "linear", fixedrange: true, automargin: true,
+          range: [0, maximum * 1.12],
+          gridcolor: style.grid, zerolinecolor: style.grid, nticks: 5,
+          ...(axisTitles ? { title: {
+            text: chart.dataset.metric === "means" ? "Expected denoising loss (BPD)" : "Variance of denoising bound estimate (BPD\u00b2)",
+            standoff: 8, font: { size: 11 },
+          } } : {}),
+        },
+      };
+    }
+
+    async function render() {
+      const result = selection();
+      const current = ++request;
+      root.setAttribute("aria-busy", "true");
+      const job = renderQueue.then(async () => {
+        if (current !== request) return;
+        const style = theme();
+        await Promise.all(charts.map((chart) => {
+          const model = compare
+            ? results.find((row) => row.family === result.family && row.architecture === chart.dataset.architecture)
+            : result;
+          const variance = chart.dataset.metric === "variances";
+          const precision = model.precision ?? 2;
+          const traces = model.schedules.map((schedule, index) => ({
+            type: "bar", name: scheduleLabel(schedule), x: model.schedules,
+            customdata: model.schedules.map(scheduleLabel),
+            y: model[chart.dataset.metric].map((row) => Number(row[index])),
+            marker: { color: colors[model.family][schedule] },
+            hovertemplate: axisTitles
+              ? "%{y}<extra></extra>"
+              : `<b>Evaluation: ${scheduleLabel(schedule)}</b><br>Training: %{customdata}<br>${variance ? "Variance" : "Mean"}: %{y:.${precision}f} ${variance ? "BPD\u00b2" : "BPD"}<extra></extra>`,
+          }));
+          return Plotly.react(chart, traces, chartLayout(chart, model, style), {
+            displayModeBar: false, displaylogo: false, scrollZoom: false,
+          });
+        }));
+        const legend = root.querySelector(".evaluation-legend");
+        const label = document.createElement("span");
+        label.className = "legend-title";
+        label.textContent = compare ? "Evaluation Schedules:" : "Evaluation Schedule:";
+        legend.replaceChildren(label);
+        result.schedules.forEach((schedule) => {
+          const item = document.createElement("span");
+          item.className = "legend-item";
+          const swatch = document.createElement("span");
+          swatch.className = "swatch";
+          swatch.style.backgroundColor = colors[result.family][schedule];
+          swatch.setAttribute("aria-hidden", "true");
+          item.append(swatch, scheduleLabel(schedule));
+          legend.appendChild(item);
+        });
+        root.dataset.dataset = result.dataset;
+        root.dataset.family = result.family;
+        root.dataset.architecture = result.architecture;
+        charts.forEach((chart) => chart.setAttribute("aria-label", `${result.dataset}, ${result.family}, ${chart.dataset.architecture || result.architecture}: ${chart.dataset.metric === "means" ? "mean denoising loss in BPD" : "variance of denoising bound estimate in BPD squared, linear scale"}`));
+        if (current === request) {
+          root.setAttribute("aria-busy", "false");
+          status.textContent = "";
+        }
+      });
+      renderQueue = job.catch(() => {});
+      try {
+        await job;
+      } catch (error) {
+        if (current !== request) return;
+        fail();
+      }
+    }
+
+    function fail() {
+      root.setAttribute("aria-busy", "false");
+      interactive.hidden = true;
+      status.textContent = "Charts unavailable.";
+      retry.hidden = false;
+    }
+
+    async function ensurePlotly() {
+      if (window.Plotly) return;
+      const library = document.querySelector('script[src*="plotly.js@"]');
+      if (!library) throw new Error("Plotly is unavailable");
+      await new Promise((resolve, reject) => {
+        // Cloning an already-started script does not execute it again.
+        const script = document.createElement("script");
+        script.src = library.src;
+        script.integrity = library.integrity;
+        script.crossOrigin = library.crossOrigin;
+        script.async = true;
+        script.addEventListener("load", resolve, { once: true });
+        script.addEventListener("error", reject, { once: true });
+        document.head.appendChild(script);
+      });
+    }
+
+    async function initialize() {
+      retry.hidden = true;
+      root.setAttribute("aria-busy", "true");
+      status.textContent = "Loading charts...";
+      try {
+        await ensurePlotly();
+        interactive.hidden = false;
+        await render();
+        if (interactive.hidden) return;
+        if (observersReady) return;
+        const resizeObserver = new ResizeObserver((entries) => {
+          entries.forEach(({ target, contentRect }) => {
+            const width = Math.round(contentRect.width);
+            const height = Math.round(contentRect.height);
+            if (target.layout && width > 0 && height > 0 && (target.layout.width !== width || target.layout.height !== height)) {
+              Plotly.relayout(target, { width, height });
+            }
+          });
+        });
+        charts.forEach((chart) => resizeObserver.observe(chart));
+        const themeObserver = new MutationObserver(() => render());
+        themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
+        observersReady = true;
+      } catch (error) {
+        fail();
+      }
+    }
+
+    root.addEventListener("change", (event) => {
+      if (event.target.matches("input")) render();
+    });
+    retry.addEventListener("click", initialize);
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initialize, { once: true });
+    } else {
+      initialize();
+    }
+  })();
+</script>
+
+
+</d-article>
+</div>
+<script>/* the article page gives its tables this class */ document.querySelectorAll("d-article table").forEach(function (t) { t.classList.add("table"); });</script>
+<script src="../../js/copy_code.js"></script>
+</body>
+</html>

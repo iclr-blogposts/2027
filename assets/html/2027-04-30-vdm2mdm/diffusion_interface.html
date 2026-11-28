@@ -1,0 +1,995 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interactive diffusion interface</title>
+<!-- the same stylesheets, in the same order, as the article page -->
+<link rel="stylesheet" href="../../css/tailwind.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&amp;display=swap">
+<link rel="stylesheet" href="../../css/jekyll-pygments-themes-github.css" id="highlight_theme_light">
+<link rel="stylesheet" href="../../css/main.css">
+<link rel="stylesheet" href="../../css/jekyll-pygments-themes-native.css" media="none" id="highlight_theme_dark">
+<link rel="stylesheet" href="../../css/al-folio-distill.css">
+<style>
+a { color: rgb(0, 66, 118); }
+figure { margin: 0px; }
+table { border-collapse: collapse; border-spacing: 0px; }
+table th { text-align: left; }
+table thead { border-bottom: 1px solid rgba(0, 0, 0, 0.05); }
+table thead th { padding-bottom: 0.5em; }
+table tbody :first-child td { padding-top: 0.5em; }
+pre { overflow: auto; max-width: 100%; }
+p { margin-top: 0px; margin-bottom: 1em; }
+figure { position: relative; margin-bottom: 2.5em; margin-top: 1.5em; }
+figcaption + figure {  }
+figure img { width: 100%; }
+figure svg text, figure svg tspan {  }
+figcaption { color: rgba(0, 0, 0, 0.6); font-size: 12px; line-height: 1.5em; }
+@media (min-width: 1024px) { figcaption { font-size: 13px; } }
+figure.external img { background: white; border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 8px; padding: 18px; box-sizing: border-box; }
+figcaption a { color: rgba(0, 0, 0, 0.6); }
+d-article { display: grid; justify-items: stretch; grid-template-columns: [screen-start] 8px [page-start kicker-start text-start gutter-start middle-start] 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr [text-end page-end gutter-end kicker-end middle-end] 8px [screen-end]; column-gap: 8px; }
+@media (min-width: 768px) { d-article { grid-template-columns: [screen-start] 1fr [page-start kicker-start middle-start text-start] 45px 45px 45px 45px 45px 45px 45px 45px [kicker-end text-end gutter-start] 45px [middle-end] 45px [page-end gutter-end] 1fr [screen-end]; column-gap: 16px; } }
+@media (min-width: 1000px) { d-article { grid-template-columns: [screen-start] 1fr [page-start kicker-start] 50px [middle-start] 50px [text-start kicker-end] 50px 50px 50px 50px 50px 50px 50px 50px [text-end gutter-start] 50px [middle-end] 50px [page-end gutter-end] 1fr [screen-end]; column-gap: 16px; } }
+@media (min-width: 1180px) { d-article { grid-template-columns: [screen-start] 1fr [page-start kicker-start] 60px [middle-start] 60px [text-start kicker-end] 60px 60px 60px 60px 60px 60px 60px 60px [text-end gutter-start] 60px [middle-end] 60px [page-end gutter-end] 1fr [screen-end]; column-gap: 32px; } }
+d-article aside { grid-column: gutter; font-size: 12px; line-height: 1.6em; color: rgba(0, 0, 0, 0.6); }
+d-article d-byline a { color: rgba(0, 0, 0, 0.8); text-decoration: none; border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor; }
+d-article d-byline a:hover { text-decoration: underline; border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor; }
+d-article { contain: layout style; overflow-x: hidden; border-top: 1px solid rgba(0, 0, 0, 0.1); padding-top: 2rem; color: rgba(0, 0, 0, 0.8); }
+d-article > * { grid-column: text; }
+@media (min-width: 768px) { d-article { font-size: 16px; } }
+@media (min-width: 1024px) { d-article { font-size: 1.06rem; line-height: 1.7em; } }
+d-article .marker { text-decoration: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; counter-reset: section 0; grid-column: kicker; line-height: 1.7em; }
+d-article .marker:hover { border-width: medium; border-style: none; border-color: currentcolor; border-image: none; }
+d-article .marker span { padding: 0px 3px 4px; border-bottom: 1px solid rgba(0, 0, 0, 0.2); position: relative; top: 4px; }
+d-article .marker:hover span { color: rgba(0, 0, 0, 0.7); border-bottom: 1px solid rgba(0, 0, 0, 0.7); }
+d-article h2 { font-weight: 600; font-size: 24px; line-height: 1.25em; margin: 2rem 0px 1.5rem; border-bottom: 1px solid rgba(0, 0, 0, 0.1); padding-bottom: 1rem; }
+@media (min-width: 1024px) { d-article h2 { font-size: 36px; } }
+d-article h3 { font-weight: 700; font-size: 18px; line-height: 1.4em; margin-bottom: 1em; margin-top: 2em; }
+@media (min-width: 1024px) { d-article h3 { font-size: 20px; } }
+d-article h4 { font-weight: 600; text-transform: uppercase; font-size: 14px; line-height: 1.4em; }
+d-article a { color: inherit; }
+d-article p, d-article ul, d-article ol, d-article blockquote { margin: 0px 0px 1em; }
+d-article blockquote { border-left: 2px solid rgba(0, 0, 0, 0.2); padding-left: 2em; font-style: italic; color: rgba(0, 0, 0, 0.6); }
+d-article a { border-bottom: 1px solid rgba(0, 0, 0, 0.4); text-decoration: none; }
+d-article a:hover { border-bottom: 1px solid rgba(0, 0, 0, 0.8); }
+d-article .link { text-decoration: underline; cursor: pointer; }
+d-article ul, d-article ol { padding-left: 24px; }
+d-article li { margin-bottom: 1em; margin-left: 0px; padding-left: 0px; }
+d-article li:last-child { margin-bottom: 0px; }
+d-article pre { font-size: 14px; margin-bottom: 20px; }
+d-article hr { grid-column: screen; width: 100%; border-width: medium medium 1px; border-style: none none solid; border-color: currentcolor currentcolor rgba(0, 0, 0, 0.1); border-image: none; margin-top: 60px; margin-bottom: 60px; }
+d-article section { margin-top: 60px; margin-bottom: 60px; }
+d-article span.equation-mimic { font-family: georgia; font-size: 115%; font-style: italic; }
+d-article > d-code, d-article section > d-code { display: block; }
+d-article > d-math[block], d-article section > d-math[block] { display: block; }
+@media (max-width: 768px) { d-article > d-code, d-article section > d-code, d-article > d-math[block], d-article section > d-math[block] { overflow-x: scroll; } }
+@media (max-width: 768px) { d-article > d-code::-webkit-scrollbar, d-article section > d-code::-webkit-scrollbar, d-article > d-math[block]::-webkit-scrollbar, d-article section > d-math[block]::-webkit-scrollbar { display: none; } }
+d-article .citation { color: rgb(102, 102, 136); cursor: pointer; }
+d-article table { border-collapse: collapse; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(0, 0, 0, 0.2); }
+d-article table th { border-bottom: 1px solid rgba(0, 0, 0, 0.2); }
+d-article table td { border-bottom: 1px solid rgba(0, 0, 0, 0.05); }
+d-article table tr:last-of-type td { border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor; }
+d-article table th, d-article table td { font-size: 15px; padding: 2px 8px; }
+d-article table tbody :first-child td { padding-top: 2px; }
+@media print { p, code { break-inside: avoid; } }
+@media print { h2, h3 { break-after: avoid; } }
+
+</style>
+<style>
+html{overflow:hidden}
+body{margin:0;padding:0;background:var(--global-bg-color);color:var(--global-text-color);font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Fira Sans","Droid Sans","Helvetica Neue",Arial,sans-serif}
+#frame-root{display:flow-root}
+d-article{display:contents}
+#frame-root > d-article > section, #frame-root > d-article > figure, #frame-root > d-article > div {margin-top:0 !important;margin-bottom:0 !important}
+</style>
+<script>(function () {
+  var root = document.documentElement, parentDoc = null;
+  try { if (window.parent && window.parent !== window) parentDoc = window.parent.document; } catch (e) {}
+  function applyTheme() {
+    var t = parentDoc ? parentDoc.documentElement.getAttribute("data-theme") : null;
+    if (t !== "dark" && t !== "light") {
+      t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    if (root.getAttribute("data-theme") !== t) root.setAttribute("data-theme", t);
+    var light = document.getElementById("highlight_theme_light"), dark = document.getElementById("highlight_theme_dark");
+    if (light && dark) { light.media = t === "dark" ? "none" : ""; dark.media = t === "dark" ? "" : "none"; }
+  }
+  function applyType() {
+    if (!parentDoc) return;
+    var view = parentDoc.defaultView;
+    var article = parentDoc.querySelector("d-article") || parentDoc.body;
+    var a = view.getComputedStyle(article), r = view.getComputedStyle(parentDoc.documentElement);
+    root.style.fontSize = r.fontSize;
+    root.style.fontFamily = a.fontFamily;
+    // keep a relative line height relative: measure how it scales with the font size
+    var lineHeight = a.lineHeight;
+    if (parentDoc.querySelector("d-article")) {
+      var probe = parentDoc.createElement("span");
+      probe.style.fontSize = "100px";
+      article.appendChild(probe);
+      var probed = view.getComputedStyle(probe).lineHeight;
+      article.removeChild(probe);
+      if (probed !== lineHeight && probed.slice(-2) === "px") lineHeight = String(parseFloat(probed) / 100);
+    }
+    [document.body, document.querySelector("#frame-root > d-article")].forEach(function (target) {
+      if (!target) return;
+      target.style.fontSize = a.fontSize;
+      target.style.lineHeight = lineHeight;
+      target.style.fontWeight = a.fontWeight;
+      target.style.fontFamily = a.fontFamily;
+    });
+    document.body.style.color = "var(--global-text-color)";
+  }
+  applyTheme();
+  window.applyArticleType = applyType;
+  document.addEventListener("DOMContentLoaded", function () {
+    applyType();
+    if (parentDoc) {
+      new MutationObserver(function () { applyTheme(); setTimeout(applyType, 0); })
+        .observe(parentDoc.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
+    }
+    var holder = document.getElementById("frame-root");
+    function fit() {
+      var h = Math.ceil(holder.getBoundingClientRect().height);
+      if (window.frameElement && h > 0) window.frameElement.style.height = h + "px";
+    }
+    if (window.ResizeObserver) new ResizeObserver(fit).observe(holder);
+    window.addEventListener("load", fit);
+    window.addEventListener("resize", fit);
+    fit();
+  });
+})();</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous" async></script>
+</head>
+<body>
+<div id="frame-root">
+<d-article>
+<script>applyArticleType();</script>
+<style>
+  #di {
+    --fwd: #6f4fd0;
+    --smp: #1f8a50;
+    --likelihood: #a36a00;
+    --on-accent: #fff;
+    --accent: var(--fwd);
+    --ink: var(--global-text-color, #111);
+    --di-text: var(--ink);
+    --di-muted: var(--global-text-color-light, #6b7280);
+    --di-bg: var(--global-bg-color, #fff);
+    --di-neutral: color-mix(in srgb, var(--ink) 5%, var(--di-bg));
+    --di-tint: color-mix(in srgb, var(--accent) 13%, var(--di-bg));
+    --di-tint-strong: color-mix(in srgb, var(--accent) 24%, var(--di-bg));
+    margin: 1.5rem 0 2rem;
+    min-width: 0;
+    container-type: inline-size;
+    color: var(--di-text);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    --di-mono: var(--global-code-font, ui-monospace, SFMono-Regular, Menlo, monospace);
+  }
+  html[data-theme="dark"] #di { --fwd: #b9a6ff; --smp: #86e0a8; --likelihood: #f0c56e; --on-accent: #1a1722; --di-tint: color-mix(in srgb, var(--accent) 16%, var(--di-bg)); --di-tint-strong: color-mix(in srgb, var(--accent) 30%, var(--di-bg)); }
+  #di[data-process="sample"] { --accent: var(--smp); }
+  #di[data-process="likelihood"] { --accent: var(--likelihood); }
+  #di code { font-family: var(--di-mono); font-size: 0.78rem; background: none; padding: 0; color: inherit; }
+  #di button { appearance: none; font: inherit; line-height: 1.3; color: var(--di-text); background: transparent; cursor: pointer; border: 0; }
+  #di button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #di ul { list-style: none; margin: 0; padding: 0; }
+  #di [hidden] { display: none !important; }
+
+  /* controls: filled segmented toggles, the selected option is a solid accent chip */
+  #di .di-controls { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; justify-content: center; align-items: center; margin-bottom: 1.3rem; }
+  #di .di-group { display: inline-flex; gap: 0.2rem; padding: 0.22rem; border-radius: 999px; background: var(--di-neutral); }
+  #di .di-group button { min-height: 32px; padding: 0.25rem 1rem; border-radius: 999px; font-size: 0.85rem; color: var(--di-muted); transition: background 0.15s, color 0.15s; }
+  #di .di-group button:hover:not(:disabled) { color: var(--di-text); }
+  #di .di-group button:disabled { opacity: 0.4; cursor: not-allowed; }
+  #di .di-group button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+  #di .di-aux { min-height: 32px; padding: 0.25rem 1rem; border-radius: 999px; font-size: 0.85rem; color: var(--di-text); background: var(--di-neutral); transition: background 0.15s; }
+  #di .di-aux:hover, #di .di-aux[aria-pressed="true"] { background: var(--di-tint-strong); }
+
+  /* stage */
+  #di .di-stage { position: relative; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); column-gap: 112px; align-items: start; }
+  #di .di-left { display: grid; row-gap: 46px; min-width: 0; }
+  #di .di-right { min-width: 0; }
+  #di .di-arrows { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 2; }
+
+  /* Interfaces use a thick outline; concrete classes keep a flat infill. */
+  #di .di-box { position: relative; z-index: 1; border: 3px solid transparent; border-radius: 16px; background: var(--di-neutral); padding: 0.7rem 0.85rem 0.8rem; transition: background 0.15s, opacity 0.15s; }
+  #di .di-interface { border-color: var(--accent); }
+  #di .di-box.on { background: var(--di-tint); }
+  #di .di-box.off { opacity: 0.55; }
+  #di .di-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%; min-height: 24px; padding: 0; text-align: left; }
+  #di .di-head.static { cursor: default; }
+  #di .di-head:disabled { cursor: default; }
+  #di .di-title { display: block; font-weight: 700; font-size: 0.98rem; line-height: 1.3; letter-spacing: 0; }
+  #di .di-chev { flex: 0 0 auto; font-size: 0.6rem; color: var(--di-muted); transition: transform 0.15s; }
+  #di .di-head[aria-expanded="true"] .di-chev { transform: rotate(90deg); }
+  #di .di-body { margin-top: 0.5rem; }
+  #di .di-label, #di .di-dlabel { margin: 0.75rem 0 0.35rem; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--di-muted); }
+  #di .di-row { display: block; width: 100%; margin: 0 0 0.28rem; padding: 0.26rem 0.7rem; border-radius: 8px; background: var(--di-bg); color: var(--di-muted); text-align: left; transition: background 0.15s, color 0.15s; }
+  #di .di-row:hover:not(:disabled) { color: var(--di-text); background: var(--di-tint-strong); }
+  #di .di-row:disabled { cursor: default; }
+  #di .di-row.on { color: var(--di-text); }
+  #di .di-row:not(.on) { background: transparent; }
+  #di .di-row.sel { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+
+  /* right column */
+  #di #di-schedule { margin-top: 24px; }
+  #di .di-subs { margin-top: 46px; }
+  #di .di-sub-col { min-width: 0; }
+  #di .di-leaves, #di .di-parts { display: grid; gap: 8px; margin: 22px 0 0 40px; }
+  #di .di-leaf, #di .di-part { box-sizing: border-box; display: flex; align-items: center; gap: 0.35rem; width: 100%; height: 36px; min-width: 0; padding: 0 0.7rem; border: 0; border-radius: 8px; background: var(--di-neutral); color: var(--di-text); font: inherit; text-align: left; transition: background 0.15s; }
+  #di .di-module-type { color: var(--di-muted); font-size: 0.7rem; white-space: nowrap; }
+  #di .di-leaf:hover { background: var(--di-tint-strong); }
+  #di .di-leaf.sel { background: var(--accent); color: var(--on-accent); }
+
+  /* arrows */
+  #di .di-arrows .layer path { fill: none; stroke-width: 1.6; }
+  #di .di-arrows .layer .s { stroke: var(--di-muted); opacity: 0.7; }
+  #di .di-arrows .layer .s.sel { stroke: var(--accent); opacity: 1; }
+  #di .di-arrows .layer .c { stroke: var(--accent); stroke-width: 2.2; }
+  #di .mk-t { fill: var(--di-bg); stroke: var(--di-muted); stroke-width: 1.5; stroke-linejoin: round; }
+  #di .mk-t.sel { fill: var(--di-bg); stroke: var(--accent); }
+  #di .mk-d { fill: var(--accent); stroke: var(--accent); stroke-width: 1; stroke-linejoin: round; }
+
+  /* legend */
+  #di .di-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem 1.6rem; margin: 1.3rem 0 0; padding: 0.6rem 0.9rem; border-radius: 12px; background: var(--di-neutral); font-size: 0.76rem; font-weight: 600; color: var(--di-muted); }
+  #di .di-key span { display: inline-flex; align-items: center; gap: 0.5rem; }
+  #di .di-key .di-box-key { display: inline-block; width: 28px; height: 16px; border: 3px solid transparent; border-radius: 4px; background: var(--di-tint); }
+  #di .di-key .di-interface-key { border-color: var(--accent); }
+  #di .di-key svg { width: 46px; height: 14px; overflow: visible; }
+  #di .di-key .kl { stroke: var(--accent); stroke-width: 1.6; fill: none; }
+  #di .di-key .kd { fill: var(--accent); stroke: var(--accent); stroke-width: 1; stroke-linejoin: round; }
+  #di .di-key .kt { fill: var(--di-bg); stroke: var(--accent); stroke-width: 1.5; stroke-linejoin: round; }
+
+  /* detail */
+  #di .di-detail { margin-top: 1.4rem; padding: 1.1rem 1rem 0; border-top: 1px solid color-mix(in srgb, var(--ink) 14%, var(--di-bg)); }
+  #di .di-dgrid { display: grid; grid-template-columns: max-content max-content minmax(0, 1fr); gap: 0.6rem 2.5rem; align-items: start; }
+  #di .di-eqcol { min-width: 0; text-align: center; }
+  #di .di-dlabel { margin: 0 0 0.25rem; }
+  #di .di-dname { padding-top: 0.3rem; font-size: 0.9rem; font-weight: 700; color: var(--accent); overflow-wrap: anywhere; }
+  #di .di-dname .di-method-name { font-family: var(--di-mono); white-space: nowrap; }
+  #di .di-eq { overflow-x: auto; overflow-y: hidden; min-height: 2.4rem; }
+  #di .di-eq mjx-container { margin: 0.3rem 0 !important; text-align: center !important; }
+  #di .di-eq code { white-space: pre-wrap; }
+  #di .di-file { margin: 0.5rem 0 0.35rem; overflow-x: auto; white-space: nowrap; font-family: var(--di-mono); font-size: 0.72rem; }
+  #di .di-codewrap { margin-top: 0.9rem; }
+  #di .di-codewrap summary { cursor: pointer; }
+  #di .di-codewrap summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #di .di-codewrap .highlighter-rouge { margin: 0; }
+  #di .di-codewrap pre { height: 22rem; overflow: auto; margin: 0; }
+  #di .di-codewrap code { font-size: 0.8rem; background: none; }
+
+  @media (max-width: 671px) {
+    #di .di-stage { grid-template-columns: minmax(0, 1fr); row-gap: 1.1rem; }
+    #di .di-left { row-gap: 1.1rem; }
+    #di #di-schedule, #di .di-subs { margin-top: 1.1rem; }
+    #di .di-arrows, #di .di-key .di-relation-key { display: none; }
+    #di .di-dgrid { grid-template-columns: minmax(0, 1fr); }
+  }
+  @container (max-width: 600px) {
+    #di .di-stage { grid-template-columns: minmax(0, 1fr); row-gap: 1.1rem; }
+    #di .di-left { row-gap: 1.1rem; }
+    #di #di-schedule, #di .di-subs { margin-top: 1.1rem; }
+    #di .di-arrows, #di .di-key .di-relation-key { display: none; }
+    #di .di-dgrid { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+<div id="di" data-process="forward" data-model="vdm">
+  <div class="di-controls">
+    <div class="di-group" role="group" aria-label="Process">
+      <button type="button" data-process="forward" aria-pressed="true">Training</button>
+      <button type="button" data-process="sample" aria-pressed="false">Sampling</button>
+      <button type="button" data-process="likelihood" aria-pressed="false">Likelihood</button>
+    </div>
+    <div class="di-group" role="group" aria-label="Model">
+      <button type="button" data-model="vdm" aria-pressed="true">VDM</button>
+      <button type="button" data-model="mdm" aria-pressed="false">MDM</button>
+      <button type="button" data-model="remdm" aria-pressed="false">ReMDM</button>
+    </div>
+    <button type="button" class="di-aux" data-action="expand" aria-pressed="true">Collapse</button>
+  </div>
+  <div class="di-stage">
+    <svg class="di-arrows" aria-hidden="true" focusable="false">
+      <defs>
+        <marker id="di-mk-tri" viewBox="0 0 14 12" refX="13" refY="6" markerWidth="14" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto"><path class="mk-t" d="M1 1 L13 6 L1 11 Z" /></marker>
+        <marker id="di-mk-tri-s" viewBox="0 0 14 12" refX="13" refY="6" markerWidth="14" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto"><path class="mk-t sel" d="M1 1 L13 6 L1 11 Z" /></marker>
+        <marker id="di-mk-dia-s" viewBox="0 0 18 12" refX="1" refY="6" markerWidth="18" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto"><path class="mk-d" d="M1 6 L9 1 L17 6 L9 11 Z" /></marker>
+        <marker id="di-mk-dia-e" viewBox="0 0 18 12" refX="17" refY="6" markerWidth="18" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto"><path class="mk-d" d="M1 6 L9 1 L17 6 L9 11 Z" /></marker>
+      </defs>
+      <g class="layer"></g>
+    </svg>
+    <div class="di-left">
+      <div class="di-box di-interface on" id="di-diffusion">
+        <button type="button" class="di-head" aria-expanded="true" data-toggle="di-diffusion-body">
+          <span class="di-title">Diffusion</span><span class="di-chev" aria-hidden="true">▶</span>
+        </button>
+        <div class="di-body" id="di-diffusion-body">
+          <ul>
+            <li><button type="button" class="di-row" data-k="loss" data-d="diff:loss"><code>loss</code></button></li>
+            <li><button type="button" class="di-row" data-k="likelihood" data-d="diff:likelihood"><code>denoising_bound</code></button></li>
+            <li><button type="button" class="di-row" data-k="reverse" data-d="diff:reverse"><code>sample_reverse_transition</code></button></li>
+            <li><button type="button" class="di-row" data-k="sample" data-d="diff:sample"><code>sample</code></button></li>
+          </ul>
+        </div>
+      </div>
+      <div class="di-box on" id="di-model">
+        <button type="button" class="di-head" aria-expanded="true" data-toggle="di-model-body">
+          <span class="di-title" id="di-model-title">VDM</span><span class="di-chev" aria-hidden="true">▶</span>
+        </button>
+        <div class="di-body" id="di-model-body"><ul id="di-model-list"></ul></div>
+      </div>
+      <div class="di-box on" id="di-remdm" hidden>
+        <button type="button" class="di-head" aria-expanded="true" data-toggle="di-remdm-body">
+          <span class="di-title">ReMDM</span><span class="di-chev" aria-hidden="true">▶</span>
+        </button>
+        <div class="di-body" id="di-remdm-body">
+          <ul>
+            <li><button type="button" class="di-row" data-k="reverse" data-d="remdm:reverse"><code>sample_reverse_transition</code></button></li>
+            <li><button type="button" class="di-row" data-k="posterior" data-d="remdm:posterior"><code>sample_forward_posterior</code></button></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="di-right">
+      <div class="di-box" id="di-nn" data-k="nn" data-d="nn">
+        <button type="button" class="di-head" aria-expanded="true" data-toggle="di-nn-parts">
+          <span class="di-title">ComposedDenoiser</span><span class="di-chev" aria-hidden="true">▶</span>
+        </button>
+      </div>
+      <div class="di-parts" id="di-nn-parts" data-parent="di-nn">
+        <div class="di-box di-part" id="di-input-adapter"><span>InputAdapter</span><span class="di-module-type">(nn.Module)</span></div>
+        <div class="di-box di-part" id="di-backbone"><span>Backbone</span><span class="di-module-type">(nn.Module)</span></div>
+        <div class="di-box di-part" id="di-output-adapter"><span>OutputAdapter</span><span class="di-module-type">(nn.Module)</span></div>
+      </div>
+      <div class="di-box di-interface" id="di-schedule" data-k="sched" data-d="sched">
+        <button type="button" class="di-head" aria-expanded="true" data-toggle="di-schedule-subclasses">
+          <span class="di-title">NoiseSchedule</span><span class="di-chev" aria-hidden="true">▶</span>
+        </button>
+      </div>
+      <div class="di-subs" id="di-schedule-subclasses">
+        <div class="di-sub-col" id="di-col-vp">
+          <div class="di-box di-interface di-sched" id="di-vp" data-d="vp">
+            <button type="button" class="di-head" aria-expanded="true" data-toggle="di-vp-leaves"><span class="di-title">VPSchedule</span><span class="di-chev" aria-hidden="true">▶</span></button>
+          </div>
+          <div class="di-leaves" id="di-vp-leaves" data-parent="di-vp">
+            <button type="button" class="di-leaf" data-d="vp:cosine">CosineVPSchedule</button>
+            <button type="button" class="di-leaf" data-d="vp:linear">LinearVPSchedule</button>
+            <button type="button" class="di-leaf" data-d="vp:quad">QuadraticVPSchedule</button>
+          </div>
+        </div>
+        <div class="di-sub-col" id="di-col-mask" hidden>
+          <div class="di-box di-interface di-sched" id="di-mask" data-d="mask">
+            <button type="button" class="di-head" aria-expanded="true" data-toggle="di-mask-leaves"><span class="di-title">MaskSchedule</span><span class="di-chev" aria-hidden="true">▶</span></button>
+          </div>
+          <div class="di-leaves" id="di-mask-leaves" data-parent="di-mask">
+            <button type="button" class="di-leaf" data-d="mask:loglinear">LogLinearMaskSchedule</button>
+            <button type="button" class="di-leaf" data-d="mask:cosine">CosineMaskSchedule</button>
+            <button type="button" class="di-leaf" data-d="mask:duo">DuoCosineMaskSchedule</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="di-key" aria-label="Key">
+    <span><span class="di-box-key di-interface-key" aria-hidden="true"></span>Abstract Base Class</span>
+    <span><span class="di-box-key" aria-hidden="true"></span>Class</span>
+    <span class="di-relation-key"><svg viewBox="0 0 46 14"><line class="kl" x1="1" y1="7" x2="29" y2="7" /><path class="kd" d="M29 7 L37 2 L45 7 L37 12 Z" /></svg>Composition</span>
+    <span class="di-relation-key"><svg viewBox="0 0 46 14"><line class="kl" x1="1" y1="7" x2="33" y2="7" /><path class="kt" d="M45 7 L33 1 L33 13 Z" /></svg>Inheritance</span>
+  </div>
+  <div class="di-detail" aria-live="polite">
+    <div class="di-dgrid">
+      <div><div class="di-dlabel">Class</div><div class="di-dname"><span id="di-d-class"></span></div></div>
+      <div><div class="di-dlabel">Method</div><div class="di-dname"><span id="di-d-name" class="di-method-name"></span></div></div>
+      <div class="di-eqcol"><div class="di-dlabel">Equation</div><div class="di-eq" id="di-d-eq"></div></div>
+    </div>
+    <details class="di-codewrap">
+      <summary class="di-dlabel">Code</summary>
+      <div class="di-file" id="di-d-file"></div>
+      <div class="language-python highlighter-rouge"><div class="highlight"><div class="code-display-wrapper"><pre class="highlight"><code id="di-d-code"></code></pre></div></div></div>
+    </details>
+  </div>
+</div>
+<script>
+  (function () {
+    const root = document.getElementById("di");
+    if (!root) return;
+    const $ = (id) => document.getElementById(id);
+    const stage = root.querySelector(".di-stage");
+    const layer = root.querySelector(".layer");
+    const NS = "http://www.w3.org/2000/svg";
+    const state = { process: "forward", model: "vdm", sel: "diff:loss", modelExpanded: true };
+
+    /* CODE:BEGIN */
+    const CODE = {
+ "diff:loss": {
+  "f": "src/diffusion/interface.py",
+  "l": [
+   76,
+   91
+  ],
+  "c": "def loss(\n    self,\n    x: torch.FloatTensor,\n    keep: torch.Tensor | None = None,\n    **model_kwargs,\n) -> torch.FloatTensor:\n    batch_size = x.size(0)\n    t = low_discrepancy_timestep_sampling(batch_size).to(x.device)\n    t = t.clamp(1e-3, 1.0)\n    state_t = self.schedule(t)\n    z_t = self.sample_forward_marginal(x, state_t, keep=keep)\n    x_pred = self.predict_clean(z_t, state_t, **model_kwargs)\n    w_t = self.loss_weight(state_t)\n    err = self.error(x_pred, x, z_t)\n    loss = (w_t * err).mean()\n    return loss"
+ },
+ "diff:likelihood": {
+  "f": "src/diffusion/interface.py",
+  "l": [
+   93,
+   115
+  ],
+  "c": "@torch.no_grad()\ndef denoising_bound(\n    self,\n    x: torch.Tensor,\n    mc_draws: int = 10,\n    keep: torch.Tensor | None = None,\n    **model_kwargs,\n) -> tuple[torch.Tensor, torch.Tensor]:\n    \"\"\"Return each example's MC mean BPD and unbiased sample variance.\"\"\"\n    assert mc_draws >= 2\n    per_example_mean = torch.zeros(x.shape[0], device=x.device)\n    per_example_var = torch.zeros(x.shape[0], device=x.device)\n    for draw in range(mc_draws):\n        t = torch.rand(x.shape[0], device=x.device)\n        state_t = self.schedule(t)\n        z_t = self.sample_forward_marginal(x, state_t, keep=keep)\n        x_pred = self.predict_clean(z_t, state_t, **model_kwargs)\n        weighted_error = self.loss_weight(state_t) * self.error(x_pred, x, z_t)\n        bpd = weighted_error / math.log(2)\n        delta = bpd - per_example_mean\n        per_example_mean += delta / (draw + 1)\n        per_example_var += delta * (bpd - per_example_mean)\n    return per_example_mean, per_example_var / (mc_draws - 1)"
+ },
+ "diff:reverse": {
+  "f": "src/diffusion/interface.py",
+  "l": [
+   128,
+   138
+  ],
+  "c": "def sample_reverse_transition(\n    self,\n    z_t: torch.FloatTensor,\n    state_t: ScheduleState,\n    state_s: ScheduleState,\n    **model_kwargs,\n) -> torch.FloatTensor:\n    x_pred = self.predict_clean(z_t, state_t, **model_kwargs)\n    return self.sample_forward_posterior(\n        z_t, x_pred, state_t, state_s, **model_kwargs\n    )"
+ },
+ "diff:sample": {
+  "f": "src/diffusion/interface.py",
+  "l": [
+   149,
+   186
+  ],
+  "c": "@torch.no_grad()\ndef sample(\n    self,\n    n_samples: int,\n    n_steps: int,\n    device: torch.device,\n    terminal_kwargs: dict[str, Any] | None = None,\n    model_kwargs: dict[str, Any] | None = None,\n    show_progress: bool = True,\n) -> Tuple[torch.FloatTensor, List[torch.FloatTensor]]:\n    \"\"\"\n    Sample z_1 from the terminal/base distribution, then repeatedly apply\n    p_theta(z_s | z_t) along a decreasing time grid from 1 to 0.\n    ``terminal_kwargs`` are passed only to ``sample_terminal`` and\n    ``model_kwargs`` only to the reverse transitions.\n    \"\"\"\n    z_t = self.sample_terminal(\n        n_samples,\n        device,\n        **(terminal_kwargs or {}),\n    )\n    model_kwargs = model_kwargs or {}\n    ts = torch.linspace(1, 0, n_steps + 1, device=device)\n    latents = []\n    for i in tqdm(range(n_steps), desc=\"Sampling\", disable=not show_progress):\n        t = ts[i].repeat(n_samples)\n        s = ts[i + 1].repeat(n_samples)\n        state_t = self.schedule(t)\n        state_s = self.schedule(s)\n        z_s = self.sample_reverse_transition(\n            z_t,\n            state_t,\n            state_s,\n            **model_kwargs,\n        )\n        latents.append(z_s.cpu())\n        z_t = z_s\n    return z_t, latents"
+ },
+ "remdm:reverse": {
+  "f": "src/diffusion/remdm.py",
+  "l": [
+   49,
+   117
+  ],
+  "c": "def sample_reverse_transition(\n    self,\n    z_t: torch.Tensor,\n    state_t: ScheduleState,\n    state_s: ScheduleState,\n    **model_kwargs,\n) -> torch.Tensor:\n    \"\"\"Confidence-based ReMDM reverse transition\"\"\"\n    remask_strategy = model_kwargs.pop(\"remask_strategy\", \"confidence\")\n    confidence = model_kwargs[\"confidence\"]\n    fixed_mask = model_kwargs.get(\"fixed_mask\")\n    predict_kwargs = {\n        key: value\n        for key, value in model_kwargs.items()\n        if key not in {\"confidence\", \"fixed_mask\"}\n    }\n\n    # ReMDM Eq 7\n    xi_max = torch.where(\n        state_t.alpha > 0,\n        ((1 - state_s.alpha) / state_t.alpha).clamp(max=1),\n        torch.ones_like(state_t.alpha),\n    )\n\n    # The standard sampler starts fully masked. With fixed clues (for Sudoku),\n    # the first confidence vector can be entirely -inf despite visible tokens.\n    # Only generated, currently visible tokens can be remasked.\n    eligible = z_t != self.mask_token_id\n    if fixed_mask is not None:\n        eligible = eligible & ~fixed_mask\n    \n    if remask_strategy == \"confidence\":\n        # Stored confidence is -p, so weights are proportional to exp(-p).\n        scores = confidence\n    elif remask_strategy == \"uniform\":\n        # Equal scores give equal probabilities over eligible positions.\n        scores = torch.zeros_like(confidence)\n    else:\n        raise ValueError(f\"Unknown remasking strategy: {remask_strategy!r}\")\n    \n    eta = scores.masked_fill(~eligible, -torch.inf).softmax(dim=-1)\n    \n    # No eligible positions: assign zero remasking probability everywhere.\n    eta = torch.nan_to_num(eta, nan=0.0)\n    \n    xi = eta * bcast(xi_max, eta)\n\n    # Sample z_s\n    x_pred_logits = self.predict_clean(z_t, state_t, **predict_kwargs)\n    z_s = self.sample_forward_posterior(\n        z_t,\n        x_pred_logits,\n        state_t,\n        state_s,\n        xi=xi,\n    )\n    if fixed_mask is not None:\n        z_s = torch.where(fixed_mask, z_t, z_s)\n\n    # Update the confidence\n    x_probs = x_pred_logits.softmax(dim=-1).gather(-1, z_s.unsqueeze(-1)).squeeze(-1)\n    unmasked = (z_t == self.mask_token_id) & (z_s != self.mask_token_id)\n    remasked = (z_t != self.mask_token_id) & (z_s == self.mask_token_id)\n    confidence[unmasked] = -x_probs[unmasked]\n    confidence[remasked] = -torch.inf\n    if fixed_mask is not None:\n        confidence[fixed_mask] = -torch.inf\n\n    return z_s"
+ },
+ "remdm:posterior": {
+  "f": "src/diffusion/remdm.py",
+  "l": [
+   11,
+   47
+  ],
+  "c": "def sample_forward_posterior(\n    self,\n    z_t: torch.Tensor,\n    x: torch.Tensor,\n    state_t: ScheduleState,\n    state_s: ScheduleState,\n    **kwargs,\n) -> torch.Tensor:\n    xi = kwargs.get(\"xi\", 0)\n\n    x_hat = torch.distributions.Categorical(logits=x).sample()\n    if not torch.is_tensor(xi):\n        xi = torch.full_like(x_hat, xi, dtype=x.dtype)\n    else:\n        xi = bcast(xi, x_hat).expand_as(x_hat)\n\n    alpha_t = bcast(state_t.alpha, x_hat).expand_as(x_hat)\n    alpha_s = bcast(state_s.alpha, x_hat).expand_as(x_hat)\n\n    # unmask prob when z_t = mask\n    unmask_prob_masked = (alpha_s - (1 - xi) * alpha_t) / (1 - alpha_t)\n\n    # unmask prob when z_t ≠ mask\n    unmask_prob_visible = 1 - xi\n\n    # unmask prob in both cases (z_t = mask and z_t ≠ mask)\n    visible = z_t != self.mask_token_id\n    unmask_prob = torch.where(visible, unmask_prob_visible, unmask_prob_masked)\n\n    # positions which are unmasked\n    unmask_mask = torch.bernoulli(unmask_prob).bool()\n\n    # ReMDM Eq 6\n    candidates = torch.where(visible, z_t, x_hat)\n    z_s = torch.where(unmask_mask, candidates, self.mask_token_id)\n\n    return z_s"
+ },
+ "nn": {
+  "f": "src/models/composition.py",
+  "l": [
+   5,
+   29
+  ],
+  "c": "class ComposedDenoiser(nn.Module):\n\n    def __init__(\n        self,\n        backbone: nn.Module,\n        input_adapter: nn.Module,\n        output_adapter: nn.Module,\n        mask_token_id: int | None = None,\n    ):\n        super().__init__()\n        self.input_adapter = input_adapter\n        self.backbone = backbone\n        self.output_adapter = output_adapter\n        self.mask_token_id = mask_token_id\n\n    def forward(\n        self,\n        z_t: torch.Tensor,\n        nu_t: torch.Tensor,\n        **backbone_kwargs,\n    ):\n        h_in = self.input_adapter(z_t)\n        h_out = self.backbone(h_in, nu_t, **backbone_kwargs)\n        x_pred = self.output_adapter(h_out, z_t)\n        return x_pred"
+ },
+ "sched": {
+  "f": "src/diffusion/interface.py",
+  "l": [
+   23,
+   27
+  ],
+  "c": "class NoiseSchedule(ABC):\n\n    @abstractmethod\n    def __call__(self, t: torch.FloatTensor) -> ScheduleState:\n        raise NotImplementedError"
+ },
+ "vp": {
+  "f": "src/diffusion/vdm.py",
+  "l": [
+   13,
+   28
+  ],
+  "c": "class VPSchedule(NoiseSchedule):\n\n    def __init__(self, logsnr_min=-10.0, logsnr_max=10.0):\n        self.logsnr_min = logsnr_min\n        self.logsnr_max = logsnr_max\n\n    def __call__(self, t):\n        nu = self.logsnr(t)\n        alpha = torch.sqrt(torch.sigmoid(nu))\n        sigma = torch.sqrt(torch.sigmoid(-nu))\n        return ScheduleState(t=t, alpha=alpha, sigma=sigma, nu=nu)\n\n    @abstractmethod\n    def logsnr(self, t):\n        \"\"\"Define the log signal-to-noise ratio.\"\"\"\n        raise NotImplementedError"
+ },
+ "mask": {
+  "f": "src/diffusion/mdm.py",
+  "l": [
+   15,
+   32
+  ],
+  "c": "class MaskSchedule(NoiseSchedule):\n\n    def __init__(self, eps: float = 1e-3):\n        self.eps = eps\n\n    def rescale_time(self, t):\n        \"\"\"Match the endpoint rescaling used by the Duo MDLM schedules.\"\"\"\n        return (1.0 - self.eps) * t\n\n    @abstractmethod\n    def alpha(self, t):\n        \"\"\"Define the clean-token retention schedule.\"\"\"\n        raise NotImplementedError\n\n    def __call__(self, t):\n        alpha = self.alpha(t)\n        nu = -torch.log(alpha)\n        return ScheduleState(t=t, alpha=alpha, nu=nu)"
+ },
+ "vp:cosine": {
+  "f": "src/diffusion/vdm.py",
+  "l": [
+   31,
+   37
+  ],
+  "c": "class CosineVPSchedule(VPSchedule):\n\n    def logsnr(self, t):\n        theta_min = torch.atan(torch.exp(torch.tensor(0.5 * self.logsnr_min, device=t.device)))\n        theta_max = torch.atan(torch.exp(torch.tensor(0.5 * self.logsnr_max, device=t.device)))\n        theta = theta_max + t * (theta_min - theta_max)\n        return 2 * torch.log(torch.tan(theta))"
+ },
+ "vp:linear": {
+  "f": "src/diffusion/vdm.py",
+  "l": [
+   40,
+   43
+  ],
+  "c": "class LinearVPSchedule(VPSchedule):\n\n    def logsnr(self, t):\n        return self.logsnr_max + t * (self.logsnr_min - self.logsnr_max)"
+ },
+ "vp:quad": {
+  "f": "src/diffusion/vdm.py",
+  "l": [
+   46,
+   49
+  ],
+  "c": "class QuadraticVPSchedule(VPSchedule):\n\n    def logsnr(self, t):\n        return self.logsnr_max + (self.logsnr_min - self.logsnr_max) * t.square()"
+ },
+ "mask:loglinear": {
+  "f": "src/diffusion/mdm.py",
+  "l": [
+   35,
+   39
+  ],
+  "c": "class LogLinearMaskSchedule(MaskSchedule):\n\n    def alpha(self, t):\n        t = self.rescale_time(t)\n        return 1 - t"
+ },
+ "mask:cosine": {
+  "f": "src/diffusion/mdm.py",
+  "l": [
+   42,
+   46
+  ],
+  "c": "class CosineMaskSchedule(MaskSchedule):\n\n    def alpha(self, t):\n        t = self.rescale_time(t)\n        return torch.cos(math.pi * t / 2)"
+ },
+ "mask:duo": {
+  "f": "src/diffusion/mdm.py",
+  "l": [
+   49,
+   54
+  ],
+  "c": "class DuoCosineMaskSchedule(MaskSchedule):\n    \"\"\"The cosine retention schedule used by the Duo MDLM baseline.\"\"\"\n\n    def alpha(self, t):\n        t = self.rescale_time(t)\n        return 1 - torch.sin(math.pi * t / 2)"
+ },
+ "diff:marginal": {
+  "f": "src/diffusion/interface.py",
+  "l": [
+   54,
+   61
+  ],
+  "c": "@abstractmethod\ndef sample_forward_marginal(\n    self,\n    x: torch.FloatTensor,\n    state_t: ScheduleState,\n    keep: torch.Tensor | None = None,\n) -> torch.FloatTensor:\n    raise NotImplementedError"
+ },
+ "diff:predict": {
+  "f": "src/diffusion/interface.py",
+  "l": [
+   44,
+   52
+  ],
+  "c": "@abstractmethod\ndef predict_clean(\n    self,\n    z_t: torch.FloatTensor,\n    state_t: ScheduleState,\n    **model_kwargs,\n) -> torch.FloatTensor:\n    \"\"\"MDM Return logits over clean token IDs, VDM returns a continuous estimate.\"\"\"\n    raise NotImplementedError"
+ },
+ "diff:weight": {
+  "f": "src/diffusion/interface.py",
+  "l": [
+   63,
+   65
+  ],
+  "c": "@abstractmethod\ndef loss_weight(self, state_t: ScheduleState) -> torch.FloatTensor:\n    raise NotImplementedError"
+ },
+ "diff:error": {
+  "f": "src/diffusion/interface.py",
+  "l": [
+   67,
+   74
+  ],
+  "c": "@abstractmethod\ndef error(\n    self,\n    x_pred: torch.FloatTensor,\n    x: torch.FloatTensor,\n    z_t: Optional[torch.FloatTensor] = None,\n) -> torch.FloatTensor:\n    raise NotImplementedError"
+ },
+ "diff:posterior": {
+  "f": "src/diffusion/interface.py",
+  "l": [
+   117,
+   126
+  ],
+  "c": "@abstractmethod\ndef sample_forward_posterior(\n    self,\n    z_t: torch.FloatTensor,\n    x: torch.FloatTensor,\n    state_t: ScheduleState,\n    state_s: ScheduleState,\n    **kwargs,\n) -> torch.FloatTensor:\n    raise NotImplementedError"
+ },
+ "diff:terminal": {
+  "f": "src/diffusion/interface.py",
+  "l": [
+   140,
+   147
+  ],
+  "c": "@abstractmethod\ndef sample_terminal(\n    self,\n    n_samples: int,\n    device: torch.device,\n    **model_kwargs,\n) -> torch.FloatTensor:\n    raise NotImplementedError"
+ },
+ "vdm:marginal": {
+  "f": "src/diffusion/vdm.py",
+  "l": [
+   65,
+   79
+  ],
+  "c": "def sample_forward_marginal(\n    self,\n    x: torch.FloatTensor,\n    state_t: ScheduleState,\n    keep: torch.Tensor | None = None,\n) -> torch.FloatTensor:\n    \"\"\"\n    simple diffusion: End-to-end diffusion for high resolution images - Section 2, Eq 1\n    Variational Diffusion Models - Section 3.1, Eq 1\n    \"\"\"\n    assert keep is None or torch.all(keep == False)\n    signal, noise = bcast(state_t.alpha, x), bcast(state_t.sigma, x)\n    eps = torch.randn(x.shape, device=x.device)\n    z_t = signal * x + noise * eps\n    return z_t"
+ },
+ "vdm:predict": {
+  "f": "src/diffusion/vdm.py",
+  "l": [
+   54,
+   63
+  ],
+  "c": "def predict_clean(\n    self,\n    z_t: torch.FloatTensor,\n    state_t: ScheduleState,\n    **model_kwargs,\n) -> torch.FloatTensor:\n    v_pred = self.model(z_t, state_t.nu, **model_kwargs)\n    signal, noise = bcast(state_t.alpha, z_t), bcast(state_t.sigma, z_t)\n    x_pred = signal * z_t - noise * v_pred\n    return x_pred"
+ },
+ "vdm:weight": {
+  "f": "src/diffusion/vdm.py",
+  "l": [
+   81,
+   85
+  ],
+  "c": "def loss_weight(self, state_t: ScheduleState) -> torch.FloatTensor:\n    \"\"\"Minus half the SNR derivative (VDM, Section 5, Eq. 16).\"\"\"\n    def snr(t):\n        return self.schedule(t).nu.exp()\n    return -0.5 * derivative(snr, state_t.t)"
+ },
+ "vdm:error": {
+  "f": "src/diffusion/vdm.py",
+  "l": [
+   87,
+   96
+  ],
+  "c": "def error(\n    self,\n    x_pred: torch.FloatTensor,\n    x: torch.FloatTensor,\n    z_t: Optional[torch.FloatTensor] = None,\n) -> torch.FloatTensor:\n    \"\"\"\n    Variational Diffusion Models - Section 5, Eq 16\n    \"\"\"\n    return (x_pred - x).flatten(1).pow(2).mean(dim=1)"
+ },
+ "vdm:posterior": {
+  "f": "src/diffusion/vdm.py",
+  "l": [
+   98,
+   125
+  ],
+  "c": "def sample_forward_posterior(\n    self,\n    z_t: torch.FloatTensor,\n    x: torch.FloatTensor,\n    state_t: ScheduleState,\n    state_s: ScheduleState,\n    **kwargs,\n) -> torch.FloatTensor:\n    \"\"\"\n    simple diffusion: End-to-end diffusion for high resolution images - Section 2, Eq 3\n    This uses the stochastic DDPM posterior.\n    \"\"\"\n    alpha_t, sigma_t = bcast(state_t.alpha, x), bcast(state_t.sigma, x)\n    alpha_s, sigma_s = bcast(state_s.alpha, x), bcast(state_s.sigma, x)\n\n    alpha_ts = alpha_t / alpha_s\n    sigma_ts_sqrd = sigma_t ** 2 - alpha_ts ** 2 * sigma_s ** 2\n\n    x = x.clip(-1, 1)\n    posterior_var = (sigma_ts_sqrd * sigma_s ** 2) / sigma_t ** 2\n\n    posterior_std = posterior_var.clamp_min(0).sqrt()\n    predicted_noise = (z_t - alpha_t * x) / sigma_t\n    direction_std = (sigma_s.square() - posterior_std.square()).clamp_min(0).sqrt()\n    z_s = alpha_s * x + direction_std * predicted_noise\n    z_s = z_s + posterior_std * torch.randn_like(z_t)\n\n    return z_s"
+ },
+ "vdm:terminal": {
+  "f": "src/diffusion/vdm.py",
+  "l": [
+   127,
+   131
+  ],
+  "c": "def sample_terminal(self, n_samples, device, **terminal_kwargs):\n    \"\"\"\n    VDM terminal distribution p(z_1).\n    \"\"\"\n    return torch.randn((n_samples, *self.data_dims), device=device)"
+ },
+ "mdm:marginal": {
+  "f": "src/diffusion/mdm.py",
+  "l": [
+   79,
+   90
+  ],
+  "c": "def sample_forward_marginal(\n    self,\n    x: torch.Tensor,\n    state_t: ScheduleState,\n    keep: torch.Tensor | None = None,\n) -> torch.Tensor:\n    \"\"\"Mask clean integer token IDs; unlike VDM, ``x`` is not continuous.\"\"\"\n    keep_rate = bcast(state_t.alpha, x).expand_as(x)\n    sampled_keep = torch.bernoulli(keep_rate).bool()\n    if keep is not None:\n        sampled_keep = sampled_keep | keep.bool()\n    return torch.where(sampled_keep, x, self.mask_token_id)"
+ },
+ "mdm:predict": {
+  "f": "src/diffusion/mdm.py",
+  "l": [
+   71,
+   77
+  ],
+  "c": "def predict_clean(\n    self,\n    z_t: torch.FloatTensor,\n    state_t: ScheduleState,\n    **model_kwargs,\n) -> torch.FloatTensor:\n    return self.model(z_t, state_t.nu, **model_kwargs)"
+ },
+ "mdm:weight": {
+  "f": "src/diffusion/mdm.py",
+  "l": [
+   92,
+   95
+  ],
+  "c": "def loss_weight(self, state_t: ScheduleState) -> torch.Tensor:\n    def alpha(t):\n        return self.schedule(t).alpha\n    return -derivative(alpha, state_t.t) / (1 - state_t.alpha)"
+ },
+ "mdm:error": {
+  "f": "src/diffusion/mdm.py",
+  "l": [
+   97,
+   109
+  ],
+  "c": "def error(\n    self,\n    x_pred: torch.Tensor,\n    x: torch.Tensor,\n    z_t: torch.Tensor,\n) -> torch.Tensor:\n    \"\"\"Negative log probability of clean integer token IDs ``x``.\"\"\"\n    log_probs = F.log_softmax(x_pred, dim=-1, dtype=dtype)\n    nll = -log_probs.gather(-1, x.unsqueeze(-1)).squeeze(-1)\n    if self.loss_on_all_tokens:\n        return nll.flatten(1).mean(dim=1)\n    masked = z_t == self.mask_token_id\n    return (nll * masked).flatten(1).mean(dim=1)"
+ },
+ "mdm:posterior": {
+  "f": "src/diffusion/mdm.py",
+  "l": [
+   111,
+   138
+  ],
+  "c": "def sample_forward_posterior(\n    self,\n    z_t: torch.Tensor,\n    x: torch.Tensor,\n    state_t: ScheduleState,\n    state_s: ScheduleState,\n    **kwargs,\n) -> torch.Tensor:\n    \"\"\"Use categorical logits ``x`` to sample clean IDs, then apply masking.\"\"\"\n    alpha_t, alpha_s = state_t.alpha, state_s.alpha\n\n    x_hat = torch.distributions.Categorical(logits=x).sample()\n\n    # unmask prob when z_t = mask\n    unmask_prob = (alpha_s - alpha_t) / (1 - alpha_t)\n    unmask_prob = bcast(unmask_prob, x_hat).expand_as(x_hat)\n\n    # z_t = mask\n    unmask_mask = torch.bernoulli(unmask_prob).bool()\n    z_s_candidates = torch.where(unmask_mask, x_hat, self.mask_token_id)\n\n    # z_t ≠ mask\n    visible = z_t != self.mask_token_id\n\n    # MDLM Eq 7 - pass through z_t (z_t ≠ mask) or use z_s_candidates (z_t = mask)\n    z_s = torch.where(visible, z_t, z_s_candidates)\n\n    return z_s"
+ },
+ "mdm:terminal": {
+  "f": "src/diffusion/mdm.py",
+  "l": [
+   140,
+   149
+  ],
+  "c": "def sample_terminal(self, n_samples, device, **terminal_kwargs):\n    terminal = terminal_kwargs.get(\"terminal\")\n    if terminal is not None:\n        return terminal.to(device=device, dtype=torch.long)\n    return torch.full(\n        (n_samples, *self.data_dims),\n        fill_value=self.mask_token_id,\n        device=device,\n        dtype=torch.long,\n    )"
+ }
+};
+    /* CODE:END */
+
+    const MODELS = {
+      vdm: { title: "VDM", family: "vdm", sched: "vp" },
+      mdm: { title: "MDM", family: "mdm", sched: "mask" },
+      remdm: { title: "ReMDM", family: "mdm", sched: "mask" },
+    };
+    const SLOTS = [
+      ["marginal", "sample_forward_marginal"], ["predict", "predict_clean"], ["weight", "loss_weight"],
+      ["error", "error"], ["posterior", "sample_forward_posterior"], ["terminal", "sample_terminal"],
+    ];
+    const ACTIVE = {
+      forward: ["loss", "marginal", "predict", "weight", "error", "nn", "sched"],
+      sample: ["sample", "reverse", "terminal", "predict", "posterior", "nn", "sched"],
+      likelihood: ["likelihood", "marginal", "predict", "weight", "error", "nn", "sched"],
+    };
+    const DEFAULT_SEL = { forward: "diff:loss", sample: "diff:sample", likelihood: "diff:likelihood" };
+
+    const META = {
+      "diff:loss": { name: "Diffusion.loss()", own: "Diffusion · shared", tex: "\\mathcal{L}(\\theta)=\\mathbb{E}_{t,\\,\\mathbf{x},\\,\\mathbf{z}_t}\\big[\\,\\omega(t)\\,\\mathcal{E}(\\mathbf{x},\\hat{\\mathbf{x}})\\big]", note: "One training step. Written once: it draws t, corrupts x, predicts the clean data and averages weight × error. The model-specific pieces come from the slots." },
+      "diff:likelihood": { name: "Diffusion.denoising_bound()", own: "Diffusion · shared", tex: "\\begin{aligned}\\ell_k&=\\frac{\\omega(t_k)\\,\\mathcal{E}_k(\\mathbf{x},\\hat{\\mathbf{x}})}{\\ln 2},\\\\ \\widehat{\\mathrm{mean}}&=\\frac1K\\sum_{k=1}^K \\ell_k,\\\\ \\widehat{\\mathrm{var}}&=\\frac1{K-1}\\sum_{k=1}^K\\big(\\ell_k-\\widehat{\\mathrm{mean}}\\big)^2\\end{aligned}", note: "Per-example Monte Carlo mean denoising BPD and unbiased per-draw sample variance. Prior and reconstruction terms are not included." },
+      "diff:reverse": { name: "Diffusion.sample_reverse_transition()", own: "Diffusion · shared", tex: { vdm: "\\begin{gathered}\\text{Forward Posterior with}\\\\ \\mathbf{x}\\leftarrow\\hat{\\mathbf{x}}\\end{gathered}", mdm: "\\begin{gathered}\\text{Forward Posterior with}\\\\ x_i\\leftarrow\\tilde{x}_i\\ \\text{ where }\\ \\tilde{x}_i\\sim\\hat{x}_i\\end{gathered}" }, note: "One reverse step from t to s: predict the clean data, then take a step of the forward posterior using that prediction." },
+      "diff:sample": { name: "Diffusion.sample()", own: "Diffusion · shared", tex: "\\begin{gathered}\\mathbf{z}_1\\sim p(\\mathbf{z}_1),\\\\ \\mathbf{z}_s\\sim p_\\theta(\\mathbf{z}_s\\mid\\mathbf{z}_t),\\quad t=1\\to 0\\end{gathered}", note: "Ancestral sampling: start from the terminal distribution and repeat the reverse transition over a decreasing time grid." },
+      "diff:marginal": { name: "Diffusion.sample_forward_marginal()", own: "Diffusion · abstract slot", tex: "\\mathbf{z}_t\\sim q(\\mathbf{z}_t\\mid\\mathbf{x})", note: "Slot: corrupt clean data to time t. Each model fills it in; pick the model above to see its version below." },
+      "diff:predict": { name: "Diffusion.predict_clean()", own: "Diffusion · abstract slot", tex: "\\mathbf{h}_t^{\\mathrm{out}}\\;\\longrightarrow\\;\\hat{\\mathbf{x}}", note: "Slot: turn the network output into a prediction of the clean data." },
+      "diff:weight": { name: "Diffusion.loss_weight()", own: "Diffusion · abstract slot", tex: "\\omega(t)", note: "Slot: the time-dependent weight on the training error." },
+      "diff:error": { name: "Diffusion.error()", own: "Diffusion · abstract slot", tex: "\\mathcal{E}(\\mathbf{x},\\hat{\\mathbf{x}})", note: "Slot: how the prediction is compared with the clean data." },
+      "diff:posterior": { name: "Diffusion.sample_forward_posterior()", own: "Diffusion · abstract slot", tex: "\\mathbf{z}_s\\sim q(\\mathbf{z}_s\\mid\\mathbf{z}_t,\\mathbf{x})", note: "Slot: one step from z_t to z_s given a clean-data estimate." },
+      "diff:terminal": { name: "Diffusion.sample_terminal()", own: "Diffusion · abstract slot", tex: "\\mathbf{z}_1\\sim p(\\mathbf{z}_1)", note: "Slot: where sampling starts." },
+      "vdm:marginal": { name: "VDM.sample_forward_marginal()", own: "VDM · fills slot", tex: "\\begin{gathered}\\mathbf{z}_t=\\alpha_t\\mathbf{x}+\\sigma_t\\pmb{\\epsilon}\\\\ \\pmb{\\epsilon}\\sim\\mathcal{N}(\\mathbf{0},\\mathbf{I})\\end{gathered}", note: "Blend the data with Gaussian noise." },
+      "vdm:predict": { name: "VDM.predict_clean()", own: "VDM · fills slot", tex: "\\begin{gathered}\\hat{\\mathbf{x}}=\\alpha_t\\mathbf{z}_t-\\sigma_t\\hat{\\mathbf{v}},\\\\ \\hat{\\mathbf{v}}=\\mathbf{h}_t^{\\mathrm{out}}\\end{gathered}", note: "The network predicts v, which is converted to a clean-data estimate." },
+      "vdm:weight": { name: "VDM.loss_weight()", own: "VDM · fills slot", tex: "\\omega(t)=-\\tfrac{1}{2}\\operatorname{SNR}'(t)", note: "Minus half the derivative of the signal-to-noise ratio." },
+      "vdm:error": { name: "VDM.error()", own: "VDM · fills slot", tex: "\\mathcal{E}(\\mathbf{x},\\hat{\\mathbf{x}})=\\frac{1}{N}\\sum_{i=1}^{N}(x_i-\\hat{x}_i)^2", note: "Mean squared error." },
+      "vdm:posterior": { name: "VDM.sample_forward_posterior()", own: "VDM · fills slot", tex: "\\begin{gathered}\\mathbf{z}_s=\\pmb{\\mu}_{s\\mid t,\\mathbf{x}}+\\sigma_{s\\mid t,\\mathbf{x}}\\pmb{\\epsilon}\\\\ \\pmb{\\epsilon}\\sim\\mathcal{N}(\\mathbf{0},\\mathbf{I})\\end{gathered}", note: "Stochastic DDPM posterior step." },
+      "vdm:terminal": { name: "VDM.sample_terminal()", own: "VDM · fills slot", tex: "\\mathbf{z}_1\\sim\\mathcal{N}(\\mathbf{0},\\mathbf{I})", note: "Pure Gaussian noise." },
+      "mdm:marginal": { name: "MDM.sample_forward_marginal()", own: "MDM · fills slot", tex: "\\begin{gathered}z_{t,i}=b_{t,i}\\,x_i+(1-b_{t,i})\\,m\\\\ b_{t,i}=1\\ \\text{ if }i\\in\\mathcal{K}\\ \\text{ else}\\\\ b_{t,i}\\overset{\\mathrm{iid}}{\\sim}\\mathrm{Bernoulli}(\\alpha_t)\\end{gathered}", note: "Keep each position with probability α_t, otherwise replace it with the mask value m. Positions in K are always kept." },
+      "mdm:predict": { name: "MDM.predict_clean()", own: "MDM · fills slot", tex: "\\hat{x}_i=\\operatorname{Cat}\\big(\\operatorname{softmax}(\\mathbf{h}_{t,i}^{\\mathrm{out}})\\big)", note: "The network returns logits over the clean token at every position." },
+      "mdm:weight": { name: "MDM.loss_weight()", own: "MDM · fills slot", tex: "\\omega(t)=-\\frac{\\alpha_t'}{1-\\alpha_t}", note: "The standard masked-diffusion ELBO weight." },
+      "mdm:error": { name: "MDM.error()", own: "MDM · fills slot", tex: "\\begin{aligned}&\\mathcal{E}(\\mathbf{x},\\hat{\\mathbf{x}})=\\\\ &\\;-\\frac{1}{N}\\sum_{i=1}^{N}\\mathbf{1}[z_{t,i}=m]\\log\\hat{x}_i(x_i)\\end{aligned}", note: "Cross-entropy on the masked positions only." },
+      "mdm:posterior": { name: "MDM.sample_forward_posterior()", own: "MDM · fills slot", tex: "\\begin{gathered}z_{s,i}=z_{t,i}\\ \\text{ if }z_{t,i}\\neq m\\\\ \\text{else }\\ c_i\\,x_i+(1-c_i)\\,m\\\\ c_i\\overset{\\mathrm{iid}}{\\sim}\\mathrm{Bernoulli}(\\rho_{s\\mid t})\\end{gathered}", note: "Visible tokens are copied; masked ones are revealed with probability (α_s − α_t)/(1 − α_t)." },
+      "mdm:terminal": { name: "MDM.sample_terminal()", own: "MDM · fills slot", tex: "z_{1,i}=x_i\\ \\text{ if }i\\in\\mathcal{K}\\ \\text{ else }m", note: "Every token starts masked." },
+      "remdm:reverse": { name: "ReMDM.sample_reverse_transition()", own: "ReMDM · overrides MDM", tex: "\\begin{gathered}\\xi_{t,d}=\\eta_{t,d}\\min\\big\\{1,\\tfrac{1-\\alpha_s}{\\alpha_t}\\big\\},\\\\ \\mathbf{z}_s\\sim q_{\\xi}(\\mathbf{z}_s\\mid\\mathbf{z}_t,\\hat{\\mathbf{x}})\\end{gathered}", note: "Compute per-position remasking probabilities, sample the posterior, preserve fixed clues, and update confidence." },
+      "remdm:posterior": { name: "ReMDM.sample_forward_posterior()", own: "ReMDM · overrides MDM", tex: "\\begin{gathered}z_{s,d}=\\begin{cases}u_d z_{t,d}+(1-u_d)m & z_{t,d}\\neq m\\\\ u_d\\tilde{x}_d+(1-u_d)m & z_{t,d}=m\\end{cases}\\\\ u_d\\sim\\mathrm{Bernoulli}(p_d),\\quad p_d=\\begin{cases}1-\\xi_{t,d} & z_{t,d}\\neq m\\\\ \\frac{\\alpha_s-(1-\\xi_{t,d})\\alpha_t}{1-\\alpha_t} & z_{t,d}=m\\end{cases}\\end{gathered}", note: "Visible tokens retain their current values unless remasked. Masked positions use a token sampled from the denoiser's categorical distribution." },
+      "vp:cosine": { name: "CosineVPSchedule", own: "CosineVPSchedule · VPSchedule", tex: "\\begin{gathered}\\nu_t=2\\log\\tan\\big(\\theta_{\\max}+t(\\theta_{\\min}-\\theta_{\\max})\\big)\\\\ \\theta_{\\min}=\\arctan\\big(e^{\\nu_{\\min}/2}\\big)\\\\ \\theta_{\\max}=\\arctan\\big(e^{\\nu_{\\max}/2}\\big)\\end{gathered}", note: "Cosine log-SNR schedule." },
+      "vp:linear": { name: "LinearVPSchedule", own: "LinearVPSchedule · VPSchedule", tex: "\\nu_t=\\nu_{\\max}+(\\nu_{\\min}-\\nu_{\\max})\\,t", note: "Log-SNR decreases linearly in t." },
+      "vp:quad": { name: "QuadraticVPSchedule", own: "QuadraticVPSchedule · VPSchedule", tex: "\\nu_t=\\nu_{\\max}+(\\nu_{\\min}-\\nu_{\\max})\\,t^2", note: "Log-SNR decreases quadratically in t." },
+      "mask:loglinear": { name: "LogLinearMaskSchedule", own: "LogLinearMaskSchedule · MaskSchedule", tex: "\\begin{gathered}\\alpha_t=1-t,\\\\ t\\mapsto(1-\\epsilon)\\,t\\end{gathered}", note: "Tokens are kept with probability falling linearly from 1 to ε." },
+      "mask:cosine": { name: "CosineMaskSchedule", own: "CosineMaskSchedule · MaskSchedule", tex: "\\begin{gathered}\\alpha_t=\\cos\\Big(\\frac{\\pi t}{2}\\Big),\\\\ t\\mapsto(1-\\epsilon)\\,t\\end{gathered}", note: "Cosine retention schedule." },
+      "mask:duo": { name: "DuoCosineMaskSchedule", own: "DuoCosineMaskSchedule · MaskSchedule", tex: "\\begin{gathered}\\alpha_t=1-\\sin\\Big(\\frac{\\pi t}{2}\\Big),\\\\ t\\mapsto(1-\\epsilon)\\,t\\end{gathered}", note: "The cosine retention schedule used by the Duo MDLM baseline." },
+      "nn": { name: "ComposedDenoiser", own: "nn.Module", tex: "\\begin{aligned}\\mathbf{h}_t^{\\mathrm{in}}&=A_{\\mathrm{in}}(\\mathbf{z}_t)\\\\ \\mathbf{h}_t^{\\mathrm{feat}}&=\\mathrm{NN}_\\theta(\\mathbf{h}_t^{\\mathrm{in}},\\nu_t)\\\\ \\mathbf{h}_t^{\\mathrm{out}}&=A_{\\mathrm{out}}(\\mathbf{h}_t^{\\mathrm{feat}},\\mathbf{z}_t)\\end{aligned}", note: "Input adapter, then the shared backbone conditioned on ν_t, then the output adapter. The Diffusion object holds one as self.model." },
+      "sched": { name: "NoiseSchedule", own: "NoiseSchedule · abstract", tex: { vdm: "\\mathcal{S}(t):\\ t\\mapsto(\\alpha_t,\\ \\sigma_t,\\ \\nu_t)", mdm: "\\mathcal{S}(t):\\ t\\mapsto(\\alpha_t,\\ \\nu_t)" }, note: "Maps a time t to a ScheduleState. The Diffusion object holds one as self.schedule." },
+      "vp": { name: "VPSchedule", own: "VPSchedule · NoiseSchedule", tex: "\\begin{gathered}\\alpha_t=\\sqrt{\\mathrm{sigmoid}(\\nu_t)},\\\\ \\sigma_t=\\sqrt{\\mathrm{sigmoid}(-\\nu_t)},\\\\ \\nu_t=\\log\\frac{\\alpha_t^2}{\\sigma_t^2}\\end{gathered}", note: "Variance-preserving schedule used by VDM. Subclasses define logsnr(t): cosine, linear, quadratic." },
+      "mask": { name: "MaskSchedule", own: "MaskSchedule · NoiseSchedule", tex: "\\nu_t=-\\log\\alpha_t", note: "Masking schedule used by MDM. Subclasses define the retention alpha(t): log-linear, cosine, Duo cosine." },
+    };
+
+    const resolve = (key) => key.indexOf("model:") === 0 ? MODELS[state.model].family + ":" + key.slice(6) : key;
+
+    /* math: MathJax when the page has it, plain TeX source otherwise */
+    const mathReady = () => !!(window.MathJax && window.MathJax.typesetPromise);
+    function typeset(els) {
+      if (!mathReady() || !els.length) return;
+      els.forEach((el) => { el.innerHTML = (el.dataset.disp ? "\\[" : "\\(") + el.dataset.tex + (el.dataset.disp ? "\\]" : "\\)"); });
+      window.MathJax.typesetPromise(els).then(() => { fitEquation(); schedule(); }, () => {});
+    }
+    // Shrink an equation that is wider than its column, so it never runs over.
+    function fitEquation() {
+      const box = $("di-d-eq");
+      box.style.fontSize = "";
+      for (let pass = 0; pass < 3 && box.scrollWidth > box.clientWidth + 1; pass += 1) {
+        const current = parseFloat(getComputedStyle(box).fontSize);
+        box.style.fontSize = (current * box.clientWidth / box.scrollWidth) * 0.98 + "px";
+      }
+    }
+    let fittedWidth = 0;
+    new ResizeObserver(([entry]) => {
+      const width = Math.round(entry.contentRect.width);
+      if (width !== fittedWidth) { fittedWidth = width; requestAnimationFrame(fitEquation); }
+    }).observe($("di-d-eq"));
+    function setTex(el, tex, disp, fallback) {
+      el.dataset.tex = tex;
+      el.dataset.disp = disp ? "1" : "";
+      if (mathReady()) typeset([el]);
+      else el.innerHTML = fallback;
+    }
+    let tries = 0;
+    const poll = setInterval(() => {
+      tries += 1;
+      if (mathReady()) { clearInterval(poll); typeset(Array.from(root.querySelectorAll("[data-tex]"))); }
+      else if (tries > 40) clearInterval(poll);
+    }, 300);
+
+    function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    const sp = (c, t) => '<span class="' + c + '">' + t + "</span>";
+    // emits the same Rouge token classes as the blog's own code blocks, so the theme styles it identically
+    function highlight(src) {
+      return esc(src).replace(/(#.*$)|("""[\s\S]*?"""|"[^"\n]*"|'[^'\n]*')|(@[A-Za-z_.]+)|\b(def|class)(\s+)([A-Za-z_]\w*)|\b(\d+\.?\d*(?:e-?\d+)?)\b|\b(import|from)\b|\b(return|for|if|else|elif|assert|raise|with|lambda)\b|\b(in|not|and|or|is)\b|\b(None|True|False)\b|\b(self)\b|\b(range|float|int|len|tuple|dict|str|bool|super)\b/gm,
+        (m, c, s, nd, kw, ws, nm, num, kn, k, ow, kc, bp, nb) =>
+          c ? sp("c1", c) : s ? sp(s.indexOf('"""') === 0 ? "sd" : "s2", s) : nd ? sp("nd", nd)
+          : kw ? sp("k", kw) + ws + sp(kw === "def" ? "nf" : "nc", nm) : num ? sp("mi", num) : kn ? sp("kn", kn)
+          : k ? sp("k", k) : ow ? sp("ow", ow) : kc ? sp("kc", kc) : bp ? sp("bp", bp) : sp("nb", nb));
+    }
+
+    function renderModelBox() {
+      const m = MODELS[MODELS[state.model].family];
+      $("di-model-title").textContent = m.title;
+      $("di-model-list").innerHTML = SLOTS.map((s) => '<li><button type="button" class="di-row" data-k="' + s[0] + '" data-d="model:' + s[0] + '"><code>' + s[1] + "</code></button></li>").join("");
+    }
+
+    function renderDetail() {
+      const key = resolve(state.sel);
+      const meta = META[key];
+      const src = CODE[key];
+      const classMethod = key === "nn" ? "forward" : key.startsWith("vp:") ? "logsnr" : key.startsWith("mask:") ? "alpha" : "__call__";
+      const [className, methodName = classMethod] = meta.name.split(".");
+      $("di-d-class").textContent = className;
+      $("di-d-name").textContent = methodName.replace(/\(\)$/, "");
+      const tex = typeof meta.tex === "string" ? meta.tex : meta.tex[MODELS[state.model].family];
+      setTex($("di-d-eq"), tex, true, "<code>" + esc(tex) + "</code>");
+      $("di-d-file").textContent = src ? src.f + ":" + src.l[0] + "–" + src.l[1] : "";
+      $("di-d-code").innerHTML = src ? highlight(src.c) : "";
+    }
+
+    function apply() {
+      const remdm = state.model === "remdm";
+      const mdm = MODELS[state.model].family === "mdm";
+      if (remdm) state.process = "sample";
+      root.dataset.process = state.process;
+      root.dataset.model = state.model;
+      renderModelBox();
+      $("di-remdm").hidden = !remdm;
+      const modelHead = root.querySelector('[data-toggle="di-model-body"]');
+      modelHead.disabled = remdm;
+      setExpanded(modelHead, !remdm && state.modelExpanded);
+      const stale = (mdm && /^vp/.test(state.sel)) || (!mdm && /^mask/.test(state.sel))
+        || (!remdm && state.sel.startsWith("remdm:"));
+      if (stale) state.sel = DEFAULT_SEL[state.process];
+      $("di-col-vp").hidden = mdm;
+      $("di-col-mask").hidden = !mdm;
+      const active = ACTIVE[state.process];
+      root.querySelectorAll("[data-k]").forEach((el) => {
+        const on = active.indexOf(el.dataset.k) >= 0 && !(remdm && el.dataset.d === "diff:reverse");
+        el.classList.toggle("on", on);
+        if (el.classList.contains("di-box")) el.classList.toggle("off", !on);
+        if (el.matches("button.di-row")) el.disabled = !on;
+      });
+      ["vp", "mask"].forEach((k) => {
+        const on = MODELS[state.model].sched === k;
+        $("di-" + k).classList.toggle("on", on);
+        $("di-" + k).classList.toggle("off", !on);
+      });
+      root.querySelectorAll(".di-leaf").forEach((lf) => lf.classList.add("on"));
+      root.querySelectorAll("button[data-process]").forEach((b) => {
+        b.disabled = remdm && b.dataset.process !== "sample";
+        b.setAttribute("aria-pressed", String(b.dataset.process === state.process));
+      });
+      root.querySelectorAll("button[data-model]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.model === state.model)));
+      select(canSelect(state.sel) ? state.sel : DEFAULT_SEL[state.process]);
+    }
+
+    function canSelect(raw) {
+      if (raw.startsWith("remdm:") && state.model !== "remdm") return false;
+      if (raw.startsWith("model:") && state.model === "remdm") return false;
+      const target = root.querySelector(`[data-d="${raw}"]`);
+      return target && !target.disabled && (!target.dataset.k || ACTIVE[state.process].includes(target.dataset.k));
+    }
+
+    function select(raw) {
+      if (!canSelect(raw)) return;
+      state.sel = raw;
+      root.querySelectorAll("[data-d]").forEach((el) => el.classList.toggle("sel", el.dataset.d === raw));
+      renderDetail();
+      schedule();
+    }
+
+    /* geometry */
+    function rect(el) {
+      const a = el.getBoundingClientRect();
+      const s = stage.getBoundingClientRect();
+      return { l: a.left - s.left, r: a.right - s.left, t: a.top - s.top, b: a.bottom - s.top, w: a.width, h: a.height };
+    }
+    const shown = (el) => el && el.offsetParent !== null;
+    function path(cls, d, extra) {
+      const p = document.createElementNS(NS, "path");
+      p.setAttribute("d", d);
+      p.setAttribute("class", cls);
+      Object.keys(extra || {}).forEach((k) => p.setAttribute(k, extra[k]));
+      layer.appendChild(p);
+    }
+
+    function draw() {
+      layer.replaceChildren();
+      const arrows = root.querySelector(".di-arrows");
+      const modelBox = $("di-model");
+      const scheduleBox = $("di-schedule");
+      modelBox.style.marginTop = "";
+      scheduleBox.style.marginTop = "";
+      if (getComputedStyle(arrows).display === "none") return;
+      // Keep the second row aligned while allowing Diffusion to size to its contents.
+      const networkParts = $("di-nn-parts");
+      const networkBottom = (shown(networkParts) ? networkParts : $("di-nn")).getBoundingClientRect().bottom;
+      const modelTop = modelBox.getBoundingClientRect().top;
+      const rowTop = Math.max(modelTop, networkBottom + 24);
+      modelBox.style.marginTop = (rowTop - modelTop) + "px";
+      scheduleBox.style.marginTop = (rowTop - networkBottom) + "px";
+      const D = rect($("di-diffusion"));
+      const M = rect($("di-model"));
+      const N = rect($("di-nn"));
+      const S = rect($("di-schedule"));
+      const tri = (sel) => "url(#di-mk-tri" + (sel ? "-s" : "") + ")";
+
+      // inheritance: subclass -> superclass, triangle on the superclass
+      const mx = M.l + M.w / 2;
+      path("s sel", "M" + mx + " " + M.t + " V" + D.b, { "marker-end": tri(true) });
+      if (shown($("di-remdm"))) {
+        const R = rect($("di-remdm"));
+        path("s sel di-remdm-inheritance", "M" + (R.l + R.w / 2) + " " + R.t + " V" + M.b, { "marker-end": tri(true) });
+      }
+      const px = S.l + S.w / 2;
+      ["di-vp", "di-mask"].filter((id) => shown($(id))).forEach((id) => {
+        const r = rect($(id));
+        const cx = r.l + r.w / 2;
+        const busY = S.b + (r.t - S.b) / 2;
+        path("s sel", "M" + cx + " " + r.t + " V" + busY + " H" + px + " V" + S.b, { "marker-end": tri(true) });
+      });
+      // composition: ComposedDenoiser owns its three parts
+      const nnParts = $("di-nn-parts");
+      if (shown(nnParts)) {
+        const P = rect($("di-nn"));
+        nnParts.querySelectorAll(".di-part").forEach((pt) => {
+          const L = rect(pt);
+          path("c", "M" + L.l + " " + (L.t + L.h / 2) + " H" + (P.l + 12) + " V" + P.b, { "marker-end": "url(#di-mk-dia-e)" });
+        });
+      }
+      root.querySelectorAll(".di-leaves").forEach((lv) => {
+        if (!shown(lv)) return;
+        const P = rect($(lv.dataset.parent));
+        const on = $(lv.dataset.parent).classList.contains("on");
+        const spine = P.l + 12;
+        lv.querySelectorAll(".di-leaf").forEach((lf) => {
+          const L = rect(lf);
+          path("s" + (on ? " sel" : ""), "M" + L.l + " " + (L.t + L.h / 2) + " H" + spine + " V" + P.b, { "marker-end": tri(on) });
+        });
+      });
+
+      // Separate header-level ports keep both links clear when Diffusion is collapsed.
+      const yN = N.t + N.h / 2 - 8;
+      const yS = S.t + S.h / 2;
+      const schedulePortY = yN + 18;
+      const scheduleRouteX = (D.r + S.l) / 2;
+      path("c di-network-link", "M" + D.r + " " + yN + " H" + N.l, { "marker-start": "url(#di-mk-dia-s)" });
+      path("c di-schedule-link", "M" + S.l + " " + yS + " H" + scheduleRouteX + " V" + schedulePortY + " H" + D.r, { "marker-end": "url(#di-mk-dia-e)" });
+    }
+
+    let raf = 0;
+    function schedule() {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(draw);
+    }
+
+    function setExpanded(header, open) {
+      header.setAttribute("aria-expanded", String(open));
+      $(header.dataset.toggle).hidden = !open;
+    }
+
+    root.addEventListener("click", (e) => {
+      const t = e.target.closest("button");
+      if (!t || !root.contains(t) || t.disabled) return;
+      if (t.dataset.toggle) {
+        const open = t.getAttribute("aria-expanded") !== "true";
+        setExpanded(t, open);
+        const host = t.closest("[data-d]");
+        if (t.dataset.toggle === "di-model-body") { state.modelExpanded = open; apply(); }
+        else if (host && host.dataset.d) select(host.dataset.d);
+        else schedule();
+      } else if (t.dataset.d) {
+        select(t.dataset.d);
+      } else if (t.dataset.action === "expand") {
+        const open = t.getAttribute("aria-pressed") !== "true";
+        t.setAttribute("aria-pressed", String(open));
+        t.textContent = open ? "Collapse" : "Expand";
+        root.querySelectorAll("[data-toggle]").forEach((h) => {
+          if (!h.disabled) setExpanded(h, open);
+        });
+        if (state.model !== "remdm") state.modelExpanded = open;
+        if (!open) state.sel = DEFAULT_SEL[state.process];
+        apply();
+      } else if (t.dataset.process) {
+        state.process = t.dataset.process;
+        state.sel = DEFAULT_SEL[state.process];
+        apply();
+      } else if (t.dataset.model) {
+        state.model = t.dataset.model;
+        if (state.model === "remdm") {
+          state.sel = "remdm:reverse";
+          setExpanded(root.querySelector('[data-toggle="di-remdm-body"]'), true);
+        }
+        apply();
+      }
+    });
+    // a pill inside a toggle header would double-fire; pills are never inside a head, so no guard is needed
+
+    if (window.ResizeObserver) new ResizeObserver(schedule).observe(stage);
+    window.addEventListener("resize", schedule);
+    window.addEventListener("load", schedule);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+    apply();
+  })();
+</script>
+
+
+</d-article>
+</div>
+<script>/* the article page gives its tables this class */ document.querySelectorAll("d-article table").forEach(function (t) { t.classList.add("table"); });</script>
+<script src="../../js/copy_code.js"></script>
+</body>
+</html>
