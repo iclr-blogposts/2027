@@ -21,7 +21,7 @@ _styles: |
   d-article .ema-figure, d-article .ema-table-figure { margin-top: 1.8rem; margin-bottom: 2rem; }
   d-article .ema-figure img { display: block; width: 100%; max-width: 100%; height: auto; margin: 0 auto; border-radius: 6px; background: white; }
   d-article .ema-teaser img { max-width: 640px; margin-left: 0; }
-  d-article .ema-figure figcaption, d-article .ema-table-figure figcaption { margin-top: 0.75rem; text-align: left; font-size: 0.86rem; line-height: 1.58; }
+  d-article .ema-figure figcaption, d-article .ema-table-figure figcaption { margin-top: 0.75rem; text-align: left; color: var(--global-text-color-light); font-size: 0.86rem; line-height: 1.58; }
   d-article .ema-pair-figure { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 1rem; }
   d-article .ema-label { text-align: center; font-size: 0.78rem; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; }
   d-article .ema-beta-compare { margin-top: 0.85rem; padding-top: 0.8rem; border-top: 1px solid var(--global-divider-color); }
@@ -53,7 +53,7 @@ _styles: |
 Diffusion transformers are increasingly compared by convergence speed: who can reach a target FID in the fewest training epochs. But before changing the model architecture, loss, or input space, one quiet hyperparameter can already move the number: EMA decay. In the figure below, we take the same RAE-DiT<d-cite key="ema-rae"></d-cite> training run at 80 epochs and change only the EMA decay. The gFID moves from <b>4.14</b> to <b>3.21</b>. This is large enough that two papers could appear to differ in method quality when they are partly differing in EMA protocol.
 
 <figure class="ema-figure ema-teaser">
-<img alt="gFID vs EMA decay at 80 epochs for RAE-DiT (DINOv2-B), with horizontal references for raw, LightningDiT, and the published RAE number" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/ema_sweep_curves_v2.png' | relative_url }}"/>
+<img width="1491" height="699" alt="gFID vs EMA decay at 80 epochs for RAE-DiT (DINOv2-B), with horizontal references for raw, LightningDiT, and the published RAE number" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/ema_sweep_curves_v2.png' | relative_url }}"/>
 <div aria-label="EMA decay comparison at 80 epochs" class="ema-beta-compare">
 <div class="ema-beta-compare__title">Same training run, different EMA decay</div>
 <div class="ema-beta-compare__row">
@@ -106,7 +106,7 @@ where β is the EMA decay. At evaluation time, samples are drawn from θ′ inst
 The NCSNv2 example below shows the original motivation. EMA was introduced to diffusion models as a fix for a very <em>visible</em> failure mode: <em>color shift</em><d-cite key="ema-ncsnv2"></d-cite>. Without EMA, samples near the end of training drifted in color statistics, even when the score loss kept decreasing. The EMA checkpoint smoothed the trajectory and brought the sample statistics back in line.
 
 <figure class="ema-figure">
-<img alt="CIFAR-10 FID over training iterations for NCSN with and without EMA, with sample insets showing color-shifted samples from the raw model and clean samples from the EMA model" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/ncsnv2_color_shift.png' | relative_url }}" style="max-width: 500px; display: block; margin: 0 auto;"/>
+<img width="1400" height="1010" alt="CIFAR-10 FID over training iterations for NCSN with and without EMA, with sample insets showing color-shifted samples from the raw model and clean samples from the EMA model" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/ncsnv2_color_shift.png' | relative_url }}" style="max-width: 500px; display: block; margin: 0 auto;"/>
 <figcaption>
 <b>NCSN with vs. without EMA on CIFAR-10.</b> The raw NCSN checkpoint (dashed blue)
     oscillates wildly in FID and produces visibly color-shifted, off-distribution samples;
@@ -247,7 +247,7 @@ RAEv2 therefore reports EP<sub>FID@k</sub>: the number of epochs needed to reach
 The figure below shows this within a single RAE-DiT<d-cite key="ema-rae"></d-cite> run. All curves come from the same optimizer trajectory; only the EMA decay changes. At target <em>k</em> = 4, that choice changes the apparent convergence time from 32 epochs to beyond 80 epochs.
 
 <figure class="ema-figure">
-<img alt="FID vs. training epoch for one RAE-DiT run, with one curve per EMA decay" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/convergence_threshold_v2.png' | relative_url }}"/>
+<img width="1894" height="915" alt="FID vs. training epoch for one RAE-DiT run, with one curve per EMA decay" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/convergence_threshold_v2.png' | relative_url }}"/>
 <figcaption>
 <b>Same RAE-DiT run at 80 epochs.</b> Left: gFID vs. training epoch for one optimizer trajectory under different
     EMA decays. The FID = 4 threshold is shown as a dashed line and threshold-crossing points are marked.
@@ -270,7 +270,7 @@ To isolate this effect, we sweep EMA decay for three diffusion models spanning c
 The RAE sweep makes the mechanism visible. Every point below comes from the same online training trajectory; only the EMA decay used to form the checkpoint changes.
 
 <figure class="ema-figure">
-<img alt="Precision-recall trade-off curve for the RAE EMA sweep at 80 epochs: each point is one EMA decay value; as decay grows from raw to 0.9999, precision rises and recall falls" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/rae_precision_recall.png' | relative_url }}"/>
+<img width="1643" height="1114" alt="Precision-recall trade-off curve for the RAE EMA sweep at 80 epochs: each point is one EMA decay value; as decay grows from raw to 0.9999, precision rises and recall falls" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/rae_precision_recall.png' | relative_url }}"/>
 <figcaption>
 <b>RAE-DiT-XL at 80 epochs: EMA decay changes the precision-recall balance.</b>
     Each point is the same training run with a different EMA decay. As β grows from raw
@@ -284,7 +284,7 @@ This is the key mechanism. Moving from raw to β = 0.9999, precision rises from 
 The same pattern holds in pixel and latent spaces. JiT and SiT show the same broad direction: as decay grows, precision tends to improve and recall tends to shrink. The exact curve shape differs by model, but the effect is not specific to RAE.
 
 <figure class="ema-figure">
-<img alt="Precision-recall trade-off curve for JiT (pixel space) at 80 epochs: as EMA decay grows, precision generally rises and recall falls" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/jit_precision_recall.png' | relative_url }}"/>
+<img width="1643" height="1114" alt="Precision-recall trade-off curve for JiT (pixel space) at 80 epochs: as EMA decay grows, precision generally rises and recall falls" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/jit_precision_recall.png' | relative_url }}"/>
 <figcaption>
 <b>JiT (pixel space) at 80 epochs: the same precision-up, recall-down pressure.</b>
     Larger EMA decay pushes samples toward higher precision and lower recall.
@@ -292,7 +292,7 @@ The same pattern holds in pixel and latent spaces. JiT and SiT show the same bro
 </figure>
 
 <figure class="ema-figure">
-<img alt="Precision-recall trade-off curve for SiT (latent space) at 90 epochs: EMA decay changes the balance between precision and recall" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/sit_precision_recall.png' | relative_url }}"/>
+<img width="1643" height="1114" alt="Precision-recall trade-off curve for SiT (latent space) at 90 epochs: EMA decay changes the balance between precision and recall" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/sit_precision_recall.png' | relative_url }}"/>
 <figcaption>
 <b>SiT (latent space) at 90 epochs, CFG = 1.5: a subtler version of the same trade-off.</b>
 </figcaption>
@@ -301,7 +301,7 @@ The same pattern holds in pixel and latent spaces. JiT and SiT show the same bro
 This also explains why there is no universally best decay. FID is sensitive to both fidelity and coverage, so it tends to reward a compromise point on the precision-recall curve. Precision-like metrics can prefer larger decays. Recall prefers smaller decays. Once EMA decay moves the precision-recall ratio, different metrics naturally select different decays.
 
 <figure class="ema-figure">
-<img alt="3-panel chart of FID and Inception Score vs EMA decay for RAE-DiT-XL, JiT, and SiT, showing that the FID-best and IS-best EMA decays can differ" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/fid_is_3panel.png' | relative_url }}"/>
+<img width="3054" height="998" alt="3-panel chart of FID and Inception Score vs EMA decay for RAE-DiT-XL, JiT, and SiT, showing that the FID-best and IS-best EMA decays can differ" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/fid_is_3panel.png' | relative_url }}"/>
 <figcaption>
 <b>Different metrics prefer different EMA decays.</b>
     Each panel shows FID (blue, left axis) and Inception Score<d-cite key="ema-is"></d-cite>
@@ -319,7 +319,7 @@ The ImageNet sweeps show the metric-level effect: larger EMA decay raises precis
 We train one small MLP score model, then compare the raw model with EMA versions at <code>0.99 / 0.997 / 0.998 / 0.999</code>. The first figure is the sweep overview: read it left to right as EMA decay increases.
 
 <figure class="ema-figure">
-<img alt="2D toy EMA sweep showing samples and same-seed trajectories concentrating on dominant branches as EMA decay increases" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/soft-overconcentration.jpg' | relative_url }}"/>
+<img width="1800" height="567" alt="2D toy EMA sweep showing samples and same-seed trajectories concentrating on dominant branches as EMA decay increases" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/soft-overconcentration.jpg' | relative_url }}"/>
 <figcaption>
 <b>Increasing EMA decay pulls mass toward the dominant branches.</b>
     Top: final samples overlaid on the true tree. Bottom: same-seed trajectories, with tail-branch
@@ -335,11 +335,11 @@ The most useful comparison is not the catastrophic <code>0.999</code> case. It i
 <div class="ema-pair-figure">
 <div class="ema-col">
 <div class="ema-label">Raw model</div>
-<img alt="Raw model samples on the tree distribution" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/model.jpg' | relative_url }}"/>
+<img width="700" height="697" alt="Raw model samples on the tree distribution" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/model.jpg' | relative_url }}"/>
 </div>
 <div class="ema-col">
 <div class="ema-label">EMA 0.998</div>
-<img alt="EMA 0.998 samples on the tree distribution" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/ema0998.jpg' | relative_url }}"/>
+<img width="700" height="700" alt="EMA 0.998 samples on the tree distribution" class="img-fluid" loading="lazy" src="{{ '/assets/img/2027-04-30-ema-in-diffusion-training/ema0998.jpg' | relative_url }}"/>
 </div>
 </div>
 <figcaption>
