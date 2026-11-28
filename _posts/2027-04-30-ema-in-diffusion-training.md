@@ -7,6 +7,7 @@ description:
 date: "2027-04-30"
 future: true
 htmlwidgets: true
+related_posts: false
 hidden: true
 authors:
   - name: Anonymous
