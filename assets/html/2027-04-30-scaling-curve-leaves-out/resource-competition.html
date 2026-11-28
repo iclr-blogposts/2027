@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resource competition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Geist:wght@600&family=Geist+Mono:wght@400;600&display=swap"
+    />
+    <link rel="stylesheet" href="vis/vis.css" />
+    <!--
+      Interactive figure: the same stream of training signals goes into a small and a large model,
+      and each keeps only what fits in its slots. "+ INTERFERENCE" switches to gradual learning
+      where updates wear down neighbors in the same slot.
+    -->
+    <script src="vis/embed.js"></script>
+    <script src="vis/rough.min.js" defer></script>
+    <script src="vis/shared.js" defer></script>
+    <script src="resource-competition/core.js" defer></script>
+    <script src="resource-competition/view.js" defer></script>
+    <script src="resource-competition/app.js" defer></script>
+    <script src="resource-competition/link.js" defer></script>
+  </head>
+  <body>
+    <div class="vis vis-rc" data-vis="resource-competition">
+      <div class="vis-rc-topics"></div>
+      <svg
+        class="vis-rc-stage"
+        viewBox="0 0 700 396"
+        role="img"
+        aria-label="The same stream of signals goes into a small and a large model. Each model keeps what fits in its slots."
+      ></svg>
+
+      <div class="vis-controls vis-buttons">
+        <button class="vis-rc-play" type="button">PLAY</button>
+        <button class="vis-rc-speed" type="button" aria-label="Playback speed">1×</button>
+        <input class="vis-rc-timeline" name="timeline" type="range" min="0" value="0" aria-label="Signals sent" />
+        <span class="vis-rc-count"></span>
+      </div>
+      <div class="vis-rc-options vis-buttons">
+        <button class="vis-rc-interference" type="button" aria-pressed="false">+ INTERFERENCE</button>
+        <details class="vis-rc-settings">
+          <summary>SETTINGS</summary>
+          <div class="vis-rc-presets"></div>
+          <details>
+            <summary>ADVANCED</summary>
+            <form class="vis-rc-advanced">
+              <div class="vis-rc-topic-fields"></div>
+              <div class="vis-rc-field-row">
+                <label>SMALL SLOTS <input name="small" type="number" min="1" max="24" required /></label>
+                <label>LARGE SLOTS <input name="large" type="number" min="1" max="24" required /></label>
+                <label>SIGNALS <input name="steps" type="number" min="1" max="5000" required /></label>
+                <label>SEED <input name="seed" type="number" min="0" max="4294967295" required /></label>
+              </div>
+              <button type="submit">APPLY</button>
+              <p class="vis-rc-error" role="alert"></p>
+            </form>
+          </details>
+        </details>
+      </div>
+
+      <p class="vis-note">SCHEMATIC · NOT DATA</p>
+      <noscript>This interactive figure requires JavaScript.</noscript>
+    </div>
+  </body>
+</html>
