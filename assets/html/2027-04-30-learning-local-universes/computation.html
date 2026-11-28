@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="data:,"><title>Visual computation: program and prediction</title><style>
+@import url("https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&family=Product+Sans&display=swap");
+* { box-sizing: border-box; }
+:root { --accent:#0284c7; --border:#e2e8f0; --muted:#64748b; }
+html { color-scheme: light; background: transparent; }
+body { margin: 0; padding: 2px; font: 15px/1.6 "Google Sans Flex", "Google Sans", "Product Sans", Roboto, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #334155; background:transparent; }
+button, input { font: inherit; }
+button { background:white; border:1px solid var(--border); color:#475569; border-radius:8px; padding:7px 12px; cursor:pointer; font-size:14px; font-weight:500; }
+button:hover { background:#f8fafc; border-color:#bae6fd; color:var(--accent); }
+button:focus-visible, input:focus-visible, a:focus-visible { outline:3px solid #7dd3fc; outline-offset:3px; }
+button[aria-pressed="true"] { color:var(--accent); border-color:#7dd3fc; background:#f0f9ff; box-shadow:0 1px 4px rgba(2,132,199,.1); }
+button:disabled { opacity:.6; cursor:default; }
+.tabs { display:flex; flex-wrap:nowrap; justify-content:center; gap:10px; margin:0 0 15px; width:100%; }
+.tabs button { min-height:44px; flex:1; white-space:normal; }
+.stage { width:100%; min-height:0; }
+.stage iframe { width:100%; display:block; border:0; border-radius:12px; background:white; }
+.simulation-card { overflow:hidden; border:1px solid var(--border); border-radius:12px; background:white; box-shadow:0 4px 20px -2px rgba(0,0,0,.05); }
+.hint { color:var(--muted); font-size:14px; text-align:center; }
+.model-status { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); }
+.model-status.error { position:static; width:auto; height:auto; margin:12px; clip:auto; }
+.figure-options { color:var(--muted); font-size:14px; margin:10px 4px 0; }
+.figure-options summary { cursor:pointer; text-align:center; }
+.figure-options .toolbar { display:flex; gap:8px; margin:8px 0; justify-content:flex-end; }
+.keypad { display:none; justify-content:center; gap:8px; margin:10px 0; }
+.keypad button { min-width:70px; min-height:42px; touch-action:none; user-select:none; background:#f8fafc; border-color:#cbd5e1; }
+.text-controls { display:none; margin:10px; }
+.text-controls input { width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:8px; text-align:center; }
+.text-buttons { display:none; gap:8px; justify-content:center; margin:8px; }
+.switch-container { display:flex; align-items:center; justify-content:center; gap:12px; margin:0 0 20px; }
+.switch-label { font-size:14px; color:#94a3b8; transition:color .2s; }
+.switch-label.active-label { color:#334155; font-weight:600; }
+.switch { position:relative; width:42px; height:24px; flex:none; }
+.switch input { opacity:0; width:0; height:0; }
+.slider { position:absolute; inset:0; cursor:pointer; background:#cbd5e1; border-radius:24px; transition:background .2s; }
+.slider::before { position:absolute; content:""; width:18px; height:18px; left:3px; top:3px; border-radius:50%; background:white; box-shadow:0 1px 3px #0002; transition:transform .2s; }
+.switch input:checked + .slider { background:var(--accent); }
+.switch input:checked + .slider::before { transform:translateX(18px); }
+.switch input:focus-visible + .slider { outline:3px solid #7dd3fc; outline-offset:3px; }
+.hero-showcase { display:grid; grid-template-columns:minmax(130px,1fr) minmax(300px,460px) minmax(130px,1fr); gap:16px; max-width:1060px; margin:0 auto; align-items:start; }
+.hero-flank { display:flex; flex-direction:column; gap:14px; min-width:0; }
+.hero-flank-right { gap:14px; }
+.hero-card { display:flex; flex-direction:column; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:white; color:inherit; text-decoration:none; box-shadow:0 4px 16px -2px rgba(0,0,0,.04); filter:grayscale(85%) contrast(.9) opacity(.75); transition:transform .2s,box-shadow .2s,border-color .2s,filter .3s; }
+.hero-card:hover { transform:translateY(-3px); border-color:#7dd3fc; filter:none; box-shadow:0 8px 24px -4px rgba(2,132,199,.18); }
+.hero-card video { width:100%; height:auto; display:block; pointer-events:none; background:#0f172a; }
+.hero-card-label { text-align:center; padding:7px 10px; border-top:1px solid #f1f5f9; font-size:14px; font-weight:600; color:#475569; line-height:1.5; }
+.hero-card:hover .hero-card-label { color:var(--accent); }
+.hero-video-frame { background:#0f172a; padding:16px 8px; display:flex; align-items:center; justify-content:center; }
+.hero-video-frame video { max-height:150px; object-fit:contain; border-radius:4px; background:transparent; }
+.hero-center { min-width:0; }
+.hero-center .stage { min-height:0; }
+.hero-center .figure-options { margin-right:8px; }
+.album-card { max-width:500px; margin:8px auto 14px; padding:10px; border:1px solid #00000014; border-radius:16px; background:white; box-shadow:0 16px 36px -8px #00000014,0 4px 12px -2px #00000008; }
+.album-segmented-bar { display:flex; background:#f1f5f9; padding:3px; border-radius:10px; border:1px solid var(--border); margin-bottom:8px; gap:2px; }
+.album-segmented-bar button { flex:1; border:0; background:transparent; padding:8px 4px; min-height:44px; font-size:14px; white-space:nowrap; border-radius:7px; }
+.album-segmented-bar button[aria-pressed="true"] { background:white; color:var(--accent); font-weight:600; box-shadow:0 1px 4px #00000014,0 0 0 1px #0000000a; }
+.album-video-viewport { position:relative; aspect-ratio:1; width:100%; border-radius:10px; overflow:hidden; background:#0f172a; }
+video.album { display:block; width:100%; height:100%; object-fit:cover; }
+.album-float-arrow { position:absolute; top:50%; transform:translateY(-50%); width:40px; height:40px; border-radius:50%; background:#0f172a99; border:1px solid #ffffff33; color:white; z-index:2; padding:0; font-size:13px; opacity:.75; }
+.album-float-arrow:hover { background:#0f172ae6; color:white; opacity:1; }
+.album-float-arrow.prev { left:10px; } .album-float-arrow.next { right:10px; }
+.compare { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; max-width:680px; margin:0 auto; align-items:start; }
+.compare figure { margin:0; min-width:0; padding:12px; text-align:center; border:0; border-radius:0; background:transparent; }
+.compare video { display:block; width:100%; height:auto; max-width:300px; margin:0 auto; object-fit:contain; background:#000; image-rendering:pixelated; border-radius:0; border:0; box-shadow:none; }
+.compare figcaption { margin:0 0 8px; font-size:15px; line-height:1.5; font-weight:600; text-align:center; color:#475569; }
+.compare-toolbar { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin:10px 0; }
+.compare-toolbar button { min-height:44px; }
+[hidden] { display:none!important; }
+@media(max-width:859px) {
+ .hero-showcase { grid-template-columns:1fr; justify-items:center; max-width:560px; }
+ .hero-flank { flex-direction:row; width:100%; gap:14px; } .hero-flank .hero-card { flex:1; }
+ .hero-center { width:100%; grid-row:1; } .hero-flank-right { gap:14px; }
+ .hero-flank video { height:130px; object-fit:contain; } .hero-video-frame { height:130px; }
+}
+@media(max-width:768px) {
+ .keypad { display:flex; flex-wrap:wrap; }
+ .text-controls,.text-buttons { display:flex; }
+ .text-controls label { width:100%; }
+ .text-controls .input-label { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+ .tabs { flex-wrap:wrap; gap:6px; } .tabs button { flex:1 1 calc(50% - 6px); min-width:110px; padding:7px 8px; font-size:14px; }
+}
+@media(max-width:480px) {
+ .hero-flank video { max-height:120px; } .hero-video-frame { height:120px; padding:8px; }
+ .hero-flank { gap:8px; } .hero-showcase { gap:12px; } .hero-card-label { font-size:14px; padding:6px; }
+ .hero-center .stage { min-height:0; } .switch-label { font-size:14px; }
+}
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; transition:none!important; } }
+/* Keep figure controls legible and their layout within the article width. */
+body { width:100%; max-width:680px; margin:0 auto; }
+body:has(.hero-showcase) { max-width:1060px; }
+.switch-label { text-align:center; }
+.album-segmented-bar { flex-wrap:wrap; }
+.album-segmented-bar button { flex:1 1 auto; }
+@media(max-width:480px) {
+ .album-segmented-bar { gap:4px; }
+ .album-segmented-bar button { flex-basis:calc(33.333% - 4px); }
+ .hero-flank video { object-fit:contain; }
+}
+/* A stacked comparison makes the tape legible on a narrow screen while
+   preserving both complete square recordings and their shared controls. */
+@media(max-width:520px) {
+ .compare { grid-template-columns:1fr; max-width:286px; gap:14px; }
+ .compare figure { padding:10px; }
+ .compare video { max-width:240px; }
+}
+</style><style id="lu-figure-theme" media="screen and (prefers-color-scheme: dark)">
+/* This style's media attribute follows the venue theme. Scientific pixels and
+   light-mode styling stay intact; print always uses the original light style. */
+@media screen {
+  html { color-scheme: dark; }
+  :root {
+    --accent: #7dd3fc;
+    --border: #454b54;
+    --muted: #b2bdcc;
+    --figure-text: #e2e8f0;
+    --figure-control: #292d33;
+    --figure-hover: #343b44;
+  }
+  html, html.presentation, body { background: transparent; }
+  html body, html.presentation body { color: var(--figure-text); }
+  .stage iframe, .simulation-card, .hero-card, .album-card { background: transparent; }
+  .compare figcaption, .hero-card-label, .switch-label.active-label { color: var(--figure-text); }
+  .switch-label { color: var(--muted); }
+  .hero-card-label { border-color: var(--border); }
+  .album-segmented-bar { background: var(--figure-control); }
+  html body button:not(.album-float-arrow):not(#lu-demo-play):not(.lu-demo-reset):not(.active):not(.btn-play):not(.btn-flash-score):not(.btn-flash-life):not(#btnPlayPause),
+  html body select, html.presentation body select, html body input[type="text"] {
+    background: var(--figure-control);
+    color: var(--figure-text);
+    border-color: var(--border);
+  }
+  html body button:not(.album-float-arrow):not(#lu-demo-play):not(.lu-demo-reset):not(.active):not(.btn-play):not(.btn-flash-score):not(.btn-flash-life):not(#btnPlayPause):hover {
+    background: var(--figure-hover);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  html body button[aria-pressed="true"] {
+    background: #173c4e !important;
+    color: var(--accent) !important;
+    border-color: var(--accent) !important;
+  }
+  .slider { background: #596371; }
+  .album-status[data-error] { background: var(--figure-control); color: var(--figure-text); }
+  /* Some model labels and reset styles are installed after the model loads. */
+  html body :is(.info, .channel-label, .main-label, .ctrl-label, #action-log, #speed-control, .speed-wrapper, #status-log, #statusLog),
+  html body #joystick-wrapper p,
+  html body .presentation-heading p,
+  html body .presentation-shortcuts,
+  html body .presentation-shortcuts kbd,
+  html body #container > p {
+    color: var(--muted) !important;
+  }
+  html body #joystick-wrapper > div:first-child { color: var(--figure-text) !important; }
+  html body #container > div:first-child > div > span { color: var(--figure-text) !important; }
+  html body #joystick-area { background: var(--figure-control); border-color: var(--border); }
+  html body :is(#channels-container, #channel-container, #perception-container) {
+    background: transparent !important;
+    border-color: var(--border);
+  }
+  html body :is(#btn-reset, #btnReset).lu-demo-reset {
+    background: var(--figure-control);
+    color: var(--accent);
+    border-color: var(--border);
+  }
+  html body :is(#btn-reset, #btnReset).lu-demo-reset:hover { background: var(--figure-hover); }
+  html body .lu-pointer-cue { color: var(--accent) !important; }
+}
+</style>
+<script id="lu-figure-theme-sync">
+// Read the venue theme without modifying the article. Older Safari versions
+// do not propagate a manual parent colour-scheme change into iframe media queries.
+(() => {
+  const style = document.getElementById('lu-figure-theme');
+  const preference = matchMedia('(prefers-color-scheme: dark)');
+  let venue = null;
+  try { if (window.top !== window) venue = window.top.document.documentElement; }
+  catch (_) { /* A cross-origin embed follows its available media preference. */ }
+  function syncTheme() {
+    const chosen = venue?.getAttribute('data-theme');
+    const dark = chosen === 'dark' || (chosen !== 'light' && preference.matches);
+    const media = dark ? 'screen' : 'not all';
+    if (style.media !== media) style.media = media;
+  }
+  const observer = new MutationObserver(syncTheme);
+  if (venue) observer.observe(venue, {attributes: true, attributeFilter: ['data-theme']});
+  preference.addEventListener('change', syncTheme);
+  window.addEventListener('pagehide', () => observer.disconnect());
+  window.addEventListener('pageshow', () => {
+    if (venue) observer.observe(venue, {attributes: true, attributeFilter: ['data-theme']});
+    syncTheme();
+  });
+  syncTheme();
+})();
+</script>
+</head><body>
+<h2 id="title" hidden>Binary addition</h2><div class="compare">
+<figure><figcaption>Ground truth</figcaption><video id="gold" autoplay muted loop playsinline preload="metadata" src="videos/addition_gold_6bit.mp4"></video></figure>
+<figure><figcaption>NCA prediction</figcaption><video id="pred" autoplay muted loop playsinline preload="metadata" src="videos/addition_pred_6bit.mp4"></video></figure>
+</div><details class="figure-options"><summary>Playback options</summary><div class="compare-toolbar"><button type="button" id="play">Play both</button><button type="button" id="pause">Pause both</button><button type="button" id="reset">Restart both</button></div></details>
+<p id="caption" hidden>The reference program and W-NCA prediction for 6-bit binary addition.</p>
+<script>
+
+const pair = [...document.querySelectorAll('video')];
+if (new URLSearchParams(location.search).get('example') === 'grammar') {
+  document.getElementById('title').textContent = 'Context-free grammar';
+  document.getElementById('gold').src = 'videos/anbn_gold.mp4';
+  document.getElementById('pred').src = 'videos/anbn_pred.mp4';
+  document.getElementById('caption').textContent = 'The reference program and W-NCA prediction for aⁿbⁿ generation with n = 12.';
+}
+document.getElementById('play').addEventListener('click', () => pair.forEach(v => v.play().catch(() => {})));
+document.getElementById('pause').addEventListener('click', () => pair.forEach(v => v.pause()));
+document.getElementById('reset').addEventListener('click', () => pair.forEach(v => { v.currentTime = 0; }));
+document.addEventListener('visibilitychange', () => { if (document.hidden) pair.forEach(v => v.pause()); });
+new IntersectionObserver(entries => {
+  if (!entries[0].isIntersecting || matchMedia('(prefers-reduced-motion: reduce)').matches) pair.forEach(v => v.pause());
+  else pair.forEach(v => v.play().catch(() => {}));
+}).observe(document.body);
+
+
+(() => {
+  let lastHeight = 0;
+  function fitOuterFrame() {
+    try {
+      const frame = window.frameElement;
+      if (!frame) return;
+      // Intrinsic body height does not include the enclosing iframe viewport;
+      // using documentElement.scrollHeight here would prevent shrinking.
+      const height = Math.ceil(document.body.getBoundingClientRect().height + 2);
+      if (height !== lastHeight) { lastHeight = height; frame.style.height = height + 'px'; }
+    } catch (_) { /* Direct or cross-origin opening retains its fixed fallback height. */ }
+  }
+  new ResizeObserver(fitOuterFrame).observe(document.body);
+  window.addEventListener('load', fitOuterFrame);
+  window.addEventListener('resize', fitOuterFrame);
+  fitOuterFrame();
+})();
+
+</script>
+</body></html>

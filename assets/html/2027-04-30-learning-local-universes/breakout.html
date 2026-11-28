@@ -1,0 +1,1225 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="data:,"><title>Breakout: local dynamics and global communication</title><style>
+@import url("https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&family=Product+Sans&display=swap");
+* { box-sizing: border-box; }
+:root { --accent:#0284c7; --border:#e2e8f0; --muted:#64748b; }
+html { color-scheme: light; background: transparent; }
+body { margin: 0; padding: 2px; font: 15px/1.6 "Google Sans Flex", "Google Sans", "Product Sans", Roboto, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #334155; background:transparent; }
+button, input { font: inherit; }
+button { background:white; border:1px solid var(--border); color:#475569; border-radius:8px; padding:7px 12px; cursor:pointer; font-size:14px; font-weight:500; }
+button:hover { background:#f8fafc; border-color:#bae6fd; color:var(--accent); }
+button:focus-visible, input:focus-visible, a:focus-visible { outline:3px solid #7dd3fc; outline-offset:3px; }
+button[aria-pressed="true"] { color:var(--accent); border-color:#7dd3fc; background:#f0f9ff; box-shadow:0 1px 4px rgba(2,132,199,.1); }
+button:disabled { opacity:.6; cursor:default; }
+.tabs { display:flex; flex-wrap:nowrap; justify-content:center; gap:10px; margin:0 0 15px; width:100%; }
+.tabs button { min-height:44px; flex:1; white-space:normal; }
+.stage { width:100%; min-height:0; }
+.stage iframe { width:100%; display:block; border:0; border-radius:12px; background:white; }
+.simulation-card { overflow:hidden; border:1px solid var(--border); border-radius:12px; background:white; box-shadow:0 4px 20px -2px rgba(0,0,0,.05); }
+.hint { color:var(--muted); font-size:14px; text-align:center; }
+.model-status { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); }
+.model-status.error { position:static; width:auto; height:auto; margin:12px; clip:auto; }
+.figure-options { color:var(--muted); font-size:14px; margin:10px 4px 0; }
+.figure-options summary { cursor:pointer; text-align:right; }
+.figure-options .toolbar { display:flex; gap:8px; margin:8px 0; justify-content:flex-end; }
+.keypad { display:none; justify-content:center; gap:8px; margin:10px 0; }
+.keypad button { min-width:70px; min-height:42px; touch-action:none; user-select:none; background:#f8fafc; border-color:#cbd5e1; }
+.text-controls { display:none; margin:10px; }
+.text-controls input { width:100%; padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:8px; text-align:center; }
+.text-buttons { display:none; gap:8px; justify-content:center; margin:8px; }
+.switch-container { display:flex; align-items:center; justify-content:center; gap:12px; margin:0 0 20px; }
+.switch-label { font-size:14px; color:#94a3b8; transition:color .2s; }
+.switch-label.active-label { color:#334155; font-weight:600; }
+.switch { position:relative; width:42px; height:24px; flex:none; }
+.switch input { opacity:0; width:0; height:0; }
+.slider { position:absolute; inset:0; cursor:pointer; background:#cbd5e1; border-radius:24px; transition:background .2s; }
+.slider::before { position:absolute; content:""; width:18px; height:18px; left:3px; top:3px; border-radius:50%; background:white; box-shadow:0 1px 3px #0002; transition:transform .2s; }
+.switch input:checked + .slider { background:var(--accent); }
+.switch input:checked + .slider::before { transform:translateX(18px); }
+.switch input:focus-visible + .slider { outline:3px solid #7dd3fc; outline-offset:3px; }
+.hero-showcase { display:grid; grid-template-columns:minmax(130px,1fr) minmax(300px,460px) minmax(130px,1fr); gap:16px; max-width:1060px; margin:0 auto; align-items:start; }
+.hero-flank { display:flex; flex-direction:column; gap:14px; min-width:0; }
+.hero-flank-right { gap:14px; }
+.hero-card { display:flex; flex-direction:column; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:white; color:inherit; text-decoration:none; box-shadow:0 4px 16px -2px rgba(0,0,0,.04); filter:grayscale(85%) contrast(.9) opacity(.75); transition:transform .2s,box-shadow .2s,border-color .2s,filter .3s; }
+.hero-card:hover { transform:translateY(-3px); border-color:#7dd3fc; filter:none; box-shadow:0 8px 24px -4px rgba(2,132,199,.18); }
+.hero-card video { width:100%; height:auto; display:block; pointer-events:none; background:#0f172a; }
+.hero-card-label { text-align:center; padding:7px 10px; border-top:1px solid #f1f5f9; font-size:14px; font-weight:600; color:#475569; line-height:1.5; }
+.hero-card:hover .hero-card-label { color:var(--accent); }
+.hero-video-frame { background:#0f172a; padding:16px 8px; display:flex; align-items:center; justify-content:center; }
+.hero-video-frame video { max-height:150px; object-fit:contain; border-radius:4px; background:transparent; }
+.hero-center { min-width:0; }
+.hero-center .stage { min-height:0; }
+.hero-center .figure-options { margin-right:8px; }
+.album-card { max-width:500px; margin:8px auto 14px; padding:10px; border:1px solid #00000014; border-radius:16px; background:white; box-shadow:0 16px 36px -8px #00000014,0 4px 12px -2px #00000008; }
+.album-segmented-bar { display:flex; background:#f1f5f9; padding:3px; border-radius:10px; border:1px solid var(--border); margin-bottom:8px; gap:2px; }
+.album-segmented-bar button { flex:1; border:0; background:transparent; padding:8px 4px; min-height:44px; font-size:14px; white-space:nowrap; border-radius:7px; }
+.album-segmented-bar button[aria-pressed="true"] { background:white; color:var(--accent); font-weight:600; box-shadow:0 1px 4px #00000014,0 0 0 1px #0000000a; }
+.album-video-viewport { position:relative; aspect-ratio:1; width:100%; border-radius:10px; overflow:hidden; background:#0f172a; }
+video.album { display:block; width:100%; height:100%; object-fit:cover; }
+.album-float-arrow { position:absolute; top:50%; transform:translateY(-50%); width:40px; height:40px; border-radius:50%; background:#0f172a99; border:1px solid #ffffff33; color:white; z-index:2; padding:0; font-size:13px; opacity:.75; }
+.album-float-arrow:hover { background:#0f172ae6; color:white; opacity:1; }
+.album-float-arrow.prev { left:10px; } .album-float-arrow.next { right:10px; }
+.compare { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:clamp(10px,2vw,24px); max-width:760px; margin:0 auto; }
+.compare figure { margin:0; min-width:0; text-align:center; }
+.compare video { display:block; width:100%; height:auto; max-width:360px; margin:0 auto; background:transparent; image-rendering:pixelated; border-radius:8px; border:1px solid var(--border); box-shadow:0 4px 14px #0000000f; }
+.compare figcaption { margin:8px 0; font-size:15px; line-height:1.5; text-align:center; color:var(--muted); }
+.compare-toolbar { display:flex; justify-content:center; gap:8px; margin:10px 0; }
+[hidden] { display:none!important; }
+@media(max-width:859px) {
+ .hero-showcase { grid-template-columns:1fr; justify-items:center; max-width:560px; }
+ .hero-flank { flex-direction:row; width:100%; gap:14px; } .hero-flank .hero-card { flex:1; }
+ .hero-center { width:100%; grid-row:1; } .hero-flank-right { gap:14px; }
+ .hero-flank video { height:130px; object-fit:contain; } .hero-video-frame { height:130px; }
+}
+@media(max-width:768px) {
+ .keypad { display:flex; flex-wrap:wrap; }
+ .text-controls,.text-buttons { display:flex; }
+ .text-controls label { width:100%; }
+ .text-controls .input-label { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+ .tabs { flex-wrap:wrap; gap:6px; } .tabs button { flex:1 1 calc(50% - 6px); min-width:110px; padding:7px 8px; font-size:14px; }
+}
+@media(max-width:480px) {
+ .hero-flank video { max-height:120px; } .hero-video-frame { height:120px; padding:8px; }
+ .hero-flank { gap:8px; } .hero-showcase { gap:12px; } .hero-card-label { font-size:14px; padding:6px; }
+ .hero-center .stage { min-height:0; } .switch-label { font-size:14px; }
+}
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; transition:none!important; } }
+/* Keep figure controls legible and their layout within the article width. */
+body { width:100%; max-width:960px; margin:0 auto; }
+body:has(.hero-showcase) { max-width:1060px; }
+.switch-label { text-align:center; }
+.album-segmented-bar { flex-wrap:wrap; }
+.album-segmented-bar button { flex:1 1 auto; }
+@media(max-width:480px) {
+ .album-segmented-bar { gap:4px; }
+ .album-segmented-bar button { flex-basis:calc(33.333% - 4px); }
+ .hero-flank video { object-fit:contain; }
+}
+@media(max-width:699px) {
+ .tabs { margin-bottom:8px; }
+ .keypad { margin:6px 0; }
+ .figure-options { margin-top:6px; }
+}
+/* A single simulation gets a closer-fitting frame; diagnostics keep their wider grid. */
+body:has([data-variant="0"][aria-pressed="true"]) { max-width:620px; }
+/* Keep short desktop windows from inheriting the taller phone controls. */
+.simulation-card { border:0; border-radius:0; box-shadow:none; background:transparent; }
+.stage iframe { border-radius:0; background:transparent; }
+@media (min-width: 560px) {
+  .tabs { flex-wrap: nowrap; gap: 6px; margin-bottom: 8px; }
+  .tabs button { flex: 1; min-width: 0; }
+}
+@media (min-width: 560px) and (pointer: fine) {
+  .keypad, .text-controls, .text-buttons { display: none; }
+}
+/* Reset controls: one direct action, without an options menu. */
+.figure-actions { display:flex; justify-content:center; margin:6px 2px 0; }
+.hero-center .figure-actions { justify-content:center; }
+.figure-actions[hidden] { display:none !important; }
+.figure-actions button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:32px; padding:5px 10px; font-size:14px; }
+.figure-actions svg { width:14px; height:14px; flex:none; }
+</style><style id="lu-figure-theme" media="screen and (prefers-color-scheme: dark)">
+/* This style's media attribute follows the venue theme. Scientific pixels and
+   light-mode styling stay intact; print always uses the original light style. */
+@media screen {
+  html { color-scheme: dark; }
+  :root {
+    --accent: #7dd3fc;
+    --border: #454b54;
+    --muted: #b2bdcc;
+    --figure-text: #e2e8f0;
+    --figure-control: #292d33;
+    --figure-hover: #343b44;
+  }
+  html, html.presentation, body { background: transparent; }
+  html body, html.presentation body { color: var(--figure-text); }
+  .stage iframe, .simulation-card, .hero-card, .album-card { background: transparent; }
+  .compare figcaption, .hero-card-label, .switch-label.active-label { color: var(--figure-text); }
+  .switch-label { color: var(--muted); }
+  .hero-card-label { border-color: var(--border); }
+  .album-segmented-bar { background: var(--figure-control); }
+  html body button:not(.album-float-arrow):not(#lu-demo-play):not(.lu-demo-reset):not(.active):not(.btn-play):not(.btn-flash-score):not(.btn-flash-life):not(#btnPlayPause),
+  html body select, html.presentation body select, html body input[type="text"] {
+    background: var(--figure-control);
+    color: var(--figure-text);
+    border-color: var(--border);
+  }
+  html body button:not(.album-float-arrow):not(#lu-demo-play):not(.lu-demo-reset):not(.active):not(.btn-play):not(.btn-flash-score):not(.btn-flash-life):not(#btnPlayPause):hover {
+    background: var(--figure-hover);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  html body button[aria-pressed="true"] {
+    background: #173c4e !important;
+    color: var(--accent) !important;
+    border-color: var(--accent) !important;
+  }
+  .slider { background: #596371; }
+  .album-status[data-error] { background: var(--figure-control); color: var(--figure-text); }
+  /* Some model labels and reset styles are installed after the model loads. */
+  html body :is(.info, .channel-label, .main-label, .ctrl-label, #action-log, #speed-control, .speed-wrapper, #status-log, #statusLog),
+  html body #joystick-wrapper p,
+  html body .presentation-heading p,
+  html body .presentation-shortcuts,
+  html body .presentation-shortcuts kbd,
+  html body #container > p {
+    color: var(--muted) !important;
+  }
+  html body #joystick-wrapper > div:first-child { color: var(--figure-text) !important; }
+  html body #container > div:first-child > div > span { color: var(--figure-text) !important; }
+  html body #joystick-area { background: var(--figure-control); border-color: var(--border); }
+  html body :is(#channels-container, #channel-container, #perception-container) {
+    background: transparent !important;
+    border-color: var(--border);
+  }
+  html body :is(#btn-reset, #btnReset).lu-demo-reset {
+    background: var(--figure-control);
+    color: var(--accent);
+    border-color: var(--border);
+  }
+  html body :is(#btn-reset, #btnReset).lu-demo-reset:hover { background: var(--figure-hover); }
+  html body .lu-pointer-cue { color: var(--accent) !important; }
+}
+</style>
+<script id="lu-figure-theme-sync">
+// Read the venue theme without modifying the article. Older Safari versions
+// do not propagate a manual parent colour-scheme change into iframe media queries.
+(() => {
+  const style = document.getElementById('lu-figure-theme');
+  const preference = matchMedia('(prefers-color-scheme: dark)');
+  let venue = null;
+  try { if (window.top !== window) venue = window.top.document.documentElement; }
+  catch (_) { /* A cross-origin embed follows its available media preference. */ }
+  function syncTheme() {
+    const chosen = venue?.getAttribute('data-theme');
+    const dark = chosen === 'dark' || (chosen !== 'light' && preference.matches);
+    const media = dark ? 'screen' : 'not all';
+    if (style.media !== media) style.media = media;
+  }
+  const observer = new MutationObserver(syncTheme);
+  if (venue) observer.observe(venue, {attributes: true, attributeFilter: ['data-theme']});
+  preference.addEventListener('change', syncTheme);
+  window.addEventListener('pagehide', () => observer.disconnect());
+  window.addEventListener('pageshow', () => {
+    if (venue) observer.observe(venue, {attributes: true, attributeFilter: ['data-theme']});
+    syncTheme();
+  });
+  syncTheme();
+})();
+</script>
+</head><body>
+<div class="tabs" role="group" aria-label="Choose simulation variant"><button type="button" data-variant="0" aria-pressed="true">Breakout</button><button type="button" data-variant="1" aria-pressed="false">Hidden channels</button><button type="button" data-variant="2" aria-pressed="false">Mechanistic intervention</button><button type="button" data-variant="3" aria-pressed="false">Mechanistic ablation</button></div><p id="status" class="hint model-status" role="status">Loading simulation…</p><div id="interactive"><div class="simulation-card"><div class="stage" id="stage"></div></div><div class="keypad" aria-label="Simulation controls"><button type="button" data-key="ArrowLeft">◀ Left</button><button type="button" data-key="Space">⏸ Pause</button><button type="button" data-key="ArrowRight">Right ▶</button></div></div>
+<div class="figure-actions"><button type="button" id="load" aria-label="Reset"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7"/></svg><span>Reset</span></button></div><noscript><p>JavaScript is required to run this simulation.</p></noscript>
+<script>
+const variants = [["Breakout", "breakout_webgl.html?v=ea5798ed898caa01"], ["Hidden channels", "breakout_diagnostic_webgl.html?v=35d5659eea48307c"], ["Mechanistic intervention", "breakout_intervention_webgl.html?v=81bf1eb1ee5fd3bd"], ["Mechanistic ablation", "breakout_ablation_webgl.html?v=16d3e97cd7728de2"]];
+const figureName = "breakout";
+        function makeIframeResponsive(iframe) {
+            try {
+                const doc = iframe.contentDocument || iframe.contentWindow.document;
+                if (!doc) return;
+                const existing = doc.getElementById('responsive-nca-style');
+                if (existing) existing.remove(); // allow refreshing on switch
+                const src = iframe.src || '';
+                const isTextDemo = src.includes('text_');
+                const isTwoRooms = src.includes('tworooms') || src.includes('fourrooms');
+                const isConditional = src.includes('conditional');
+                const isBreakoutEditor = src.includes('breakout_editor') || src.includes('breakout_distributed');
+                const isDistributed = src.includes('breakout_distributed');
+                const isSnake = src.includes('snake');
+                const isDiagnostic = src.includes('diagnostic');
+
+                const style = doc.createElement('style');
+                style.id = 'responsive-nca-style';
+                style.textContent = `
+                    /* Navigation (Two-Room, Four-Room, Conditional) Layout: Action vector under demo */
+                    ${isTwoRooms ? `
+                        #container {
+                            display: flex !important;
+                            flex-direction: column !important;
+                            align-items: center !important;
+                            justify-content: flex-start !important;
+                            gap: 8px !important;
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            box-sizing: border-box !important;
+                            padding: 2px !important;
+                            margin: 0 auto !important;
+                        }
+                        #sim-wrapper {
+                            order: 1 !important;
+                            display: flex !important;
+                            flex-direction: column !important;
+                            align-items: center !important;
+                            width: 100% !important;
+                            margin: 0 auto !important;
+                        }
+                        #container > div:first-child {
+                            order: 1 !important;
+                        }
+                        #mainCanvas, canvas#mainCanvas {
+                            width: ${isConditional ? '220px' : '300px'} !important;
+                            height: ${isConditional ? '220px' : '300px'} !important;
+                            aspect-ratio: 1 / 1 !important;
+                            max-width: 90vw !important;
+                            margin: 4px auto !important;
+                            display: block !important;
+                        }
+                        ${isConditional ? `
+                        #maskCanvas {
+                            width: 220px !important;
+                            height: 220px !important;
+                            aspect-ratio: 1 / 1 !important;
+                            max-width: 90vw !important;
+                            margin: 4px auto !important;
+                            display: block !important;
+                        }
+                        ` : ''}
+                        #status-log, #statusLog {
+                            order: 2 !important;
+                            margin: 6px 0 !important;
+                            font-size: 13px !important;
+                            text-align: center !important;
+                        }
+                        #joystick-wrapper {
+                            order: 3 !important;
+                            display: flex !important;
+                            flex-direction: column !important;
+                            align-items: center !important;
+                            margin: 6px auto !important;
+                            user-select: none !important;
+                        }
+                        #joystick-wrapper > div:first-child {
+                            font-size: 13px !important;
+                            font-weight: 700 !important;
+                            color: #0f172a !important;
+                            margin-bottom: 6px !important;
+                        }
+                        #joystick-wrapper p {
+                            margin-top: 8px !important;
+                            margin-bottom: 0 !important;
+                            font-size: 12px !important;
+                            color: #888 !important;
+                        }
+                    ` : ''}
+
+                    @media (max-width: 480px) {
+                        body {
+                            padding: 2px !important;
+                            margin: 0 !important;
+                            overflow-x: hidden !important;
+                        }
+                        #container {
+                            width: 100% !important;
+                            max-width: 100vw !important;
+                            overflow-x: hidden !important;
+                            box-sizing: border-box !important;
+                            padding: 2px !important;
+                            margin: 0 auto !important;
+                        }
+
+                        /* Main and Mask Canvases */
+                        #mainCanvas, canvas#mainCanvas {
+                            width: min(${isTextDemo ? '420px' : isSnake ? '190px' : isDiagnostic ? '170px' : isDistributed ? '145px' : isTwoRooms ? (isConditional ? '140px' : '240px') : '280px'}, ${isConditional || isDistributed ? '44vw' : isSnake ? '56vw' : isDiagnostic ? '50vw' : '88vw'}) !important;
+                            height: auto !important;
+                            aspect-ratio: ${isTextDemo ? '3 / 1' : '1 / 1'} !important;
+                            max-width: 100% !important;
+                            margin-left: auto !important;
+                            margin-right: auto !important;
+                            display: block !important;
+                        }
+                        #maskCanvas {
+                            width: min(${isDistributed ? '145px' : '140px'}, ${isDistributed ? '44vw' : '43vw'}) !important;
+                            height: auto !important;
+                            aspect-ratio: 1 / 1 !important;
+                            max-width: 100% !important;
+                            display: block !important;
+                            margin-left: auto !important;
+                            margin-right: auto !important;
+                        }
+                        #plotCanvas {
+                            width: min(340px, 92vw) !important;
+                            height: 65px !important;
+                            aspect-ratio: auto !important;
+                            max-width: 100% !important;
+                            margin: 2px auto 6px auto !important;
+                        }
+
+                        /* Navigation Layout */
+                        #container[style*="flex-direction: row"],
+                        #container:has(#joystick-wrapper) {
+                            flex-direction: column !important;
+                            align-items: center !important;
+                            justify-content: flex-start !important;
+                            gap: 6px !important;
+                        }
+                        #sim-wrapper {
+                            display: flex !important;
+                            flex-direction: column !important;
+                            align-items: center !important;
+                            justify-content: center !important;
+                            gap: 2px !important;
+                            width: 100% !important;
+                        }
+                        #status-log, #statusLog {
+                            margin: 3px 0 !important;
+                            font-size: 11px !important;
+                        }
+                        #joystick-wrapper {
+                            display: flex !important;
+                            flex-direction: column !important;
+                            align-items: center !important;
+                            margin-top: 2px !important;
+                            margin-bottom: 2px !important;
+                        }
+                        #joystick-area {
+                            width: 180px !important;
+                            height: 180px !important;
+                            margin: 0 auto !important;
+                            touch-action: none !important;
+                        }
+                        #joystick-wrapper p {
+                            margin-top: 6px !important;
+                            margin-bottom: 0 !important;
+                            font-size: 12px !important;
+                        }
+
+                        /* Breakout Interactive Editor Toolbar */
+                        #controls-container {
+                            width: 100% !important;
+                            max-width: 96vw !important;
+                            box-sizing: border-box !important;
+                            gap: 5px !important;
+                            margin: 0 auto 6px auto !important;
+                        }
+                        .controls-row {
+                            flex-wrap: wrap !important;
+                            justify-content: center !important;
+                            gap: 4px !important;
+                        }
+                        .group-inline {
+                            flex-wrap: wrap !important;
+                            justify-content: center !important;
+                            gap: 4px !important;
+                        }
+                        button, select {
+                            padding: 4px 7px !important;
+                            font-size: 11px !important;
+                            border-radius: 5px !important;
+                        }
+                        .swatch-list {
+                            gap: 2px !important;
+                            flex-wrap: wrap !important;
+                            justify-content: center !important;
+                        }
+                        .swatch, .custom-swatch-visual, .custom-swatch-wrapper {
+                            width: 18px !important;
+                            height: 18px !important;
+                            min-width: 18px !important;
+                        }
+                        .ctrl-label {
+                            font-size: 10px !important;
+                        }
+
+                        /* Diagnostic & Rollout Channel Grids (Snake, Breakout, Text) */
+                        #channels-container, #channel-container {
+                            grid-template-columns: repeat(4, 1fr) !important;
+                            gap: 4px !important;
+                            padding: 6px !important;
+                            max-width: 96vw !important;
+                            margin: 6px auto !important;
+                            box-sizing: border-box !important;
+                        }
+                        .channel-box {
+                            display: flex !important;
+                            flex-direction: column !important;
+                            align-items: center !important;
+                        }
+                        .channel-box canvas {
+                            width: ${isTextDemo ? 'min(64px, 20vw)' : '36px'} !important;
+                            height: ${isTextDemo ? 'auto' : '36px'} !important;
+                            ${isTextDemo ? 'aspect-ratio: 3 / 1 !important;' : ''}
+                        }
+                        .channel-label {
+                            font-size: 9px !important;
+                            margin-bottom: 2px !important;
+                        }
+                        #speed-control {
+                            margin: 3px 0 5px 0 !important;
+                            font-size: 11px !important;
+                        }
+                        .main-view-container {
+                            gap: 8px !important;
+                        }
+
+                        /* Status & Info text */
+                        .info, #status-log, #statusLog {
+                            font-size: 12px !important;
+                            margin-top: 4px !important;
+                            margin-bottom: 4px !important;
+                        }
+                    }
+                `;
+
+                // Size the rendered canvases, leaving model/state resolutions intact.
+                style.textContent += `
+                    *, *::before, *::after { box-sizing: border-box; }
+                    body { padding: 8px !important; }
+                    #container { max-width: 100% !important; }
+                    #mainCanvas, canvas#mainCanvas {
+                        width: min(${isTextDemo ? '640px' : isDistributed ? '300px' : isDiagnostic ? '360px' : '420px'}, ${isDistributed ? '42vw' : 'calc(100vw - 24px)'}) !important;
+                        height: auto !important;
+                        aspect-ratio: ${isTextDemo ? '3 / 1' : '1 / 1'} !important;
+                        max-width: 100% !important;
+                    }
+                    #maskCanvas {
+                        width: min(300px, 42vw) !important;
+                        height: auto !important;
+                        aspect-ratio: 1 !important;
+                    }
+                    #plotCanvas { max-width: calc(100vw - 24px) !important; }
+                    #channels-container, #channel-container {
+                        max-width: min(740px, calc(100vw - 24px)) !important;
+                        margin: 12px auto !important;
+                        gap: 8px !important;
+                        padding: 10px !important;
+                    }
+                    .channel-box { min-width: 0; }
+                    .channel-box canvas {
+                        width: ${isTextDemo ? 'min(128px, 19vw)' : 'min(52px, 100%)'} !important;
+                        height: auto !important;
+                        aspect-ratio: ${isTextDemo ? '3 / 1' : '1'} !important;
+                    }
+                    .channel-label, .main-label, .ctrl-label, .instruction-hint,
+                    .info, #status-log, #statusLog, #speed-control, .speed-wrapper {
+                        font-size: 14px !important;
+                        line-height: 1.5 !important;
+                        text-align: center !important;
+                    }
+                    button, select { font-size: 14px !important; min-height: 36px; }
+                    #controls-container { width: min(540px, 100%) !important; }
+                    .controls-row, .group-inline { flex-wrap: wrap; justify-content: center; }
+                    .swatch, .custom-swatch-visual, .custom-swatch-wrapper {
+                        width: 28px !important; height: 28px !important; min-width: 28px !important;
+                    }
+                    .custom-swatch-picker { width: 28px !important; height: 28px !important; }
+                    @media (max-width: 640px) {
+                        #channels-container, #channel-container { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+                    }
+                `;
+
+                // Expanded diagnostics share the available outer-page viewport.
+                style.textContent += `
+                    #lu-demo-column, #lu-diagnostics { display: contents; }
+                    html[data-figure-expanded="true"] #container {
+                        display: flex !important; flex-direction: column !important;
+                        align-items: center !important; gap: 6px !important;
+                    }
+                    html[data-figure-expanded="true"] #container > p,
+                    html[data-figure-expanded="true"] #lu-demo-column > p,
+                    html[data-figure-expanded="true"] #speed-control {
+                        margin: 2px 0 !important;
+                    }
+                    html[data-figure-expanded="true"] #mainCanvas {
+                        width: min(var(--figure-main-size, 240px), calc(100vw - 24px)) !important;
+                        margin: 2px auto !important;
+                    }
+                    html[data-figure-kind="text"][data-figure-expanded="true"] #mainCanvas {
+                        width: min(var(--figure-main-size, 440px), calc(100vw - 24px)) !important;
+                    }
+                    html[data-figure-expanded="true"] #channels-container,
+                    html[data-figure-expanded="true"] #channel-container {
+                        width: 100% !important; max-width: 100% !important;
+                        margin: 2px auto !important; padding: 0 !important; gap: 6px 8px !important;
+                        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+                        align-content: center !important;
+                    }
+                    html[data-figure-expanded="true"] .channel-box canvas {
+                        width: min(var(--figure-channel-size, 40px), 100%) !important;
+                        height: auto !important;
+                    }
+                    html[data-figure-kind="text"] .channel-box canvas { width: min(var(--figure-channel-size, 110px), 100%) !important; }
+                    html[data-figure-expanded="true"] .channel-label { margin-bottom: 2px !important; }
+                    html[data-figure-expanded="true"] .main-view-container { gap: 12px !important; flex-wrap: nowrap !important; }
+                    html[data-figure-kind="distributed"] .main-view-container {
+                        flex-direction: column !important;
+                        align-items: center !important;
+                        gap: 8px !important;
+                    }
+                    html[data-figure-kind="distributed"] .main-canvas-wrapper { min-width: 0; }
+                    html[data-figure-kind="distributed"] #mainCanvas,
+                    html[data-figure-kind="distributed"] #maskCanvas {
+                        width: min(var(--figure-main-size, 140px), calc(100vw - 32px)) !important;
+                    }
+                    html[data-figure-kind="distributed"] .main-label { margin-top: 3px !important; }
+                    html[data-figure-expanded="true"] #plotCanvas { max-width: 100% !important; margin: 2px auto !important; }
+                    html[data-figure-kind="editor"] #mainCanvas,
+                    html[data-figure-kind="intervention"] #mainCanvas {
+                        width: min(var(--figure-main-size, 420px), calc(100vw - 24px)) !important;
+                    }
+                    html[data-figure-expanded="true"][data-figure-compact-channels="true"] .channel-box {
+                        display: grid !important;
+                        grid-template-columns: minmax(0, 1fr) min(32px, var(--figure-channel-size, 30px)) !important;
+                        align-items: center !important;
+                        gap: 3px !important;
+                    }
+                    html[data-figure-expanded="true"][data-figure-compact-channels="true"] .channel-label { margin: 0 !important; }
+                    html[data-figure-expanded="true"] #speed-control { flex-wrap: wrap; }
+                    @media (max-width: 559px) {
+                        html[data-figure-expanded="true"] #container > p:first-child { order: -2; }
+                        html[data-figure-expanded="true"] #plotCanvas { order: -1; }
+                        html[data-figure-expanded="true"] #channels-container,
+                        html[data-figure-expanded="true"] #channel-container { order: 1; }
+                        html[data-figure-expanded="true"] #perception-container { order: 2; }
+                    }
+                    @media (min-width: 560px) {
+                        html[data-figure-expanded="true"] #container {
+                            display: grid !important;
+                            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+                            grid-template-areas: "instructions instructions" "main diagnostics";
+                            column-gap: 16px !important; row-gap: 8px !important;
+                            align-items: start !important;
+                        }
+                        html[data-figure-expanded="true"] #container > p:first-child { grid-area: instructions; }
+                        html[data-figure-expanded="true"] #lu-demo-column,
+                        html[data-figure-expanded="true"] #lu-diagnostics {
+                            display: flex; flex-direction: column; align-items: center;
+                            justify-content: flex-start; gap: 6px; min-width: 0; width: 100%;
+                        }
+                        html[data-figure-expanded="true"] #lu-demo-column { grid-area: main; }
+                        html[data-figure-expanded="true"] #lu-diagnostics { grid-area: diagnostics; }
+                        html[data-figure-expanded="true"] #perception-container { grid-column: 1 / -1; }
+                        html[data-figure-kind="snake"][data-figure-expanded="true"] #lu-demo-column,
+                        html[data-figure-kind="text"][data-figure-expanded="true"] #lu-demo-column {
+                            padding-top: 23px; /* Match the first channel's 21px label and 2px gap. */
+                        }
+                        html[data-figure-kind="distributed"] #mainCanvas,
+                        html[data-figure-kind="distributed"] #maskCanvas { width: min(var(--figure-main-size, 210px), calc(50vw - 32px)) !important; }
+                    }
+                `;
+                const kind = isTextDemo ? 'text' : isSnake ? 'snake' : isDistributed ? 'distributed'
+                    : /diagnostic|ablation/.test(src) ? 'diagnostic' : isBreakoutEditor ? 'editor' : src.includes('intervention') ? 'intervention' : 'game';
+                doc.documentElement.dataset.figureKind = kind;
+                style.textContent += "/* Let the simulations sit directly on the article surface. */\nbody, #container { background: transparent !important; }\n#container, #channels-container, #channel-container, #perception-container {\n    border: 0 !important;\n    border-radius: 0 !important;\n    box-shadow: none !important;\n    background: transparent !important;\n}\n#mainCanvas, canvas#mainCanvas, #maskCanvas, #plotCanvas, .channel-box canvas {\n    border: 0 !important;\n    border-radius: 0 !important;\n    box-shadow: none !important;\n}\n";
+                doc.head.appendChild(style);
+                installDemoPlayCue(iframe);
+                // Keep the plot beside its channels instead of spanning grid
+                // rows occupied by the main simulation and its controls.
+                const container = doc.getElementById('container');
+                const channels = doc.querySelector('#channels-container, #channel-container');
+                if (container && channels && !doc.getElementById('lu-demo-column')) {
+                    const main = doc.createElement('div'); main.id = 'lu-demo-column';
+                    const diagnostics = doc.createElement('div'); diagnostics.id = 'lu-diagnostics';
+                    const instruction = container.querySelector(':scope > p:first-child');
+                    for (const child of [...container.children]) {
+                        if (child === instruction || child.id === 'perception-container') continue;
+                        if (child === channels || child.id === 'plotCanvas') diagnostics.append(child);
+                        else main.append(child);
+                    }
+                    const perception = doc.getElementById('perception-container');
+                    container.insertBefore(main, perception);
+                    container.insertBefore(diagnostics, perception);
+                }
+            } catch (err) {
+                console.warn('Could not inject responsive style into iframe:', err);
+            }
+        }
+
+
+// Install the affordance inside the model frame so focus and input stay together.
+function installDemoPlayCue(iframe) {
+  const doc = iframe.contentDocument;
+  if (!doc?.body || doc.getElementById('lu-demo-play-bootstrap')) return;
+  function setup() {
+    const canvas = document.getElementById('mainCanvas');
+    if (!canvas) return;
+    const path = location.pathname;
+    const text = path.includes('text_'), snake = path.includes('snake');
+    const navigation = /tworooms|fourrooms/.test(path);
+    const editing = /editor|intervention/.test(path);
+    // Keep one Reset directly with the state canvas, using the same reload
+    // path even while a rollout is in progress. The cover has its own row.
+    const outerReset = parent.document.getElementById('load');
+    let nativeReset = document.querySelector('#btn-reset, #btnReset');
+    if (outerReset && !parent.document.querySelector('.hero-showcase')) {
+      if (!nativeReset) {
+        nativeReset = outerReset.cloneNode(true);
+        nativeReset.id = 'btnReset';
+      }
+      nativeReset.classList.add('lu-demo-reset');
+      if (navigation || path.includes('distributed')) {
+        canvas.parentElement.append(nativeReset);
+      } else {
+        const group = document.createElement('div');
+        group.id = 'lu-main-demo';
+        canvas.before(group);
+        group.append(canvas, nativeReset);
+      }
+      if (path.includes('conditional'))
+        canvas.parentElement.parentElement.classList.add('lu-navigation-canvases');
+    }
+    if (nativeReset && outerReset) {
+      nativeReset.setAttribute('aria-label', 'Reset');
+      nativeReset.title = 'Reset';
+      if (!nativeReset.querySelector('svg')) nativeReset.insertAdjacentHTML('afterbegin',
+        '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7"/></svg>');
+      nativeReset.addEventListener('click', event => {
+        event.preventDefault(); event.stopImmediatePropagation(); outerReset.click();
+      }, true);
+      const actions = outerReset.closest('.figure-actions');
+      if (actions) actions.hidden = true;
+    }
+    const style = document.createElement('style');
+    style.textContent = `
+      #lu-demo-play {
+        position:fixed; z-index:20; transform:translate(-50%,-50%);
+        display:grid; justify-items:center; gap:5px; width:max-content;
+        max-width:calc(100vw - 32px); margin:0; padding:12px 18px;
+        border:1px solid #ffffff66; border-radius:16px;
+        background:#0f172ae8; color:#fff; box-shadow:0 4px 18px #0003;
+        font:600 14px/1.4 system-ui,sans-serif; cursor:pointer; touch-action:manipulation;
+      }
+      #lu-demo-play[hidden] { display:none !important; }
+      #lu-demo-play:hover { background:#0369a1; }
+      #lu-demo-play:focus-visible { outline:3px solid #38bdf8; outline-offset:4px; }
+      #lu-demo-play svg { width:28px; height:28px; fill:currentColor; }
+      #lu-demo-play .lu-cue-controls { font-size:12px; font-weight:400; color:#e2e8f0; }
+      #lu-demo-play kbd { display:inline-block; min-width:17px; padding:1px 3px; margin:0 1px;
+        border:1px solid #94a3b8; border-radius:3px; background:transparent;
+        color:inherit; font:inherit; line-height:1.2; }
+      #mainCanvas:focus-visible { outline:3px solid #38bdf8; outline-offset:3px; }
+      .lu-pointer-cue { color:#0284c7 !important; font-weight:600 !important; }
+      .lu-duplicate-instruction { display:none !important; }
+      #lu-main-demo {
+        display:flex; flex-direction:column; align-items:center;
+        min-width:0; max-width:100%; width:100%;
+      }
+      :is(#btn-reset, #btnReset).lu-demo-reset {
+        order:1; display:inline-flex; align-items:center; justify-content:center; gap:6px;
+        align-self:center; margin:6px auto 0; min-height:32px; padding:5px 10px !important;
+        border:1px solid #7dd3fc; border-radius:6px; background:white; color:#0284c7;
+        font-size:14px; font-weight:500; cursor:pointer; touch-action:manipulation;
+      }
+      :is(#btn-reset, #btnReset).lu-demo-reset:hover { background:#f0f9ff; }
+      .lu-demo-reset svg { width:14px; height:14px; flex:none; margin:0 !important; }
+      .lu-navigation-canvases { align-items:flex-start !important; }
+      @media (min-width:560px) {
+        html[data-figure-expanded="true"] #lu-main-demo { grid-area:main; }
+      }
+    `;
+    document.head.append(style);
+    // The play cue already explains playback and keys. Preserve feedback such
+    // as scores, actions, loading failures, and the editor's painting guidance.
+    const instruction = document.querySelector('#container > p:first-child:not([id])');
+    if (instruction) {
+      if (path.includes('breakout_editor')) instruction.textContent = 'Click or drag on the canvas to paint or erase.';
+      else instruction.classList.add('lu-duplicate-instruction');
+    }
+    const status = document.getElementById('status-log');
+    if (status) {
+      const redundant = new Set(['', 'Click canvas to play',
+        'Click canvas or press Left/Right to play', 'Paused (Click to resume)']);
+      const refreshStatus = () => status.classList.toggle('lu-duplicate-instruction',
+        redundant.has(status.textContent.replace(/\s+/g, ' ').trim()));
+      const statusObserver = new MutationObserver(refreshStatus);
+      statusObserver.observe(status, {childList:true, characterData:true, subtree:true});
+      window.addEventListener('pagehide', () => statusObserver.disconnect());
+      refreshStatus();
+    }
+    canvas.tabIndex = 0;
+    const controls = text ? 'Type letters; Enter for a new line; Backspace to erase.'
+      : snake ? 'Use the arrow keys to move the snake.'
+      : navigation ? 'Drag the joystick to move.'
+      : 'Use Left and Right arrow keys to steer. Space pauses or resumes.';
+    canvas.setAttribute('aria-label', 'Interactive neural simulation. ' + controls);
+
+    // Drawing demos already have a persistent Play button. Keep the canvas free
+    // for painting while paused, and make its existing control discoverable.
+    if (editing) {
+      const play = document.getElementById('btnPlayPause');
+      if (play) { play.setAttribute('aria-label', 'Play or pause simulation'); play.title = 'Play / pause · Space'; }
+      return;
+    }
+    // Navigation starts with the first drag. Its cue must not intercept the knob.
+    if (navigation) {
+      const hint = document.querySelector('#joystick-wrapper > p');
+      if (hint) { hint.classList.add('lu-pointer-cue'); hint.textContent = '↔ Drag the knob to play'; }
+      return;
+    }
+
+    const button = document.createElement('button');
+    button.id = 'lu-demo-play'; button.type = 'button'; button.hidden = true;
+    const icon = text
+      ? '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M2 5h20v14H2zm2 2v10h16V7zm2 2h2v2H6zm4 0h2v2h-2zm4 0h2v2h-2zm4 0h1v2h-1zM6 13h2v2H6zm4 0h8v2h-8z"/></svg>'
+      : '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 4.5v15l12-7.5z"/></svg>';
+    const keys = text ? '<kbd>A</kbd>–<kbd>Z</kbd> · <kbd>Enter</kbd> · <kbd>⌫</kbd>'
+      : snake ? '<kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd>'
+      : '<kbd>←</kbd><kbd>→</kbd> · <kbd>Space</kbd> pauses';
+    button.innerHTML = icon + '<span class="lu-cue-label"></span><span class="lu-cue-controls" aria-hidden="true">' + keys + '</span>';
+    document.body.append(button);
+    let engaged = false, played = false, ready = false;
+    const stepped = text || snake;
+    function position() {
+      const box = canvas.getBoundingClientRect();
+      button.style.left = (box.left + box.width / 2) + 'px';
+      button.style.top = (box.top + box.height / 2) + 'px';
+    }
+    function update() {
+      ready = typeof isReady !== 'undefined' && isReady;
+      const running = typeof isRunning !== 'undefined' && isRunning;
+      if (running) played = true;
+      button.hidden = !ready || (stepped ? engaged : running);
+      const label = text ? 'Click to type' : snake ? 'Play Snake' : played ? 'Resume' : 'Play';
+      button.querySelector('.lu-cue-label').textContent = label;
+      button.setAttribute('aria-label', label + '. ' + controls);
+      if (!button.hidden) position();
+    }
+    function activate(event) {
+      event.preventDefault(); event.stopPropagation();
+      if (!ready) return;
+      engaged = true;
+      window.focus(); canvas.focus({preventScroll:true});
+      if (!stepped && typeof togglePlayPause === 'function'
+          && !(typeof isRunning !== 'undefined' && isRunning)) togglePlayPause();
+      if (text && matchMedia('(pointer:coarse)').matches) {
+        const input = parent.document.getElementById('text-input');
+        if (input && input.getBoundingClientRect().height) input.focus({preventScroll:true});
+      }
+      update();
+    }
+    button.addEventListener('click', activate);
+    // Consume activation keys before the model's window listeners can toggle
+    // the simulation, then activate once on release like a native Space button.
+    button.addEventListener('keydown', event => {
+      if (event.code === 'Space' || event.code === 'Enter') {
+        event.preventDefault(); event.stopPropagation();
+      }
+    });
+    button.addEventListener('keyup', event => {
+      if (event.code === 'Space' || event.code === 'Enter') activate(event);
+    });
+    canvas.addEventListener('pointerdown', () => { engaged = true; update(); });
+    window.addEventListener('keydown', event => {
+      if (stepped && (snake ? event.code.startsWith('Arrow') : event.key.length === 1 || ['Enter','Backspace'].includes(event.key))) {
+        engaged = true; update();
+      }
+      setTimeout(update, 0);
+    });
+    window.addEventListener('blur', () => setTimeout(update, 0));
+    document.addEventListener('click', () => setTimeout(update, 0));
+    const observer = new ResizeObserver(position);
+    observer.observe(canvas); observer.observe(document.body);
+    window.addEventListener('resize', position);
+    window.addEventListener('scroll', position, {passive:true});
+    const timer = setInterval(update, 250);
+    window.addEventListener('pagehide', () => { clearInterval(timer); observer.disconnect(); });
+    update();
+  }
+  const script = doc.createElement('script');
+  script.id = 'lu-demo-play-bootstrap';
+  script.textContent = '(' + setup.toString() + ')();';
+  doc.body.append(script);
+}
+
+(() => {
+  let current = 0, frame = null, resizeObserver = null;
+  const isHero = figureName === 'hero';
+  let autoStarted = false;
+  const status = document.getElementById('status');
+  const stage = document.getElementById('stage');
+  const load = document.getElementById('load');
+  const interactive = document.getElementById('interactive');
+  // Restore a linked simulation mode without adding extra navigation controls.
+  const viewSettings = new URLSearchParams(location.search);
+  const requestedVariant = Number(viewSettings.get('variant') || 0);
+  if (Number.isInteger(requestedVariant) && requestedVariant >= 0 && requestedVariant < variants.length) {
+    current = requestedVariant;
+    for (const tab of document.querySelectorAll('[data-variant]'))
+      tab.setAttribute('aria-pressed', String(Number(tab.dataset.variant) === current));
+  }
+  const savedChannels = document.getElementById('channels');
+  if (savedChannels && viewSettings.get('channels') === '1') {
+    savedChannels.checked = true;
+    document.getElementById('simple-label').classList.remove('active-label');
+    document.getElementById('channels-label').classList.add('active-label');
+  }
+  function key(type, code, value) {
+    if (!frame) return;
+    try { frame.contentWindow.dispatchEvent(new frame.contentWindow.KeyboardEvent(type,
+      {code, key: value || (code === 'Space' ? ' ' : code), bubbles: true, cancelable: true})); }
+    catch (_) { status.textContent = 'The simulation is still loading.'; }
+  }
+
+  function fitViewport() {
+    const target = frame;
+    if (!target?.isConnected) return;
+    const doc = target.contentDocument, root = doc?.documentElement;
+    const canvas = doc?.getElementById('mainCanvas');
+    // Resize callbacks can run between resetting a frame and its next load.
+    if (!doc?.body || !root || !canvas?.isConnected) return;
+    const kind = root.dataset.figureKind;
+    const expanded = !!document.getElementById('channels')?.checked || ['diagnostic', 'distributed'].includes(kind);
+    root.dataset.figureExpanded = String(expanded);
+    let viewportHeight = window.innerHeight, topInset = 16;
+    try {
+      viewportHeight = window.top.visualViewport?.height || window.top.innerHeight;
+      if (window.top !== window) {
+        const nav = window.top.document.querySelector('#navbar');
+        topInset = Math.max(88, (nav?.getBoundingClientRect().bottom || 0) + 16);
+      }
+    } catch (_) {}
+    // Count the real tabs, touch controls and options instead of estimating
+    // their height. The inner iframe adds 12px when measure() sizes it.
+    const controls = Math.max(0, document.body.getBoundingClientRect().height - stage.getBoundingClientRect().height);
+    const budget = Math.max(96, viewportHeight - topInset - 16 - controls - 12);
+    const narrow = target.clientWidth < 560;
+    if (!expanded) {
+      delete root.dataset.figureCompactChannels;
+      if (['editor', 'intervention'].includes(kind)) {
+        const other = doc.body.getBoundingClientRect().height - canvas.getBoundingClientRect().height;
+        root.style.setProperty('--figure-main-size', Math.max(144, Math.min(420, budget - other)) + 'px');
+      }
+      return;
+    }
+    const text = kind === 'text', distributed = kind === 'distributed';
+    const maximum = {
+      main: text ? 440 : distributed ? (narrow ? 180 : Math.min(220, (target.clientWidth - 64) / 2)) : narrow ? 240 : 360,
+      channel: text ? (narrow ? 110 : 144) : narrow ? 40 : 84,
+      plot: narrow ? 64 : 90
+    };
+    const minimum = {main: text ? 240 : distributed ? 90 : 144, channel: text ? 66 : 28, plot: 52};
+    const plot = doc.getElementById('plotCanvas');
+    // Compact cells put the unchanged-size channel label beside its canvas.
+    // This saves space before any simulation rendering needs to get smaller.
+    const compact = narrow;
+    root.dataset.figureCompactChannels = String(!text && compact);
+    function sizeAt(fraction, channelFraction = fraction) {
+      for (const part of ['main', 'channel']) {
+        const partFraction = part === 'channel' ? channelFraction : fraction;
+        const size = Math.floor(minimum[part] + (maximum[part] - minimum[part]) * partFraction);
+        root.style.setProperty('--figure-' + part + '-size', size + 'px');
+      }
+      if (plot) plot.style.setProperty('height', Math.floor(minimum.plot + (maximum.plot - minimum.plot) * fraction) + 'px', 'important');
+      return doc.body.getBoundingClientRect().height;
+    }
+    if (!narrow) {
+      // Fit the state canvas first, then grow the channels into the remaining
+      // space. Larger channel plots must not force a smaller main demo.
+      let mainFraction = 1;
+      if (sizeAt(1, 0) > budget) {
+        let low = 0, high = 1;
+        if (sizeAt(0, 0) <= budget) {
+          for (let attempt = 0; attempt < 7; attempt++) {
+            const middle = (low + high) / 2;
+            if (sizeAt(middle, 0) <= budget) low = middle;
+            else high = middle;
+          }
+        }
+        mainFraction = low;
+      }
+      if (sizeAt(mainFraction, 1) <= budget) return;
+      let low = 0, high = 1;
+      for (let attempt = 0; attempt < 7; attempt++) {
+        const middle = (low + high) / 2;
+        if (sizeAt(mainFraction, middle) <= budget) low = middle;
+        else high = middle;
+      }
+      sizeAt(mainFraction, low);
+      return;
+    }
+    // Measure the rendered layout: plot, channel rows, wrapped instructions,
+    // buttons and font metrics all contribute to its actual height.
+    if (sizeAt(1) <= budget) return;
+    let low = 0, high = 1;
+    if (sizeAt(0) <= budget) {
+      for (let attempt = 0; attempt < 7; attempt++) {
+        const middle = (low + high) / 2;
+        if (sizeAt(middle) <= budget) low = middle;
+        else high = middle;
+      }
+    }
+    sizeAt(low);
+  }
+  let revealRequest = 0;
+  function revealDemo() {
+    if (isHero) return;
+    const request = ++revealRequest;
+    let attempts = 0;
+    function settle() {
+      if (request !== revealRequest || !frame?.isConnected) return;
+      const doc = frame.contentDocument;
+      if (!doc?.getElementById('mainCanvas')) return;
+      const grid = doc.querySelector('#channels-container, #channel-container');
+      // Model initialization creates the channel cells asynchronously.
+      if (grid && !grid.children.length && attempts++ < 100) {
+        setTimeout(settle, 50);
+        return;
+      }
+      measure();
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (request !== revealRequest || !frame?.isConnected) return;
+        try {
+          const outer = window.frameElement;
+          if (!outer || parent === window) return;
+          const rect = outer.getBoundingClientRect();
+          const viewport = parent.visualViewport;
+          const height = viewport?.height || parent.innerHeight;
+          const navbar = parent.document.getElementById('navbar');
+          const top = Math.max(88, (navbar?.getBoundingClientRect().bottom || 0) + 16);
+          // Reveal only after an explicit expansion, and leave ordinary reading
+          // and resizing alone. Do not jump back if the reader has moved away.
+          if (rect.bottom < top || rect.top > height) return;
+          if (rect.top >= top && rect.bottom <= height - 12) return;
+          parent.scrollTo({top: parent.scrollY + rect.top - top,
+            behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
+        } catch (_) { /* Standalone and cross-origin figures retain normal scrolling. */ }
+      }));
+    }
+    setTimeout(settle, 120);
+  }
+  function measure() {
+    if (!frame) return;
+    fitViewport();
+    try { const doc = frame.contentDocument; if (doc && doc.body)
+      frame.style.height = Math.ceil(doc.body.getBoundingClientRect().height + 12) + 'px'; }
+    catch (_) {}
+  }
+  function pause() {
+    if (!frame) return;
+    try { frame.contentWindow.submissionDemo?.pause(); } catch (_) {}
+  }
+  // Keep the displayed frame in place while its replacement loads and sizes.
+  let pendingFrame = null, reloadTimer = null, reloadSerial = 0;
+  function cancelReplacement() {
+    reloadSerial++;
+    clearTimeout(reloadTimer);
+    reloadTimer = null;
+    if (pendingFrame) {
+      try { pendingFrame.contentWindow.submissionDemo?.pause(); } catch (_) {}
+      pendingFrame.remove(); pendingFrame = null;
+    }
+    stage.removeAttribute('aria-busy');
+  }
+  function dispose() {
+    cancelReplacement();
+    pause(); if (resizeObserver) resizeObserver.disconnect(); resizeObserver = null;
+    stage.replaceChildren(); stage.style.minHeight = ''; frame = null; interactive.hidden = true;
+  }
+  function start(reveal = false) {
+    cancelReplacement();
+    pause();
+    const serial = reloadSerial, chosen = current;
+    const actions = load.closest('.figure-actions');
+    const next = document.createElement('iframe');
+    next.title = variants[chosen][0] + ' neural cellular automaton simulation';
+    next.src = variants[chosen][1];
+    next.dataset.variant = String(chosen);
+    next.dataset.preparing = 'true';
+    const initialHeight = isHero ? (window.innerWidth <= 540 ? 220 : 280) + 24 : 320;
+    next.style.height = (frame?.getBoundingClientRect().height || initialHeight) + 'px';
+    stage.style.position = 'relative';
+    if (!frame) stage.style.minHeight = initialHeight + 'px';
+    next.setAttribute('aria-hidden', 'true'); next.inert = true;
+    // Prepare at the real stage width without affecting its layout. Reveal
+    // this same element in place: moving an iframe would reload its document.
+    Object.assign(next.style, {position:'absolute', inset:'0 0 auto', width:'100%',
+      visibility:'hidden', clipPath:'inset(100%)', pointerEvents:'none'});
+    pendingFrame = next;
+    const active = () => serial === reloadSerial && pendingFrame === next && next.isConnected;
+    function fail(message) {
+      if (!active()) return;
+      cancelReplacement(); stage.style.minHeight = '';
+      if (frame?.dataset.variant) {
+        current = Number(frame.dataset.variant);
+        for (const tab of document.querySelectorAll('[data-variant]'))
+          tab.setAttribute('aria-pressed', String(Number(tab.dataset.variant) === current));
+      }
+      if (!frame) actions.hidden = false;
+      status.classList.add('error'); status.textContent = message;
+    }
+    function sizeReplacement() {
+      const shown = frame;
+      try { frame = next; measure(); } finally { frame = shown; }
+    }
+    async function commit() {
+      try {
+        await next.contentDocument.fonts.ready;
+        if (!active()) return;
+        sizeReplacement();
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        if (!active()) return;
+        sizeReplacement();
+        pause();
+        if (resizeObserver) resizeObserver.disconnect();
+        clearTimeout(reloadTimer); reloadTimer = null;
+        const previous = frame;
+        frame = next; pendingFrame = null;
+        delete next.dataset.preparing;
+        next.removeAttribute('aria-hidden'); next.inert = false;
+        for (const property of ['position', 'inset', 'visibility', 'clip-path', 'pointer-events'])
+          next.style.removeProperty(property);
+        previous?.remove(); stage.style.minHeight = '';
+        stage.removeAttribute('aria-busy');
+        actions.hidden = !!next.contentDocument.querySelector('#btn-reset, #btnReset');
+        resizeObserver = new ResizeObserver(measure);
+        resizeObserver.observe(next.contentDocument.body);
+        status.classList.remove('error'); status.textContent = 'Simulation ready.';
+        measure();
+        if (reveal === true && typeof revealDemo === 'function') revealDemo();
+      } catch (_) { fail('The demo could not finish loading. Try Reset again.'); }
+    }
+    next.addEventListener('load', () => {
+      if (!active()) return;
+      try {
+        const doc = next.contentDocument;
+        if (!doc?.querySelector('#mainCanvas') || !next.contentWindow.tf) {
+          fail('The demo could not load. Try Reset again.'); return;
+        }
+        const hidden = actions.hidden;
+        try { makeIframeResponsive(next); } finally { actions.hidden = hidden; }
+        const safe = doc.createElement('style');
+        safe.textContent = 'body{min-height:0!important}#plotCanvas{max-width:96vw!important}';
+        doc.head.append(safe);
+        const channels = document.getElementById('channels');
+        if (channels && next.contentWindow.setRolloutMode)
+          next.contentWindow.setRolloutMode(channels.checked);
+        function awaitReady() {
+          if (!active()) return;
+          try {
+            if (next.contentWindow.eval('typeof isReady !== "undefined" && isReady')) {
+              commit(); return;
+            }
+            const issue = doc.querySelector('#status-log, #statusLog');
+            if (issue && /failed|unavailable|unable|error/i.test(issue.textContent)) {
+              fail('The demo could not load. ' + issue.textContent.trim()); return;
+            }
+            setTimeout(awaitReady, 50);
+          } catch (_) { fail('The demo could not load. Try Reset again.'); }
+        }
+        awaitReady();
+      } catch (_) { fail('The demo could not load. Try Reset again.'); }
+    }, {once:true});
+    next.addEventListener('error', () => fail('The demo could not load. Try Reset again.'), {once:true});
+    stage.append(next); interactive.hidden = false; stage.setAttribute('aria-busy', 'true');
+    status.classList.remove('error'); status.textContent = frame ? 'Resetting…' : 'Loading…';
+    reloadTimer = setTimeout(() => fail('The demo took too long to load. Try Reset again.'), 20000);
+  }
+  window.addEventListener('pagehide', event => {
+    if (event.persisted) { cancelReplacement(); pause(); }
+    else dispose();
+  });
+  load.addEventListener('click', start);
+  for (const button of document.querySelectorAll('[data-variant]')) button.addEventListener('click', () => {
+    current = Number(button.dataset.variant);
+    for (const tab of document.querySelectorAll('[data-variant]')) tab.setAttribute('aria-pressed', String(tab === button));
+    start(true);
+  });
+  for (const button of document.querySelectorAll('[data-key]')) {
+    const code = button.dataset.key;
+    button.addEventListener('pointerdown', event => {
+      event.preventDefault(); button.setPointerCapture(event.pointerId); key('keydown', code);
+    });
+    for (const event of ['pointerup', 'pointercancel', 'lostpointercapture'])
+      button.addEventListener(event, () => key('keyup', code));
+    button.addEventListener('click', event => { if (event.detail === 0) { key('keydown', code); key('keyup', code); } });
+  }
+  const channels = document.getElementById('channels');
+  if (channels) channels.addEventListener('change', () => {
+    document.getElementById('simple-label').classList.toggle('active-label', !channels.checked);
+    document.getElementById('channels-label').classList.toggle('active-label', channels.checked);
+    if (frame?.contentWindow.setRolloutMode) frame.contentWindow.setRolloutMode(channels.checked);
+    measure();
+    if (channels.checked) revealDemo();
+  });
+  const input = document.getElementById('text-input');
+  if (input) {
+    let pending = Promise.resolve();
+    function enqueue(value) { pending = pending.then(async () => {
+      key('keydown', value, value);
+      const demo = frame?.contentWindow;
+      // Slow channel rollouts deliberately span many rendered micro-steps.
+      // Await completion so a typed word is not reduced to its first letter.
+      const deadline = Date.now() + 15000;
+      await new Promise(resolve => setTimeout(resolve, 10));
+      while (demo && Date.now() < deadline) {
+        let rolling = false;
+        try { rolling = demo.submissionDemo?.isRollingOut; } catch (_) {}
+        if (!rolling) break;
+        await new Promise(resolve => setTimeout(resolve, 30));
+      }
+    }); }
+    input.addEventListener('input', () => {
+      for (const value of input.value) if (/^[a-zA-Z ]$/.test(value)) enqueue(value);
+      input.value = '';
+    });
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === 'Backspace') { event.preventDefault(); enqueue(event.key); }
+    });
+    // Mobile keyboards often emit beforeinput without a physical Backspace key.
+    input.addEventListener('beforeinput', event => {
+      if (event.inputType === 'deleteContentBackward') { event.preventDefault(); enqueue('Backspace'); }
+    });
+    for (const button of document.querySelectorAll('[data-text]')) button.addEventListener('click', () => enqueue(button.dataset.text));
+  }
+  window.addEventListener('resize', () => { if (frame) { makeIframeResponsive(frame); measure(); } });
+  try { if (window.top !== window) {
+    window.top.addEventListener('resize', measure);
+    window.top.visualViewport?.addEventListener('resize', measure);
+    window.addEventListener('pagehide', () => {
+      window.top.removeEventListener('resize', measure);
+      window.top.visualViewport?.removeEventListener('resize', measure);
+    });
+  } } catch (_) {}
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+  window.addEventListener('blur', pause);
+  // The parent article remains free of custom JavaScript; each figure owns its
+  // visibility and model lifecycle. Nested iframe clipping is included here.
+  new IntersectionObserver(entries => {
+    const visible = entries[0].isIntersecting;
+    if (visible && !autoStarted && !load.disabled) { autoStarted = true; start(); }
+    if (!visible) pause();
+    for (const video of document.querySelectorAll('.hero-card video')) {
+      if (visible && !matchMedia('(prefers-reduced-motion: reduce)').matches) video.play().catch(() => {});
+      else video.pause();
+    }
+  }, {threshold: 0}).observe(document.body);
+  for (const link of document.querySelectorAll('[data-section]')) link.addEventListener('click', event => {
+    try {
+      if (parent === window) return;
+      const target = parent.document.getElementById(link.dataset.section);
+      if (target) {
+        event.preventDefault(); target.scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+        parent.history.replaceState(null, '', '#' + link.dataset.section);
+      }
+    } catch (_) {}
+  });
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('webgl2') || canvas.getContext('webgl');
+  if (!context) {
+    load.disabled = true; status.classList.add('error'); status.textContent = 'WebGL is unavailable in this browser. Enable WebGL or try a browser with WebGL support.';
+    for (const details of document.querySelectorAll('details')) details.open = true;
+  }
+  if (context) context.getExtension('WEBGL_lose_context')?.loseContext();
+  if (isHero && !load.disabled) { autoStarted = true; start(); }
+})();
+
+
+(() => {
+  let lastHeight = 0;
+  function fitOuterFrame() {
+    try {
+      const frame = window.frameElement;
+      if (!frame) return;
+      // Intrinsic body height does not include the enclosing iframe viewport;
+      // using documentElement.scrollHeight here would prevent shrinking.
+      const height = Math.ceil(document.body.getBoundingClientRect().height + 2);
+      if (height !== lastHeight) { lastHeight = height; frame.style.height = height + 'px'; }
+    } catch (_) { /* Direct or cross-origin opening retains its fixed fallback height. */ }
+  }
+  new ResizeObserver(fitOuterFrame).observe(document.body);
+  window.addEventListener('load', fitOuterFrame);
+  window.addEventListener('resize', fitOuterFrame);
+  fitOuterFrame();
+})();
+
+</script>
+</body></html>
