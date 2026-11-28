@@ -260,6 +260,95 @@ html.presentation { background: #fff; }
 </style>
   <script src="vendor/tf-4.10.0.min.js"></script>
 <style>@import url("https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&family=Product+Sans&display=swap"); body, button, input, select { font-family: "Google Sans Flex", "Google Sans", "Product Sans", Roboto, system-ui, sans-serif !important; } html,body { overflow-x: hidden; } button:focus-visible { outline: 3px solid #126ead; }</style>
+<style id="lu-figure-theme" media="screen and (prefers-color-scheme: dark)">
+/* This style's media attribute follows the venue theme. Scientific pixels and
+   light-mode styling stay intact; print always uses the original light style. */
+@media screen {
+  html { color-scheme: dark; }
+  :root {
+    --accent: #7dd3fc;
+    --border: #454b54;
+    --muted: #b2bdcc;
+    --figure-text: #e2e8f0;
+    --figure-control: #292d33;
+    --figure-hover: #343b44;
+  }
+  html, html.presentation, body { background: transparent; }
+  html body, html.presentation body { color: var(--figure-text); }
+  .stage iframe, .simulation-card, .hero-card, .album-card { background: transparent; }
+  .compare figcaption, .hero-card-label, .switch-label.active-label { color: var(--figure-text); }
+  .switch-label { color: var(--muted); }
+  .hero-card-label { border-color: var(--border); }
+  .album-segmented-bar { background: var(--figure-control); }
+  html body button:not(.album-float-arrow):not(#lu-demo-play):not(.lu-demo-reset):not(.active):not(.btn-play):not(.btn-flash-score):not(.btn-flash-life):not(#btnPlayPause),
+  html body select, html.presentation body select, html body input[type="text"] {
+    background: var(--figure-control);
+    color: var(--figure-text);
+    border-color: var(--border);
+  }
+  html body button:not(.album-float-arrow):not(#lu-demo-play):not(.lu-demo-reset):not(.active):not(.btn-play):not(.btn-flash-score):not(.btn-flash-life):not(#btnPlayPause):hover {
+    background: var(--figure-hover);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  html body button[aria-pressed="true"] {
+    background: #173c4e !important;
+    color: var(--accent) !important;
+    border-color: var(--accent) !important;
+  }
+  .slider { background: #596371; }
+  .album-status[data-error] { background: var(--figure-control); color: var(--figure-text); }
+  /* Some model labels and reset styles are installed after the model loads. */
+  html body :is(.info, .channel-label, .main-label, .ctrl-label, #action-log, #speed-control, .speed-wrapper, #status-log, #statusLog),
+  html body #joystick-wrapper p,
+  html body .presentation-heading p,
+  html body .presentation-shortcuts,
+  html body .presentation-shortcuts kbd,
+  html body #container > p {
+    color: var(--muted) !important;
+  }
+  html body #joystick-wrapper > div:first-child { color: var(--figure-text) !important; }
+  html body #container > div:first-child > div > span { color: var(--figure-text) !important; }
+  html body #joystick-area { background: var(--figure-control); border-color: var(--border); }
+  html body :is(#channels-container, #channel-container, #perception-container) {
+    background: transparent !important;
+    border-color: var(--border);
+  }
+  html body :is(#btn-reset, #btnReset).lu-demo-reset {
+    background: var(--figure-control);
+    color: var(--accent);
+    border-color: var(--border);
+  }
+  html body :is(#btn-reset, #btnReset).lu-demo-reset:hover { background: var(--figure-hover); }
+  html body .lu-pointer-cue { color: var(--accent) !important; }
+}
+</style>
+<script id="lu-figure-theme-sync">
+// Read the venue theme without modifying the article. Older Safari versions
+// do not propagate a manual parent colour-scheme change into iframe media queries.
+(() => {
+  const style = document.getElementById('lu-figure-theme');
+  const preference = matchMedia('(prefers-color-scheme: dark)');
+  let venue = null;
+  try { if (window.top !== window) venue = window.top.document.documentElement; }
+  catch (_) { /* A cross-origin embed follows its available media preference. */ }
+  function syncTheme() {
+    const chosen = venue?.getAttribute('data-theme');
+    const dark = chosen === 'dark' || (chosen !== 'light' && preference.matches);
+    const media = dark ? 'screen' : 'not all';
+    if (style.media !== media) style.media = media;
+  }
+  const observer = new MutationObserver(syncTheme);
+  if (venue) observer.observe(venue, {attributes: true, attributeFilter: ['data-theme']});
+  preference.addEventListener('change', syncTheme);
+  window.addEventListener('pagehide', () => observer.disconnect());
+  window.addEventListener('pageshow', () => {
+    if (venue) observer.observe(venue, {attributes: true, attributeFilter: ['data-theme']});
+    syncTheme();
+  });
+  syncTheme();
+})();
+</script>
 </head>
 <body>
   <div id="container" tabindex="0">

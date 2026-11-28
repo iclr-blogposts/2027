@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 730 365"
+   width="730"
+   height="365"
+   version="1.1"
+   id="svg7"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs7" />
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.85224352"
+     inkscape:cx="31.681086"
+     inkscape:cy="83.309522"
+     inkscape:window-width="1529"
+     inkscape:window-height="685"
+     inkscape:window-x="0"
+     inkscape:window-y="33"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg7">
+    <inkscape:page
+       x="0"
+       y="0"
+       width="730"
+       height="365"
+       id="page2"
+       margin="0"
+       bleed="0" />
+  </sodipodi:namedview>
+
+  <rect
+     width="100%"
+     height="100%"
+     fill="#ffffff"
+     id="rect1"
+     x="0"
+     y="0" />
+  <text
+     class="label-text"
+     x="215.47977"
+     y="30.568953"
+     text-anchor="start"
+     id="text5-35-5"
+     style="font-size:24px;font-family:system-ui, '-apple-system', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;text-align:center;text-anchor:middle;fill:#000000"><tspan
+       sodipodi:role="line"
+       id="tspan36-2"
+       x="215.47977"
+       y="30.568953"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Google Sans', 'Google Sans Flex', 'Avenir Next', Avenir, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;-inkscape-font-specification:'Google Sans'">Proposed</tspan><tspan
+       sodipodi:role="line"
+       id="tspan37-2"
+       x="215.47977"
+       y="61.077751"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Google Sans', 'Google Sans Flex', 'Avenir Next', Avenir, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;-inkscape-font-specification:'Google Sans'">Allocation</tspan></text>
+  <text
+     class="label-text"
+     x="67.736954"
+     y="134.60747"
+     text-anchor="start"
+     id="text5-3"
+     style="font-size:24px;font-family:system-ui, '-apple-system', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;text-align:center;text-anchor:middle;fill:#2c3e50;fill-opacity:1"><tspan
+       sodipodi:role="line"
+       id="tspan31"
+       x="67.736954"
+       y="134.60747"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Google Sans', 'Google Sans Flex', 'Avenir Next', Avenir, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;-inkscape-font-specification:'Google Sans';fill:#2c3e50;fill-opacity:1">Interaction</tspan><tspan
+       sodipodi:role="line"
+       id="tspan32"
+       x="67.736954"
+       y="165.11627"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Google Sans', 'Google Sans Flex', 'Avenir Next', Avenir, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;-inkscape-font-specification:'Google Sans';fill:#2c3e50;fill-opacity:1">Capacity</tspan></text>
+
+  <polyline
+     points="180,45 180,320 760,320"
+     fill="none"
+     stroke="#a0a0a0"
+     stroke-width="2"
+     id="polyline1"
+     transform="translate(-33.843219,-39.258134)" />
+
+  <path
+     d="m 151.15678,10.741866 c 5,170.000004 45,230.000004 165,245.000004 120,15 250,19 400,21"
+     fill="none"
+     stroke="#555555"
+     stroke-width="5"
+     stroke-linecap="round"
+     id="path1" />
+
+  <style
+     id="style1">
+        .label-text {
+            font-family: system-ui, -apple-system, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif;
+            font-size: 24px;
+            fill: #000000;
+        }
+    </style>
+
+
+
+  <text
+     class="label-text"
+     x="161.15678"
+     y="307.74185"
+     text-anchor="start"
+     id="text5"
+     style="fill:#555555;fill-opacity:1"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Google Sans', 'Google Sans Flex', 'Avenir Next', Avenir, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;-inkscape-font-specification:'Google Sans';fill:#555555;fill-opacity:1"
+       id="tspan14">Local</tspan></text>
+  <text
+     class="label-text"
+     x="716.1568"
+     y="307.74185"
+     text-anchor="end"
+     id="text6"
+     style="fill:#555555;fill-opacity:1"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Google Sans', 'Google Sans Flex', 'Avenir Next', Avenir, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;-inkscape-font-specification:'Google Sans';fill:#555555;fill-opacity:1"
+       id="tspan15">Global</tspan></text>
+
+  <text
+     class="label-text"
+     x="431.25278"
+     y="326.92584"
+     text-anchor="start"
+     id="text5-35"
+     style="font-size:24px;font-family:system-ui, '-apple-system', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;text-align:center;text-anchor:middle;fill:#2c3e50;fill-opacity:1"><tspan
+       sodipodi:role="line"
+       id="tspan36"
+       x="431.25278"
+       y="326.92584"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Google Sans', 'Google Sans Flex', 'Avenir Next', Avenir, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;-inkscape-font-specification:'Google Sans';fill:#2c3e50;fill-opacity:1">Interaction</tspan><tspan
+       sodipodi:role="line"
+       id="tspan37"
+       x="431.25278"
+       y="357.43463"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Google Sans', 'Google Sans Flex', 'Avenir Next', Avenir, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;-inkscape-font-specification:'Google Sans';fill:#2c3e50;fill-opacity:1">Distance</tspan></text>
+<style id="lu-dark-palette">
+  #rect1 { fill: none; }
+  text, tspan { fill: #e2e8f0 !important; }
+  #text5, #text5 tspan, #text6, #text6 tspan { fill: #b2bdcc !important; }
+  #polyline1 { stroke: #8593a3; }
+  #path1 { stroke: #d0d9e4; }
+</style>
+</svg>
